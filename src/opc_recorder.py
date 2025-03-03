@@ -1,13 +1,15 @@
 import sys
 import csv
+import os
 from datetime import datetime
 from opcua import Client, ua
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QLineEdit, QLabel, QTreeWidget, QTreeWidgetItem, QComboBox, QListWidget,
-    QListWidgetItem, QSpinBox, QTableWidget, QTableWidgetItem, QFileDialog, QMessageBox
+    QListWidgetItem, QSpinBox, QTableWidget, QTableWidgetItem, QFileDialog, QMessageBox,
+    QFrame, QSplitter, QHeaderView, QCheckBox
 )
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, Qt
 
 class OPCUARecorder(QMainWindow):
     def __init__(self):
@@ -26,29 +28,125 @@ class OPCUARecorder(QMainWindow):
         self.init_ui()
 
     def init_ui(self):
+        # Set window style and size
+        self.setMinimumSize(1000, 800)
+        self.setStyleSheet("""
+            QMainWindow {
+                background-color: #f0f0f0;
+            }
+            QLabel {
+                font-size: 11pt;
+                color: #2c3e50;
+            }
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                font-size: 11pt;
+                min-width: 100px;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+            QPushButton:pressed {
+                background-color: #2574a9;
+            }
+            QTableWidget {
+                background-color: white;
+                alternate-background-color: #f9f9f9;
+                border: 1px solid #dcdcdc;
+                border-radius: 4px;
+                gridline-color: #e0e0e0;
+            }
+            QTableWidget::item {
+                padding: 5px;
+            }
+            QTableWidget::item:selected {
+                background-color: #3498db;
+                color: white;
+            }
+            QHeaderView::section {
+                background-color: #34495e;
+                color: white;
+                padding: 8px;
+                border: none;
+                font-size: 10pt;
+            }
+            QComboBox {
+                padding: 5px;
+                border: 1px solid #bdc3c7;
+                border-radius: 4px;
+                min-height: 25px;
+            }
+            QSpinBox {
+                padding: 5px;
+                border: 1px solid #bdc3c7;
+                border-radius: 4px;
+                min-height: 25px;
+            }
+            QTreeWidget {
+                background-color: white;
+                border: 1px solid #dcdcdc;
+                border-radius: 4px;
+            }
+            QTreeWidget::item {
+                padding: 5px;
+            }
+            QTreeWidget::item:selected {
+                background-color: #3498db;
+                color: white;
+            }
+        """)
+
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
+        main_layout.setSpacing(15)
+        main_layout.setContentsMargins(20, 20, 20, 20)
 
         # Top bar with connection status
         top_layout = QHBoxLayout()
+        top_layout.setSpacing(20)
         
-        # Connection status LED
-        status_layout = QHBoxLayout()
+        # Connection status LED in a nice frame
+        status_frame = QFrame()
+        status_frame.setFrameStyle(QFrame.StyledPanel)
+        status_frame.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 4px;
+                padding: 5px;
+            }
+        """)
+        status_layout = QHBoxLayout(status_frame)
+        status_layout.setContentsMargins(10, 5, 10, 5)
         self.status_led = QLabel()
-        self.status_led.setFixedSize(20, 20)
+        self.status_led.setFixedSize(16, 16)
         self.status_led.setStyleSheet(
-            "QLabel { background-color: red; border-radius: 10px; margin: 2px; }"
+            "QLabel { background-color: #e74c3c; border-radius: 8px; }"
         )
         status_label = QLabel("Server Status:")
+        status_label.setStyleSheet("font-weight: bold;")
         status_layout.addWidget(status_label)
         status_layout.addWidget(self.status_led)
-        status_layout.addStretch()
-        top_layout.addLayout(status_layout)
+        top_layout.addWidget(status_frame)
         
-        # Server URL selection
-        url_layout = QHBoxLayout()
+        # Server URL selection in a frame
+        url_frame = QFrame()
+        url_frame.setFrameStyle(QFrame.StyledPanel)
+        url_frame.setStyleSheet("""
+            QFrame {
+                background-color: white;
+                border-radius: 4px;
+                padding: 5px;
+            }
+        """)
+        url_layout = QHBoxLayout(url_frame)
+        url_layout.setContentsMargins(10, 5, 10, 5)
         url_label = QLabel("OPC UA Server URL:")
+        url_label.setStyleSheet("font-weight: bold;")
         self.url_combo = QComboBox()
         self.url_combo.setEditable(True)
         self.url_combo.addItems([
@@ -56,87 +154,227 @@ class OPCUARecorder(QMainWindow):
             "opc.tcp://192.168.101.10:4840"
         ])
         self.url_combo.setCurrentText("opc.tcp://localhost:4840")
+        self.url_combo.setMinimumWidth(300)
         url_layout.addWidget(url_label)
         url_layout.addWidget(self.url_combo)
-        top_layout.addLayout(url_layout)
+        top_layout.addWidget(url_frame, 1)
         
         main_layout.addLayout(top_layout)
 
         # Connect and Browse button
         self.connect_button = QPushButton("Connect and Browse")
         self.connect_button.clicked.connect(self.connect_and_browse)
+        self.connect_button.setStyleSheet("""
+            QPushButton {
+                background-color: #27ae60;
+            }
+            QPushButton:hover {
+                background-color: #2ecc71;
+            }
+        """)
         main_layout.addWidget(self.connect_button)
 
-        # Tree view to display the full address space
-        self.tree_widget = QTreeWidget()
-        self.tree_widget.setHeaderLabel("OPC UA Address Space")
-        main_layout.addWidget(self.tree_widget)
+        # Create main horizontal splitter
+        main_splitter = QSplitter(Qt.Horizontal)
+        main_splitter.setStyleSheet("""
+            QSplitter::handle {
+                background-color: #bdc3c7;
+                width: 2px;
+            }
+        """)
 
-        # Directory selection combo box
-        dir_layout = QHBoxLayout()
+        # Left side - Tree view and Recorded Data
+        left_widget = QWidget()
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setSpacing(15)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+
+        # Tree view
+        tree_frame = QFrame()
+        tree_layout = QVBoxLayout(tree_frame)
+        tree_label = QLabel("OPC UA Address Space")
+        tree_label.setStyleSheet("font-weight: bold; font-size: 12pt;")
+        tree_layout.addWidget(tree_label)
+        self.tree_widget = QTreeWidget()
+        self.tree_widget.setHeaderLabel("")
+        # Enable horizontal scrolling
+        self.tree_widget.setHorizontalScrollMode(QTreeWidget.ScrollPerPixel)
+        self.tree_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        # Allow items to expand horizontally
+        self.tree_widget.header().setStretchLastSection(False)
+        self.tree_widget.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        tree_layout.addWidget(self.tree_widget)
+        left_layout.addWidget(tree_frame)
+
+        # Data table in left side
+        data_frame = QFrame()
+        data_layout = QVBoxLayout(data_frame)
+        data_label = QLabel("Recorded Data:")
+        data_label.setStyleSheet("font-weight: bold; font-size: 12pt;")
+        data_layout.addWidget(data_label)
+        self.data_table = QTableWidget()
+        self.data_table.setAlternatingRowColors(True)
+        data_layout.addWidget(self.data_table)
+        
+        # Save controls layout
+        save_controls = QHBoxLayout()
+        
+        # Auto-save checkbox
+        self.auto_save_checkbox = QCheckBox("Auto-save to Records directory")
+        self.auto_save_checkbox.setStyleSheet("""
+            QCheckBox {
+                font-size: 10pt;
+                color: #2c3e50;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+            }
+            QCheckBox::indicator:unchecked {
+                border: 2px solid #bdc3c7;
+                background: white;
+                border-radius: 3px;
+            }
+            QCheckBox::indicator:checked {
+                border: 2px solid #27ae60;
+                background: #2ecc71;
+                border-radius: 3px;
+            }
+        """)
+        save_controls.addWidget(self.auto_save_checkbox)
+        
+        # Manual save button
+        self.save_button = QPushButton("Save CSV")
+        self.save_button.setStyleSheet("""
+            QPushButton {
+                background-color: #16a085;
+            }
+            QPushButton:hover {
+                background-color: #1abc9c;
+            }
+        """)
+        self.save_button.clicked.connect(self.save_csv)
+        save_controls.addWidget(self.save_button)
+        
+        data_layout.addLayout(save_controls)
+        left_layout.addWidget(data_frame)
+        
+        # Add left widget to main splitter
+        main_splitter.addWidget(left_widget)
+
+        # Right side - Variables and controls
+        right_widget = QWidget()
+        right_layout = QVBoxLayout(right_widget)
+        right_layout.setSpacing(15)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Directory selection
+        dir_frame = QFrame()
+        dir_frame.setStyleSheet("background-color: white; border-radius: 4px; padding: 10px;")
+        dir_layout = QVBoxLayout(dir_frame)
         dir_label = QLabel("Select Directory:")
+        dir_label.setStyleSheet("font-weight: bold;")
         self.dir_combo = QComboBox()
         self.dir_combo.currentIndexChanged.connect(self.directory_changed)
         dir_layout.addWidget(dir_label)
         dir_layout.addWidget(self.dir_combo)
-        main_layout.addLayout(dir_layout)
+        right_layout.addWidget(dir_frame)
 
-        # Variables list with checkboxes
-        main_layout.addWidget(QLabel("Select Variables to Record:"))
+        # Variables list
+        vars_list_label = QLabel("Select Variables to Record:")
+        vars_list_label.setStyleSheet("font-weight: bold; font-size: 12pt;")
+        right_layout.addWidget(vars_list_label)
         self.var_list = QListWidget()
-        self.var_list.itemChanged.connect(self.on_variable_checked)  # Connect checkbox changes
-        main_layout.addWidget(self.var_list)
+        self.var_list.setStyleSheet("""
+            QListWidget {
+                background-color: white;
+                border: 1px solid #dcdcdc;
+                border-radius: 4px;
+            }
+            QListWidget::item {
+                padding: 5px;
+            }
+        """)
+        self.var_list.itemChanged.connect(self.on_variable_checked)
+        right_layout.addWidget(self.var_list)
 
-        # Live Values table: shows current value of each selected variable
-        main_layout.addWidget(QLabel("Live Values:"))
+        # Live Values table
+        live_label = QLabel("Live Values:")
+        live_label.setStyleSheet("font-weight: bold; font-size: 12pt;")
+        right_layout.addWidget(live_label)
         self.live_table = QTableWidget()
-        self.live_table.setColumnCount(2)
-        self.live_table.setHorizontalHeaderLabels(["Variable", "Current Value"])
-        main_layout.addWidget(self.live_table)
+        self.live_table.setAlternatingRowColors(True)
+        right_layout.addWidget(self.live_table)
 
-        # Recording options: interval and total number of records
-        rec_layout = QHBoxLayout()
+        # Recording controls in a frame
+        controls_frame = QFrame()
+        controls_frame.setStyleSheet("background-color: white; border-radius: 4px; padding: 10px;")
+        controls_layout = QHBoxLayout(controls_frame)
+        
+        # Recording options
         self.interval_spin = QSpinBox()
-        self.interval_spin.setRange(1, 10000)  # 1ms to 10000ms
-        self.interval_spin.setValue(100)  # Default to 100ms
+        self.interval_spin.setRange(1, 10000)
+        self.interval_spin.setValue(100)
         self.records_spin = QSpinBox()
         self.records_spin.setRange(1, 10000)
         self.records_spin.setValue(5)
-        rec_layout.addWidget(QLabel("Interval (ms):"))
-        rec_layout.addWidget(self.interval_spin)
-        rec_layout.addWidget(QLabel("Number of Records:"))
-        rec_layout.addWidget(self.records_spin)
-        main_layout.addLayout(rec_layout)
-
-        # Start and Stop Recording buttons
-        btn_layout = QHBoxLayout()
+        
+        interval_label = QLabel("Interval (ms):")
+        records_label = QLabel("Number of Records:")
+        
+        controls_layout.addWidget(interval_label)
+        controls_layout.addWidget(self.interval_spin)
+        controls_layout.addSpacing(20)
+        controls_layout.addWidget(records_label)
+        controls_layout.addWidget(self.records_spin)
+        controls_layout.addStretch()
+        
+        # Record control buttons
         self.start_button = QPushButton("Start Record")
         self.start_button.clicked.connect(self.start_recording)
+        self.start_button.setStyleSheet("""
+            QPushButton {
+                background-color: #27ae60;
+            }
+            QPushButton:hover {
+                background-color: #2ecc71;
+            }
+        """)
+        
         self.stop_button = QPushButton("Stop Record")
         self.stop_button.clicked.connect(self.stop_recording)
-        btn_layout.addWidget(self.start_button)
-        btn_layout.addWidget(self.stop_button)
-        main_layout.addLayout(btn_layout)
+        self.stop_button.setStyleSheet("""
+            QPushButton {
+                background-color: #c0392b;
+            }
+            QPushButton:hover {
+                background-color: #e74c3c;
+            }
+        """)
+        
+        controls_layout.addWidget(self.start_button)
+        controls_layout.addWidget(self.stop_button)
+        
+        right_layout.addWidget(controls_frame)
 
-        # Table to display recorded data
-        main_layout.addWidget(QLabel("Recorded Data:"))
-        self.data_table = QTableWidget()
-        main_layout.addWidget(self.data_table)
+        # Add right widget to main splitter
+        main_splitter.addWidget(right_widget)
 
-        # Button to save CSV file
-        self.save_button = QPushButton("Save CSV")
-        self.save_button.clicked.connect(self.save_csv)
-        main_layout.addWidget(self.save_button)
+        # Set the initial sizes of the splitter (50-50 split)
+        main_splitter.setSizes([500, 500])
+        
+        # Add the main splitter to the layout
+        main_layout.addWidget(main_splitter)
 
     def update_connection_status(self, connected=False):
         """Update the connection status LED."""
         if connected:
             self.status_led.setStyleSheet(
-                "QLabel { background-color: lime; border-radius: 10px; margin: 2px; }"
+                "QLabel { background-color: #27ae60; border-radius: 8px; }"
             )
         else:
             self.status_led.setStyleSheet(
-                "QLabel { background-color: red; border-radius: 10px; margin: 2px; }"
+                "QLabel { background-color: #e74c3c; border-radius: 8px; }"
             )
 
     def connect_and_browse(self):
@@ -391,6 +629,11 @@ class OPCUARecorder(QMainWindow):
                 self.persistent_client = None
             except Exception:
                 pass
+        
+        # Auto-save if checkbox is checked and we have data
+        if self.auto_save_checkbox.isChecked() and self.record_data_list:
+            self.auto_save_recording()
+        
         QMessageBox.information(self, "Recording", "Recording stopped.")
 
     def save_csv(self):
@@ -445,12 +688,19 @@ class OPCUARecorder(QMainWindow):
     def setup_live_table(self):
         """Set up the live values table with current selected variables."""
         self.live_table.setRowCount(len(self.selected_vars))
-        self.live_table.setColumnCount(2)
-        self.live_table.setHorizontalHeaderLabels(["Variable", "Current Value"])
+        self.live_table.setColumnCount(6)  # Increased to 6 columns
+        self.live_table.setHorizontalHeaderLabels([
+            "Variable", "Current Value", "Data Type", "Node ID", 
+            "Access Level", "Description"
+        ])
         
-        for i, var_name in enumerate(self.selected_vars.keys()):
+        for i, (var_name, node_id) in enumerate(self.selected_vars.items()):
             self.live_table.setItem(i, 0, QTableWidgetItem(var_name))
             self.live_table.setItem(i, 1, QTableWidgetItem("Waiting..."))
+            self.live_table.setItem(i, 2, QTableWidgetItem(""))  # Empty data type initially
+            self.live_table.setItem(i, 3, QTableWidgetItem(node_id))
+            self.live_table.setItem(i, 4, QTableWidgetItem(""))  # Empty access level initially
+            self.live_table.setItem(i, 5, QTableWidgetItem(""))  # Empty description initially
 
     def start_live_updates(self):
         """Start live updates for selected variables."""
@@ -488,8 +738,57 @@ class OPCUARecorder(QMainWindow):
                 node = self.persistent_client.get_node(node_id)
                 value = node.get_value()
                 self.live_table.setItem(i, 1, QTableWidgetItem(str(value)))
+                self.live_table.setItem(i, 2, QTableWidgetItem(type(value).__name__))
+                
+                # Get access level
+                try:
+                    access_level = node.get_attribute(ua.AttributeIds.AccessLevel).Value.Value
+                    access_str = []
+                    if access_level & ua.AccessLevel.CurrentRead:
+                        access_str.append("Read")
+                    if access_level & ua.AccessLevel.CurrentWrite:
+                        access_str.append("Write")
+                    self.live_table.setItem(i, 4, QTableWidgetItem(" & ".join(access_str)))
+                except Exception:
+                    self.live_table.setItem(i, 4, QTableWidgetItem("Unknown"))
+                
+                # Get description
+                try:
+                    desc = node.get_description().Text
+                    self.live_table.setItem(i, 5, QTableWidgetItem(desc if desc else "No description"))
+                except Exception:
+                    self.live_table.setItem(i, 5, QTableWidgetItem("No description"))
+                    
             except Exception as e:
                 self.live_table.setItem(i, 1, QTableWidgetItem(f"Error: {str(e)}"))
+                self.live_table.setItem(i, 2, QTableWidgetItem("Error"))
+                self.live_table.setItem(i, 4, QTableWidgetItem("Unknown"))
+                self.live_table.setItem(i, 5, QTableWidgetItem("Error"))
+
+    def auto_save_recording(self):
+        """Automatically saves the recording to the Records directory."""
+        try:
+            # Create Records directory if it doesn't exist
+            records_dir = "Records"
+            if not os.path.exists(records_dir):
+                os.makedirs(records_dir)
+            
+            # Generate filename with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"record_{timestamp}.csv"
+            file_path = os.path.join(records_dir, filename)
+            
+            # Save the file
+            with open(file_path, "w", newline="") as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=self.record_data_list[0].keys())
+                writer.writeheader()
+                writer.writerows(self.record_data_list)
+            print(f"Auto-saved recording to: {file_path}")
+            
+        except Exception as e:
+            print(f"Error auto-saving recording: {str(e)}")
+            QMessageBox.warning(self, "Auto-save Warning", 
+                              f"Could not auto-save recording: {str(e)}")
 
     def closeEvent(self, event):
         """Ensures all clients are disconnected when the application closes."""
