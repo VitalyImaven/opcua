@@ -350,23 +350,29 @@ class RecordingScenario(QWidget):
         # Save controls
         save_controls = QHBoxLayout()
         self.auto_save_checkbox = QCheckBox("Auto-save to Records directory")
+        self.auto_save_checkbox.setChecked(True)  # Set initial state to checked
         self.auto_save_checkbox.setStyleSheet("""
             QCheckBox {
                 color: #e0e0e0;
             }
             QCheckBox::indicator {
-                width: 18px;
-                height: 18px;
-                border-radius: 3px;
-                border: 2px solid #3d3d3d;
-                background: #2d2d2d;
+                width: 15px;
+                height: 15px;
+                border-radius: 4px;
+                border: 1px solid #808080;
+                background: #454545 !important;
             }
             QCheckBox::indicator:checked {
-                background: #4d4d4d;
-                border-color: #5d5d5d;
+                background: #139415 !important;
+                border-color: #139415 !important;
+
             }
             QCheckBox::indicator:hover {
-                border-color: #4d4d4d;
+                border-color: #454545 !important;
+            }
+            QCheckBox::indicator:checked:hover {
+                background: #139415 !important;
+                border-color: #139415;
             }
         """)
         save_controls.addWidget(self.auto_save_checkbox)
@@ -374,17 +380,17 @@ class RecordingScenario(QWidget):
         self.save_button = QPushButton("Save CSV")
         self.save_button.setStyleSheet("""
             QPushButton {
-                background-color: #2d6da4;
+                background-color: #a36f0d !important;
                 color: #e0e0e0;
                 border: none;
                 padding: 8px 16px;
                 border-radius: 4px;
             }
             QPushButton:hover {
-                background-color: #3d7db4;
+                background-color: #a36f0d !important;
             }
             QPushButton:pressed {
-                background-color: #1d5d94;
+                background-color: #a36f0d !important;
             }
         """)
         self.save_button.clicked.connect(self.save_csv)
@@ -550,8 +556,14 @@ class RecordingScenario(QWidget):
         self.record_timer.stop()
         
         # Auto-save if checkbox is checked and we have data
+        print(f"Auto-save checkbox state: {self.auto_save_checkbox.isChecked()}")
+        print(f"Record data list length: {len(self.record_data_list)}")
+        
         if self.auto_save_checkbox.isChecked() and self.record_data_list:
+            print("Attempting auto-save...")
             self.auto_save_recording()
+        else:
+            print("Auto-save conditions not met")
         
         QMessageBox.information(self, "Recording", "Recording stopped.")
 
@@ -576,18 +588,22 @@ class RecordingScenario(QWidget):
         """Automatically saves the recording to the Records directory."""
         try:
             records_dir = os.path.join("Records", self.name)
+            print(f"Creating records directory: {records_dir}")
+            
             if not os.path.exists(records_dir):
                 os.makedirs(records_dir)
+                print(f"Created directory: {records_dir}")
             
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"record_{timestamp}.csv"
             file_path = os.path.join(records_dir, filename)
+            print(f"Saving to file: {file_path}")
             
             with open(file_path, "w", newline="") as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=self.record_data_list[0].keys())
                 writer.writeheader()
                 writer.writerows(self.record_data_list)
-            print(f"Auto-saved recording to: {file_path}")
+            print(f"Successfully auto-saved recording to: {file_path}")
             
         except Exception as e:
             print(f"Error auto-saving recording: {str(e)}")
@@ -633,26 +649,58 @@ class RecordingScenario(QWidget):
             checkbox.setStyleSheet("""
                 QCheckBox {
                     color: #e0e0e0;
+                    background: transparent;
                 }
                 QCheckBox::indicator {
-                    width: 18px;
-                    height: 18px;
+                    width: 15px;
+                    height: 15px;
                     border-radius: 3px;
-                    border: 2px solid #3d3d3d;
-                    background: #2d2d2d;
+                    border: 1px solid #808080;
+                    background-color: #2d2d2d !important;
                 }
                 QCheckBox::indicator:checked {
-                    background: #4d4d4d;
-                    border-color: #5d5d5d;
+                    background-color: #b05cfa !important;
+                    border-color: #b05cfa;
                 }
                 QCheckBox::indicator:hover {
-                    border-color: #4d4d4d;
+                    border-color: #a0a0a0;
+                }
+                QCheckBox::indicator:checked:hover {
+                    background-color: #b3b1b5 !important;
+                    border-color: #b3b1b5;
                 }
             """)
             self.live_update_checkboxes[var_name] = checkbox
             
-            # Create checkbox cell widget
+            # Create checkbox cell widget with transparent background
             checkbox_widget = QWidget()
+            checkbox_widget.setStyleSheet("""
+                QWidget {
+                    background: transparent;
+                }
+                QCheckBox {
+                    color: #e0e0e0;
+                    background: transparent;
+                }
+                QCheckBox::indicator {
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 4px;
+                    border: 2px solid #808080;
+                    background-color: #2d2d2d !important;
+                }
+                QCheckBox::indicator:checked {
+                    background-color: #139415 !important;
+                    border-color: #139415;
+                }
+                QCheckBox::indicator:hover {
+                    border-color: #a0a0a0;
+                }
+                QCheckBox::indicator:checked:hover {
+                    background-color: #cc0000 !important;
+                    border-color: #cc0000;
+                }
+            """)
             checkbox_layout = QHBoxLayout(checkbox_widget)
             checkbox_layout.addWidget(checkbox)
             checkbox_layout.setAlignment(Qt.AlignCenter)
@@ -665,6 +713,7 @@ class RecordingScenario(QWidget):
             for col, text in enumerate([var_name, "Waiting...", "", node_id, "", ""], start=1):
                 item = QTableWidgetItem(text)
                 item.setForeground(Qt.white)  # Set text color to white
+                item.setBackground(Qt.transparent)  # Set transparent background
                 self.live_table.setItem(i, col, item)
         
         # Set all columns to be interactively resizable
@@ -681,7 +730,7 @@ class RecordingScenario(QWidget):
         self.live_table.setColumnWidth(5, 100)  # Access Level
         self.live_table.setColumnWidth(6, 200)  # Description
         
-        # Update the table's stylesheet to ensure consistent text colors
+        # Update the table's stylesheet for consistent dark theme
         self.live_table.setStyleSheet("""
             QTableWidget {
                 background: #2d2d2d;
@@ -689,8 +738,10 @@ class RecordingScenario(QWidget):
                 border-radius: 8px;
                 color: #e0e0e0;
                 gridline-color: #3d3d3d;
+                alternate-background-color: #353535;
             }
             QTableWidget::item {
+                background: transparent;
                 color: #e0e0e0;
                 padding: 4px;
                 border: none;
@@ -992,18 +1043,23 @@ class OPCUARecorder(QMainWindow):
                 color: #e0e0e0;
             }
             QCheckBox::indicator {
-                width: 18px;
-                height: 18px;
-                border-radius: 3px;
-                border: 2px solid #3d3d3d;
+                width: 20px;
+                height: 20px;
+                border-radius: 4px;
+                border: 2px solid #808080;
                 background: #2d2d2d;
             }
             QCheckBox::indicator:checked {
-                background: #4d4d4d;
-                border-color: #5d5d5d;
+                background: #4CAF50;
+                border-color: #4CAF50;
+                image: url(data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z'/%3E%3C/svg%3E);
             }
             QCheckBox::indicator:hover {
-                border-color: #4d4d4d;
+                border-color: #a0a0a0;
+            }
+            QCheckBox::indicator:checked:hover {
+                background: #45a049;
+                border-color: #45a049;
             }
         """)
 
