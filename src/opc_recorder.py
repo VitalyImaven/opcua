@@ -96,10 +96,10 @@ class RecordingScenario(QWidget):
         self.start_button.clicked.connect(self.start_recording)
         self.start_button.setStyleSheet("""
             QPushButton {
-                background-color: #27ae60;
+                background-color: #1a73e8;
             }
             QPushButton:hover {
-                background-color: #2ecc71;
+                background-color: #1557b0;
             }
         """)
         
@@ -107,10 +107,10 @@ class RecordingScenario(QWidget):
         self.stop_button.clicked.connect(self.stop_recording)
         self.stop_button.setStyleSheet("""
             QPushButton {
-                background-color: #c0392b;
+                background-color: #dc3545;
             }
             QPushButton:hover {
-                background-color: #e74c3c;
+                background-color: #c82333;
             }
         """)
         
@@ -154,10 +154,10 @@ class RecordingScenario(QWidget):
         self.save_button = QPushButton("Save CSV")
         self.save_button.setStyleSheet("""
             QPushButton {
-                background-color: #16a085;
+                background-color: #1a73e8;
             }
             QPushButton:hover {
-                background-color: #1abc9c;
+                background-color: #1557b0;
             }
         """)
         self.save_button.clicked.connect(self.save_csv)
@@ -381,9 +381,19 @@ class RecordingScenario(QWidget):
             self.live_table.setItem(i, 5, QTableWidgetItem(""))
             self.live_table.setItem(i, 6, QTableWidgetItem(""))
         
-        # Adjust column widths
-        self.live_table.setColumnWidth(0, 70)  # Checkbox column
-        self.live_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
+        # Set all columns to be interactively resizable
+        header = self.live_table.horizontalHeader()
+        for i in range(self.live_table.columnCount()):
+            header.setSectionResizeMode(i, QHeaderView.Interactive)
+        
+        # Set initial column widths
+        self.live_table.setColumnWidth(0, 70)  # Real-time checkbox
+        self.live_table.setColumnWidth(1, 200)  # Variable name
+        self.live_table.setColumnWidth(2, 150)  # Current Value
+        self.live_table.setColumnWidth(3, 100)  # Data Type
+        self.live_table.setColumnWidth(4, 200)  # Node ID
+        self.live_table.setColumnWidth(5, 100)  # Access Level
+        self.live_table.setColumnWidth(6, 200)  # Description
 
     def start_live_updates(self):
         """Start live updates for selected variables."""
@@ -459,14 +469,14 @@ class OPCUARecorder(QMainWindow):
         self.setMinimumSize(1200, 800)
         self.setStyleSheet("""
             QMainWindow {
-                background-color: #f0f0f0;
+                background-color: #f5f7fa;
             }
             QLabel {
                 font-size: 11pt;
                 color: #2c3e50;
             }
             QPushButton {
-                background-color: #3498db;
+                background-color: #1a73e8;
                 color: white;
                 border: none;
                 padding: 8px 16px;
@@ -475,19 +485,19 @@ class OPCUARecorder(QMainWindow):
                 min-width: 100px;
             }
             QPushButton:hover {
-                background-color: #2980b9;
+                background-color: #1557b0;
             }
             QPushButton:pressed {
-                background-color: #2574a9;
+                background-color: #104294;
             }
             QTabWidget::pane {
-                border: 1px solid #bdc3c7;
+                border: 1px solid #e1e5ea;
                 background: white;
                 border-radius: 4px;
             }
             QTabBar::tab {
-                background: #ecf0f1;
-                border: 1px solid #bdc3c7;
+                background: #f8f9fa;
+                border: 1px solid #e1e5ea;
                 padding: 8px 12px;
                 margin-right: 2px;
                 border-top-left-radius: 4px;
@@ -496,34 +506,86 @@ class OPCUARecorder(QMainWindow):
             QTabBar::tab:selected {
                 background: white;
                 border-bottom-color: white;
+                color: #1a73e8;
             }
             QTabBar::tab:hover {
-                background: #f5f5f5;
+                background: #f0f4f8;
             }
-        """)
-
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        main_layout = QVBoxLayout(central_widget)
-        main_layout.setSpacing(15)
-        main_layout.setContentsMargins(20, 20, 20, 20)
-
-        # Top bar with connection status and server URL
-        top_layout = QHBoxLayout()
-        top_layout.setSpacing(20)
-        
-        # Connection status LED in a frame
-        status_frame = QFrame()
-        status_frame.setFrameStyle(QFrame.StyledPanel)
-        status_frame.setStyleSheet("""
+            QListWidget, QTableWidget, QTreeWidget {
+                background-color: white;
+                border: 1px solid #e1e5ea;
+                border-radius: 4px;
+            }
+            QListWidget::item:hover, QTreeWidget::item:hover {
+                background-color: #f0f4f8;
+            }
+            QListWidget::item:selected, QTreeWidget::item:selected {
+                background-color: #e8f0fe;
+                color: #1a73e8;
+            }
+            QHeaderView::section {
+                background-color: #f8f9fa;
+                border: none;
+                border-right: 1px solid #e1e5ea;
+                border-bottom: 1px solid #e1e5ea;
+                padding: 4px;
+            }
+            QComboBox {
+                border: 1px solid #e1e5ea;
+                border-radius: 4px;
+                padding: 4px;
+                background: white;
+            }
+            QComboBox:hover {
+                border-color: #1a73e8;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #5f6368;
+                margin-right: 5px;
+            }
+            QSpinBox {
+                border: 1px solid #e1e5ea;
+                border-radius: 4px;
+                padding: 4px;
+            }
+            QSpinBox:hover {
+                border-color: #1a73e8;
+            }
             QFrame {
                 background-color: white;
+                border: 1px solid #e1e5ea;
                 border-radius: 4px;
-                padding: 5px;
+            }
+            QSplitter::handle {
+                background-color: #e1e5ea;
+                width: 2px;
             }
         """)
-        status_layout = QHBoxLayout(status_frame)
-        status_layout.setContentsMargins(10, 5, 10, 5)
+
+        # Create main horizontal splitter
+        main_splitter = QSplitter(Qt.Horizontal)
+        self.setCentralWidget(main_splitter)
+
+        # Left side widget - Address Space and Connection Controls
+        left_widget = QWidget()
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setSpacing(15)
+        left_layout.setContentsMargins(10, 10, 10, 10)
+
+        # Connection controls at the top
+        connection_frame = QFrame()
+        connection_frame.setStyleSheet("padding: 10px;")
+        connection_layout = QVBoxLayout(connection_frame)
+        connection_layout.setSpacing(10)
+
+        # Server status
+        status_layout = QHBoxLayout()
         self.status_led = QLabel()
         self.status_led.setFixedSize(16, 16)
         self.status_led.setStyleSheet(
@@ -533,22 +595,13 @@ class OPCUARecorder(QMainWindow):
         status_label.setStyleSheet("font-weight: bold;")
         status_layout.addWidget(status_label)
         status_layout.addWidget(self.status_led)
-        top_layout.addWidget(status_frame)
-        
-        # Server URL selection in a frame
-        url_frame = QFrame()
-        url_frame.setFrameStyle(QFrame.StyledPanel)
-        url_frame.setStyleSheet("""
-            QFrame {
-                background-color: white;
-                border-radius: 4px;
-                padding: 5px;
-            }
-        """)
-        url_layout = QHBoxLayout(url_frame)
-        url_layout.setContentsMargins(10, 5, 10, 5)
+        status_layout.addStretch()
+        connection_layout.addLayout(status_layout)
+
+        # Server URL
         url_label = QLabel("OPC UA Server URL:")
         url_label.setStyleSheet("font-weight: bold;")
+        connection_layout.addWidget(url_label)
         self.url_combo = QComboBox()
         self.url_combo.setEditable(True)
         self.url_combo.addItems([
@@ -556,61 +609,39 @@ class OPCUARecorder(QMainWindow):
             "opc.tcp://192.168.101.10:4840"
         ])
         self.url_combo.setCurrentText("opc.tcp://localhost:4840")
-        self.url_combo.setMinimumWidth(300)
-        url_layout.addWidget(url_label)
-        url_layout.addWidget(self.url_combo)
-        top_layout.addWidget(url_frame, 1)
-        
-        main_layout.addLayout(top_layout)
+        connection_layout.addWidget(self.url_combo)
 
-        # Connect and Browse button
+        # Connect button
         self.connect_button = QPushButton("Connect and Browse")
         self.connect_button.clicked.connect(self.connect_and_browse)
-        self.connect_button.setStyleSheet("""
-            QPushButton {
-                background-color: #27ae60;
-            }
-            QPushButton:hover {
-                background-color: #2ecc71;
-            }
-        """)
-        main_layout.addWidget(self.connect_button)
+        connection_layout.addWidget(self.connect_button)
+        
+        left_layout.addWidget(connection_frame)
 
-        # Create main horizontal splitter
-        main_splitter = QSplitter(Qt.Horizontal)
-        main_splitter.setStyleSheet("""
-            QSplitter::handle {
-                background-color: #bdc3c7;
-                width: 2px;
-            }
-        """)
-
-        # Left side - Tree view
-        left_widget = QWidget()
-        left_layout = QVBoxLayout(left_widget)
-        left_layout.setSpacing(15)
-        left_layout.setContentsMargins(0, 0, 0, 0)
-
+        # Address space tree
         tree_frame = QFrame()
         tree_layout = QVBoxLayout(tree_frame)
         tree_label = QLabel("OPC UA Address Space")
         tree_label.setStyleSheet("font-weight: bold; font-size: 12pt;")
         tree_layout.addWidget(tree_label)
+        
         self.tree_widget = QTreeWidget()
         self.tree_widget.setHeaderLabel("")
-        # Enable horizontal scrolling
         self.tree_widget.setHorizontalScrollMode(QTreeWidget.ScrollPerPixel)
         self.tree_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        # Allow items to expand horizontally
         self.tree_widget.header().setStretchLastSection(False)
         self.tree_widget.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         tree_layout.addWidget(self.tree_widget)
+        
         left_layout.addWidget(tree_frame)
 
-        # Add left widget to main splitter
-        main_splitter.addWidget(left_widget)
+        # Right side widget - Recording Scenarios
+        right_widget = QWidget()
+        right_layout = QVBoxLayout(right_widget)
+        right_layout.setSpacing(15)
+        right_layout.setContentsMargins(10, 10, 10, 10)
 
-        # Right side - Tab widget for scenarios
+        # Tab widget for scenarios
         self.tab_widget = QTabWidget()
         self.tab_widget.setTabsClosable(True)
         self.tab_widget.tabCloseRequested.connect(self.close_scenario_tab)
@@ -624,14 +655,14 @@ class OPCUARecorder(QMainWindow):
         self.tab_widget.addTab(plus_tab, "+")
         self.tab_widget.tabBarClicked.connect(self.handle_tab_click)
         
-        # Add right widget to main splitter
-        main_splitter.addWidget(self.tab_widget)
+        right_layout.addWidget(self.tab_widget)
+
+        # Add widgets to main splitter
+        main_splitter.addWidget(left_widget)
+        main_splitter.addWidget(right_widget)
 
         # Set the initial sizes of the splitter (30-70 split)
-        main_splitter.setSizes([300, 700])
-        
-        # Add the main splitter to the layout
-        main_layout.addWidget(main_splitter)
+        main_splitter.setSizes([300, 900])
 
         # Create initial scenario
         self.add_new_scenario("Scenario 1")
