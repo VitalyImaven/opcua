@@ -24,6 +24,52 @@ class RecordingScenario(QWidget):
         self.live_update_timer = QTimer(self)
         self.live_update_timer.timeout.connect(self.update_live_values)
         self.live_update_timer.setInterval(100)  # Update every 100ms
+        
+        # Set the application-wide stylesheet for dialogs
+        app = QApplication.instance()
+        if app:
+            app.setStyleSheet("""
+                QMessageBox, QInputDialog {
+                    background-color: #2d2d2d;
+                }
+                QMessageBox QLabel, QInputDialog QLabel {
+                    color: #e0e0e0;
+                }
+                QMessageBox QPushButton, QInputDialog QPushButton {
+                    background-color: #3d3d3d;
+                    color: #e0e0e0;
+                    border: 1px solid #4d4d4d;
+                    padding: 5px 15px;
+                    border-radius: 3px;
+                }
+                QMessageBox QPushButton:hover, QInputDialog QPushButton:hover {
+                    background-color: #4d4d4d;
+                }
+                QInputDialog QLineEdit {
+                    background-color: #2d2d2d;
+                    color: #e0e0e0;
+                    border: 1px solid #3d3d3d;
+                    padding: 5px;
+                }
+                QFileDialog {
+                    background-color: #2d2d2d;
+                    color: #e0e0e0;
+                }
+                QFileDialog QLabel {
+                    color: #e0e0e0;
+                }
+                QFileDialog QLineEdit {
+                    background-color: #2d2d2d;
+                    color: #e0e0e0;
+                    border: 1px solid #3d3d3d;
+                    padding: 5px;
+                }
+                QFileDialog QTreeView, QFileDialog QListView {
+                    background-color: #2d2d2d;
+                    color: #e0e0e0;
+                }
+            """)
+        
         self.init_ui()
 
     def init_ui(self):
@@ -32,11 +78,54 @@ class RecordingScenario(QWidget):
 
         # Directory selection
         dir_frame = QFrame()
-        dir_frame.setStyleSheet("background-color: white; border-radius: 4px; padding: 10px;")
+        dir_frame.setStyleSheet("""
+            QFrame {
+                background: #2d2d2d;
+                border: 1px solid #3d3d3d;
+                border-radius: 4px;
+                padding: 10px;
+            }
+        """)
         dir_layout = QVBoxLayout(dir_frame)
         dir_label = QLabel("Select Directory:")
-        dir_label.setStyleSheet("font-weight: bold;")
+        dir_label.setStyleSheet("font-weight: bold; color: #e0e0e0;")
         self.dir_combo = QComboBox()
+        self.dir_combo.setStyleSheet("""
+            QComboBox {
+                border: 1px solid #3d3d3d;
+                border-radius: 4px;
+                padding: 4px;
+                background: #2d2d2d;
+                color: #e0e0e0;
+            }
+            QComboBox:hover {
+                border: 1px solid #4d4d4d;
+                background: #353535;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #e0e0e0;
+                margin-right: 5px;
+            }
+            QComboBox QAbstractItemView {
+                background: #2d2d2d;
+                border: 1px solid #3d3d3d;
+                selection-background-color: #404040;
+                selection-color: #e0e0e0;
+                color: #e0e0e0;
+            }
+            QComboBox QLineEdit {
+                background: #2d2d2d;
+                color: #e0e0e0;
+                border: none;
+                padding: 0px;
+            }
+        """)
         self.dir_combo.currentIndexChanged.connect(self.directory_changed)
         dir_layout.addWidget(dir_label)
         dir_layout.addWidget(self.dir_combo)
@@ -44,17 +133,25 @@ class RecordingScenario(QWidget):
 
         # Variables list
         vars_list_label = QLabel("Select Variables to Record:")
-        vars_list_label.setStyleSheet("font-weight: bold; font-size: 12pt;")
+        vars_list_label.setStyleSheet("font-weight: bold; font-size: 12pt; color: #e0e0e0;")
         layout.addWidget(vars_list_label)
         self.var_list = QListWidget()
         self.var_list.setStyleSheet("""
             QListWidget {
-                background-color: white;
-                border: 1px solid #dcdcdc;
+                background: #2d2d2d;
+                border: 1px solid #3d3d3d;
                 border-radius: 4px;
+                color: #e0e0e0;
             }
             QListWidget::item {
                 padding: 5px;
+            }
+            QListWidget::item:hover {
+                background: #353535;
+            }
+            QListWidget::item:selected {
+                background: #404040;
+                color: #ffffff;
             }
         """)
         self.var_list.itemChanged.connect(self.on_variable_checked)
@@ -62,15 +159,91 @@ class RecordingScenario(QWidget):
 
         # Live Values table
         live_label = QLabel("Live Values:")
-        live_label.setStyleSheet("font-weight: bold; font-size: 12pt;")
+        live_label.setStyleSheet("font-weight: bold; font-size: 12pt; color: #e0e0e0;")
         layout.addWidget(live_label)
         self.live_table = QTableWidget()
+        self.live_table.setStyleSheet("""
+            QTableWidget {
+                background: #2d2d2d;
+                border: 1px solid #3d3d3d;
+                border-radius: 8px;
+                color: #e0e0e0;
+                gridline-color: #3d3d3d;
+            }
+            QTableWidget::item {
+                color: #e0e0e0;
+                padding: 4px;
+                border: none;
+            }
+            QTableWidget::item:selected {
+                background: #404040;
+                color: #ffffff;
+            }
+            QHeaderView::section {
+                background: #2d2d2d;
+                color: #e0e0e0;
+                border: none;
+                border-right: 1px solid #3d3d3d;
+                border-bottom: 1px solid #3d3d3d;
+                padding: 4px;
+            }
+            QTableCornerButton::section {
+                background: #2d2d2d;
+                border: none;
+            }
+            QHeaderView {
+                background: #2d2d2d;
+            }
+        """)
         self.live_table.setAlternatingRowColors(True)
         layout.addWidget(self.live_table)
 
         # Recording controls in a frame
         controls_frame = QFrame()
-        controls_frame.setStyleSheet("background-color: white; border-radius: 4px; padding: 10px;")
+        controls_frame.setStyleSheet("""
+            QFrame {
+                background: #2d2d2d;
+                border: 1px solid #3d3d3d;
+                border-radius: 4px;
+                padding: 10px;
+            }
+            QLabel {
+                color: #e0e0e0;
+            }
+            QSpinBox {
+                border: 1px solid #3d3d3d;
+                border-radius: 4px;
+                padding: 4px;
+                background: #2d2d2d;
+                color: #e0e0e0;
+                selection-background-color: #404040;
+                selection-color: #ffffff;
+            }
+            QSpinBox:hover {
+                border: 1px solid #4d4d4d;
+                background: #353535;
+            }
+            QSpinBox::up-button, QSpinBox::down-button {
+                background: #3d3d3d;
+                border: none;
+                border-radius: 2px;
+            }
+            QSpinBox::up-button:hover, QSpinBox::down-button:hover {
+                background: #4d4d4d;
+            }
+            QSpinBox::up-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-bottom: 4px solid #e0e0e0;
+            }
+            QSpinBox::down-arrow {
+                image: none;
+                border-left: 4px solid transparent;
+                border-right: 4px solid transparent;
+                border-top: 4px solid #e0e0e0;
+            }
+        """)
         controls_layout = QHBoxLayout(controls_frame)
         
         # Recording options
@@ -96,10 +269,17 @@ class RecordingScenario(QWidget):
         self.start_button.clicked.connect(self.start_recording)
         self.start_button.setStyleSheet("""
             QPushButton {
-                background-color: #1a73e8;
+                background-color: #2d6da4;
+                color: #e0e0e0;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
             }
             QPushButton:hover {
-                background-color: #1557b0;
+                background-color: #3d7db4;
+            }
+            QPushButton:pressed {
+                background-color: #1d5d94;
             }
         """)
         
@@ -107,10 +287,17 @@ class RecordingScenario(QWidget):
         self.stop_button.clicked.connect(self.stop_recording)
         self.stop_button.setStyleSheet("""
             QPushButton {
-                background-color: #dc3545;
+                background-color: #a43d3d;
+                color: #e0e0e0;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
             }
             QPushButton:hover {
-                background-color: #c82333;
+                background-color: #b44d4d;
+            }
+            QPushButton:pressed {
+                background-color: #942d2d;
             }
         """)
         
@@ -120,9 +307,43 @@ class RecordingScenario(QWidget):
 
         # Data table
         data_label = QLabel("Recorded Data:")
-        data_label.setStyleSheet("font-weight: bold; font-size: 12pt;")
+        data_label.setStyleSheet("font-weight: bold; font-size: 12pt; color: #e0e0e0;")
         layout.addWidget(data_label)
         self.data_table = QTableWidget()
+        self.data_table.setStyleSheet("""
+            QTableWidget {
+                background: #2d2d2d;
+                border: 1px solid #3d3d3d;
+                border-radius: 8px;
+                color: #e0e0e0;
+                gridline-color: #3d3d3d;
+                alternate-background-color: #353535;
+            }
+            QTableWidget::item {
+                color: #e0e0e0;
+                padding: 4px;
+                border: none;
+            }
+            QTableWidget::item:selected {
+                background: #404040;
+                color: #ffffff;
+            }
+            QHeaderView::section {
+                background: #2d2d2d;
+                color: #e0e0e0;
+                border: none;
+                border-right: 1px solid #3d3d3d;
+                border-bottom: 1px solid #3d3d3d;
+                padding: 4px;
+            }
+            QTableCornerButton::section {
+                background: #2d2d2d;
+                border: none;
+            }
+            QHeaderView {
+                background: #2d2d2d;
+            }
+        """)
         self.data_table.setAlternatingRowColors(True)
         layout.addWidget(self.data_table)
 
@@ -131,22 +352,21 @@ class RecordingScenario(QWidget):
         self.auto_save_checkbox = QCheckBox("Auto-save to Records directory")
         self.auto_save_checkbox.setStyleSheet("""
             QCheckBox {
-                font-size: 10pt;
-                color: #2c3e50;
+                color: #e0e0e0;
             }
             QCheckBox::indicator {
                 width: 18px;
                 height: 18px;
-            }
-            QCheckBox::indicator:unchecked {
-                border: 2px solid #bdc3c7;
-                background: white;
                 border-radius: 3px;
+                border: 2px solid #3d3d3d;
+                background: #2d2d2d;
             }
             QCheckBox::indicator:checked {
-                border: 2px solid #27ae60;
-                background: #2ecc71;
-                border-radius: 3px;
+                background: #4d4d4d;
+                border-color: #5d5d5d;
+            }
+            QCheckBox::indicator:hover {
+                border-color: #4d4d4d;
             }
         """)
         save_controls.addWidget(self.auto_save_checkbox)
@@ -154,10 +374,17 @@ class RecordingScenario(QWidget):
         self.save_button = QPushButton("Save CSV")
         self.save_button.setStyleSheet("""
             QPushButton {
-                background-color: #1a73e8;
+                background-color: #2d6da4;
+                color: #e0e0e0;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
             }
             QPushButton:hover {
-                background-color: #1557b0;
+                background-color: #3d7db4;
+            }
+            QPushButton:pressed {
+                background-color: #1d5d94;
             }
         """)
         self.save_button.clicked.connect(self.save_csv)
@@ -274,10 +501,49 @@ class RecordingScenario(QWidget):
         self.data_table.setRowCount(len(self.record_data_list))
         headers = ["timestamp"] + list(self.selected_vars.keys())
         
+        # Set alternating row colors
+        self.data_table.setAlternatingRowColors(True)
+        self.data_table.setStyleSheet("""
+            QTableWidget {
+                background: #2d2d2d;
+                border: 1px solid #3d3d3d;
+                border-radius: 8px;
+                color: #e0e0e0;
+                gridline-color: #3d3d3d;
+                alternate-background-color: #353535;
+            }
+            QTableWidget::item {
+                color: #e0e0e0;
+                padding: 4px;
+                border: none;
+            }
+            QTableWidget::item:selected {
+                background: #404040;
+                color: #ffffff;
+            }
+            QHeaderView::section {
+                background: #2d2d2d;
+                color: #e0e0e0;
+                border: none;
+                border-right: 1px solid #3d3d3d;
+                border-bottom: 1px solid #3d3d3d;
+                padding: 4px;
+            }
+            QTableCornerButton::section {
+                background: #2d2d2d;
+                border: none;
+            }
+            QHeaderView {
+                background: #2d2d2d;
+            }
+        """)
+        
         for row_idx, data_row in enumerate(self.record_data_list):
             for col_idx, header in enumerate(headers):
                 value = str(data_row.get(header, ""))
-                self.data_table.setItem(row_idx, col_idx, QTableWidgetItem(value))
+                item = QTableWidgetItem(value)
+                item.setForeground(Qt.white)  # Set text color to white
+                self.data_table.setItem(row_idx, col_idx, item)
 
     def stop_recording(self):
         """Stops the recording process."""
@@ -364,7 +630,27 @@ class RecordingScenario(QWidget):
             # Create and configure checkbox
             checkbox = QCheckBox()
             checkbox.setChecked(True)  # Default to checked
+            checkbox.setStyleSheet("""
+                QCheckBox {
+                    color: #e0e0e0;
+                }
+                QCheckBox::indicator {
+                    width: 18px;
+                    height: 18px;
+                    border-radius: 3px;
+                    border: 2px solid #3d3d3d;
+                    background: #2d2d2d;
+                }
+                QCheckBox::indicator:checked {
+                    background: #4d4d4d;
+                    border-color: #5d5d5d;
+                }
+                QCheckBox::indicator:hover {
+                    border-color: #4d4d4d;
+                }
+            """)
             self.live_update_checkboxes[var_name] = checkbox
+            
             # Create checkbox cell widget
             checkbox_widget = QWidget()
             checkbox_layout = QHBoxLayout(checkbox_widget)
@@ -374,12 +660,12 @@ class RecordingScenario(QWidget):
             checkbox_widget.setLayout(checkbox_layout)
             
             self.live_table.setCellWidget(i, 0, checkbox_widget)
-            self.live_table.setItem(i, 1, QTableWidgetItem(var_name))
-            self.live_table.setItem(i, 2, QTableWidgetItem("Waiting..."))
-            self.live_table.setItem(i, 3, QTableWidgetItem(""))
-            self.live_table.setItem(i, 4, QTableWidgetItem(node_id))
-            self.live_table.setItem(i, 5, QTableWidgetItem(""))
-            self.live_table.setItem(i, 6, QTableWidgetItem(""))
+            
+            # Create table items with proper styling
+            for col, text in enumerate([var_name, "Waiting...", "", node_id, "", ""], start=1):
+                item = QTableWidgetItem(text)
+                item.setForeground(Qt.white)  # Set text color to white
+                self.live_table.setItem(i, col, item)
         
         # Set all columns to be interactively resizable
         header = self.live_table.horizontalHeader()
@@ -394,6 +680,41 @@ class RecordingScenario(QWidget):
         self.live_table.setColumnWidth(4, 200)  # Node ID
         self.live_table.setColumnWidth(5, 100)  # Access Level
         self.live_table.setColumnWidth(6, 200)  # Description
+        
+        # Update the table's stylesheet to ensure consistent text colors
+        self.live_table.setStyleSheet("""
+            QTableWidget {
+                background: #2d2d2d;
+                border: 1px solid #3d3d3d;
+                border-radius: 8px;
+                color: #e0e0e0;
+                gridline-color: #3d3d3d;
+            }
+            QTableWidget::item {
+                color: #e0e0e0;
+                padding: 4px;
+                border: none;
+            }
+            QTableWidget::item:selected {
+                background: #404040;
+                color: #ffffff;
+            }
+            QHeaderView::section {
+                background: #2d2d2d;
+                color: #e0e0e0;
+                border: none;
+                border-right: 1px solid #3d3d3d;
+                border-bottom: 1px solid #3d3d3d;
+                padding: 4px;
+            }
+            QTableCornerButton::section {
+                background: #2d2d2d;
+                border: none;
+            }
+            QHeaderView {
+                background: #2d2d2d;
+            }
+        """)
 
     def start_live_updates(self):
         """Start live updates for selected variables."""
@@ -420,8 +741,15 @@ class RecordingScenario(QWidget):
             try:
                 node = self.client.get_node(node_id)
                 value = node.get_value()
-                self.live_table.setItem(i, 2, QTableWidgetItem(str(value)))
-                self.live_table.setItem(i, 3, QTableWidgetItem(type(value).__name__))
+                
+                # Create and set items with proper styling
+                value_item = QTableWidgetItem(str(value))
+                value_item.setForeground(Qt.white)
+                self.live_table.setItem(i, 2, value_item)
+                
+                type_item = QTableWidgetItem(type(value).__name__)
+                type_item.setForeground(Qt.white)
+                self.live_table.setItem(i, 3, type_item)
                 
                 # Get access level
                 try:
@@ -431,23 +759,42 @@ class RecordingScenario(QWidget):
                         access_str.append("Read")
                     if access_level & ua.AccessLevel.CurrentWrite:
                         access_str.append("Write")
-                    self.live_table.setItem(i, 5, QTableWidgetItem(" & ".join(access_str)))
+                    access_item = QTableWidgetItem(" & ".join(access_str))
+                    access_item.setForeground(Qt.white)
+                    self.live_table.setItem(i, 5, access_item)
                 except Exception:
-                    self.live_table.setItem(i, 5, QTableWidgetItem("Unknown"))
+                    access_item = QTableWidgetItem("Unknown")
+                    access_item.setForeground(Qt.white)
+                    self.live_table.setItem(i, 5, access_item)
                 
                 # Get description
                 try:
                     desc = node.get_description().Text
-                    self.live_table.setItem(i, 6, QTableWidgetItem(desc if desc else "No description"))
+                    desc_item = QTableWidgetItem(desc if desc else "No description")
+                    desc_item.setForeground(Qt.white)
+                    self.live_table.setItem(i, 6, desc_item)
                 except Exception:
-                    self.live_table.setItem(i, 6, QTableWidgetItem("No description"))
+                    desc_item = QTableWidgetItem("No description")
+                    desc_item.setForeground(Qt.white)
+                    self.live_table.setItem(i, 6, desc_item)
                     
             except Exception as e:
                 if checkbox.isChecked():  # Only update error message if checkbox is checked
-                    self.live_table.setItem(i, 2, QTableWidgetItem(f"Error: {str(e)}"))
-                    self.live_table.setItem(i, 3, QTableWidgetItem("Error"))
-                    self.live_table.setItem(i, 5, QTableWidgetItem("Unknown"))
-                    self.live_table.setItem(i, 6, QTableWidgetItem("Error"))
+                    error_item = QTableWidgetItem(f"Error: {str(e)}")
+                    error_item.setForeground(Qt.white)
+                    self.live_table.setItem(i, 2, error_item)
+                    
+                    type_item = QTableWidgetItem("Error")
+                    type_item.setForeground(Qt.white)
+                    self.live_table.setItem(i, 3, type_item)
+                    
+                    access_item = QTableWidgetItem("Unknown")
+                    access_item.setForeground(Qt.white)
+                    self.live_table.setItem(i, 5, access_item)
+                    
+                    desc_item = QTableWidgetItem("Error")
+                    desc_item.setForeground(Qt.white)
+                    self.live_table.setItem(i, 6, desc_item)
 
     def update_directory_list(self, directories):
         """Update the directory combo box with new directories."""
@@ -469,75 +816,116 @@ class OPCUARecorder(QMainWindow):
         self.setMinimumSize(1200, 800)
         self.setStyleSheet("""
             QMainWindow {
-                background-color: #f5f7fa;
+                background-color: #1e1e1e;
             }
             QLabel {
                 font-size: 11pt;
-                color: #2c3e50;
+                color: #e0e0e0;
             }
+            /* Message Box and Input Dialog styling */
+            QMessageBox, QInputDialog {
+                background-color: #2d2d2d;
+                color: #e0e0e0;
+            }
+            QMessageBox QLabel, QInputDialog QLabel {
+                color: #e0e0e0;
+            }
+            QMessageBox QPushButton, QInputDialog QPushButton {
+                background-color: #3d3d3d;
+                color: #e0e0e0;
+                border: 1px solid #4d4d4d;
+                padding: 5px 15px;
+                border-radius: 3px;
+                min-width: 65px;
+            }
+            QMessageBox QPushButton:hover, QInputDialog QPushButton:hover {
+                background-color: #4d4d4d;
+            }
+            QInputDialog QLineEdit {
+                background-color: #2d2d2d;
+                color: #e0e0e0;
+                border: 1px solid #3d3d3d;
+                padding: 5px;
+                border-radius: 3px;
+            }
+            QInputDialog QLineEdit:focus {
+                border: 1px solid #4d4d4d;
+            }
+            /* Rest of the existing styles */
             QPushButton {
-                background-color: #1a73e8;
-                color: white;
-                border: none;
+                background-color: #2d2d2d;
+                color: #e0e0e0;
+                border: 1px solid #3d3d3d;
                 padding: 8px 16px;
                 border-radius: 4px;
                 font-size: 11pt;
                 min-width: 100px;
             }
             QPushButton:hover {
-                background-color: #1557b0;
+                background-color: #3d3d3d;
+                border: 1px solid #4d4d4d;
             }
             QPushButton:pressed {
-                background-color: #104294;
+                background-color: #4d4d4d;
             }
             QTabWidget::pane {
-                border: 1px solid #e1e5ea;
-                background: white;
+                border: 1px solid #3d3d3d;
+                background: #2d2d2d;
                 border-radius: 4px;
             }
             QTabBar::tab {
-                background: #f8f9fa;
-                border: 1px solid #e1e5ea;
+                background: #2d2d2d;
+                border: 1px solid #3d3d3d;
                 padding: 8px 12px;
                 margin-right: 2px;
                 border-top-left-radius: 4px;
                 border-top-right-radius: 4px;
+                color: #e0e0e0;
             }
             QTabBar::tab:selected {
-                background: white;
-                border-bottom-color: white;
-                color: #1a73e8;
+                background: #3d3d3d;
+                border-bottom-color: #4d4d4d;
             }
             QTabBar::tab:hover {
-                background: #f0f4f8;
+                background: #353535;
             }
             QListWidget, QTableWidget, QTreeWidget {
-                background-color: white;
-                border: 1px solid #e1e5ea;
+                background: #2d2d2d;
+                border: 1px solid #3d3d3d;
                 border-radius: 4px;
+                color: #e0e0e0;
             }
             QListWidget::item:hover, QTreeWidget::item:hover {
-                background-color: #f0f4f8;
+                background: #353535;
             }
             QListWidget::item:selected, QTreeWidget::item:selected {
-                background-color: #e8f0fe;
-                color: #1a73e8;
+                background: #404040;
+                color: #ffffff;
             }
             QHeaderView::section {
-                background-color: #f8f9fa;
+                background: #2d2d2d;
+                color: #e0e0e0;
                 border: none;
-                border-right: 1px solid #e1e5ea;
-                border-bottom: 1px solid #e1e5ea;
+                border-right: 1px solid #3d3d3d;
+                border-bottom: 1px solid #3d3d3d;
+                padding: 4px;
+            }
+            QTableWidget {
+                gridline-color: #3d3d3d;
+            }
+            QTableWidget::item {
                 padding: 4px;
             }
             QComboBox {
-                border: 1px solid #e1e5ea;
+                border: 1px solid #3d3d3d;
                 border-radius: 4px;
                 padding: 4px;
-                background: white;
+                background: #2d2d2d;
+                color: #e0e0e0;
             }
             QComboBox:hover {
-                border-color: #1a73e8;
+                border: 1px solid #4d4d4d;
+                background: #353535;
             }
             QComboBox::drop-down {
                 border: none;
@@ -546,25 +934,76 @@ class OPCUARecorder(QMainWindow):
                 image: none;
                 border-left: 5px solid transparent;
                 border-right: 5px solid transparent;
-                border-top: 5px solid #5f6368;
+                border-top: 5px solid #e0e0e0;
                 margin-right: 5px;
             }
             QSpinBox {
-                border: 1px solid #e1e5ea;
+                border: 1px solid #3d3d3d;
                 border-radius: 4px;
                 padding: 4px;
+                background: #2d2d2d;
+                color: #e0e0e0;
             }
             QSpinBox:hover {
-                border-color: #1a73e8;
+                border: 1px solid #4d4d4d;
+                background: #353535;
             }
             QFrame {
-                background-color: white;
-                border: 1px solid #e1e5ea;
+                background: #2d2d2d;
+                border: 1px solid #3d3d3d;
                 border-radius: 4px;
             }
             QSplitter::handle {
-                background-color: #e1e5ea;
+                background: #3d3d3d;
                 width: 2px;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #2d2d2d;
+                width: 10px;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: #3d3d3d;
+                min-height: 20px;
+                border-radius: 5px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #4d4d4d;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+            QScrollBar:horizontal {
+                border: none;
+                background: #2d2d2d;
+                height: 10px;
+                margin: 0px;
+            }
+            QScrollBar::handle:horizontal {
+                background: #3d3d3d;
+                min-width: 20px;
+                border-radius: 5px;
+            }
+            QScrollBar::handle:horizontal:hover {
+                background: #4d4d4d;
+            }
+            QCheckBox {
+                color: #e0e0e0;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border-radius: 3px;
+                border: 2px solid #3d3d3d;
+                background: #2d2d2d;
+            }
+            QCheckBox::indicator:checked {
+                background: #4d4d4d;
+                border-color: #5d5d5d;
+            }
+            QCheckBox::indicator:hover {
+                border-color: #4d4d4d;
             }
         """)
 
@@ -580,7 +1019,6 @@ class OPCUARecorder(QMainWindow):
 
         # Connection controls at the top
         connection_frame = QFrame()
-        connection_frame.setStyleSheet("padding: 10px;")
         connection_layout = QVBoxLayout(connection_frame)
         connection_layout.setSpacing(10)
 
@@ -588,9 +1026,13 @@ class OPCUARecorder(QMainWindow):
         status_layout = QHBoxLayout()
         self.status_led = QLabel()
         self.status_led.setFixedSize(16, 16)
-        self.status_led.setStyleSheet(
-            "QLabel { background-color: #e74c3c; border-radius: 8px; }"
-        )
+        self.status_led.setStyleSheet("""
+            QLabel {
+                background-color: #e74c3c;
+                border-radius: 8px;
+                border: 2px solid #c0392b;
+            }
+        """)
         status_label = QLabel("Server Status:")
         status_label.setStyleSheet("font-weight: bold;")
         status_layout.addWidget(status_label)
