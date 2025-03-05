@@ -167,23 +167,25 @@ class RecordingScenario(QWidget):
         self.live_table = QTableWidget()
         self.live_table.setStyleSheet("""
             QTableWidget {
-                background: #333333;
+                background-color: #333333;
                 border: 1px solid #4a4a4a;
                 border-radius: 8px;
                 color: #f0f0f0;
                 gridline-color: #4a4a4a;
+                alternate-background-color: #383838;
             }
             QTableWidget::item {
+                background-color: transparent;
                 color: #f0f0f0;
                 padding: 4px;
                 border: none;
             }
             QTableWidget::item:selected {
-                background: #505050;
+                background-color: #505050;
                 color: #ffffff;
             }
             QHeaderView::section {
-                background: #333333;
+                background-color: #333333;
                 color: #f0f0f0;
                 border: none;
                 border-right: 1px solid #4a4a4a;
@@ -191,11 +193,14 @@ class RecordingScenario(QWidget):
                 padding: 4px;
             }
             QTableCornerButton::section {
-                background: #333333;
+                background-color: #333333;
                 border: none;
             }
             QHeaderView {
-                background: #333333;
+                background-color: #333333;
+            }
+            QTableWidget QWidget {
+                background-color: transparent;
             }
         """)
         self.live_table.setAlternatingRowColors(True)
@@ -757,42 +762,6 @@ class RecordingScenario(QWidget):
         self.live_table.setColumnWidth(4, 200)  # Node ID
         self.live_table.setColumnWidth(5, 100)  # Access Level
         self.live_table.setColumnWidth(6, 200)  # Description
-        
-        # Update the table's stylesheet for consistent dark theme
-        self.live_table.setStyleSheet("""
-            QTableWidget {
-                background: #333333;
-                border: 1px solid #4a4a4a;
-                border-radius: 8px;
-                color: #f0f0f0;
-                gridline-color: #4a4a4a;
-            }
-            QTableWidget::item {
-                background: transparent;
-                color: #f0f0f0;
-                padding: 4px;
-                border: none;
-            }
-            QTableWidget::item:selected {
-                background: #505050;
-                color: #ffffff;
-            }
-            QHeaderView::section {
-                background: #333333;
-                color: #f0f0f0;
-                border: none;
-                border-right: 1px solid #4a4a4a;
-                border-bottom: 1px solid #4a4a4a;
-                padding: 4px;
-            }
-            QTableCornerButton::section {
-                background: #333333;
-                border: none;
-            }
-            QHeaderView {
-                background: #333333;
-            }
-        """)
 
     def start_live_updates(self):
         """Start live updates for selected variables."""
