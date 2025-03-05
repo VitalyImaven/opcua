@@ -10,7 +10,6 @@ from PyQt5.QtWidgets import (
     QFrame, QSplitter, QHeaderView, QCheckBox, QTabWidget, QInputDialog
 )
 from PyQt5.QtCore import QTimer, Qt
-from PyQt5.QtGui import QColor
 
 class RecordingScenario(QWidget):
     def __init__(self, parent=None, name="New Scenario", client=None):
@@ -367,7 +366,7 @@ class RecordingScenario(QWidget):
                 background: #333333;
             }
             QCheckBox::indicator:checked {
-                background-color: #4CAF50;
+                background: #4CAF50;
                 border-color: #4CAF50;
             }
             QCheckBox::indicator:hover {
@@ -671,7 +670,95 @@ class RecordingScenario(QWidget):
         # Store checkboxes in a dictionary
         self.live_update_checkboxes = {}
         
-        # Set the background color for the entire table
+        for i, (var_name, node_id) in enumerate(self.selected_vars.items()):
+            # Create and configure checkbox
+            checkbox = QCheckBox()
+            checkbox.setChecked(True)  # Default to checked
+            checkbox.setStyleSheet("""
+                QCheckBox {
+                    color: #e0e0e0;
+                    background: transparent;
+                }
+                QCheckBox::indicator {
+                    width: 15px;
+                    height: 15px;
+                    border-radius: 3px;
+                    border: 1px solid #808080;
+                    background-color: #2d2d2d !important;
+                }
+                QCheckBox::indicator:checked {
+                    background-color: #b05cfa !important;
+                    border-color: #b05cfa;
+                }
+                QCheckBox::indicator:hover {
+                    border-color: #a0a0a0;
+                }
+                QCheckBox::indicator:checked:hover {
+                    background-color: #b3b1b5 !important;
+                    border-color: #b3b1b5;
+                }
+            """)
+            self.live_update_checkboxes[var_name] = checkbox
+            
+            # Create checkbox cell widget with transparent background
+            checkbox_widget = QWidget()
+            checkbox_widget.setStyleSheet("""
+                QWidget {
+                    background: transparent;
+                }
+                QCheckBox {
+                    color: #e0e0e0;
+                    background: transparent;
+                }
+                QCheckBox::indicator {
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 4px;
+                    border: 2px solid #808080;
+                    background-color: #2d2d2d !important;
+                }
+                QCheckBox::indicator:checked {
+                    background-color: #139415 !important;
+                    border-color: #139415;
+                }
+                QCheckBox::indicator:hover {
+                    border-color: #a0a0a0;
+                }
+                QCheckBox::indicator:checked:hover {
+                    background-color: #cc0000 !important;
+                    border-color: #cc0000;
+                }
+            """)
+            checkbox_layout = QHBoxLayout(checkbox_widget)
+            checkbox_layout.addWidget(checkbox)
+            checkbox_layout.setAlignment(Qt.AlignCenter)
+            checkbox_layout.setContentsMargins(0, 0, 0, 0)
+            checkbox_widget.setLayout(checkbox_layout)
+            
+            self.live_table.setCellWidget(i, 0, checkbox_widget)
+            
+            # Create table items with proper styling
+            for col, text in enumerate([var_name, "Waiting...", "", node_id, "", ""], start=1):
+                item = QTableWidgetItem(text)
+                item.setForeground(Qt.white)  # Set text color to white
+                item.setBackground(Qt.transparent)  # Set transparent background
+                self.live_table.setItem(i, col, item)
+        
+        # Set all columns to be interactively resizable
+        header = self.live_table.horizontalHeader()
+        for i in range(self.live_table.columnCount()):
+            header.setSectionResizeMode(i, QHeaderView.Interactive)
+        
+        # Set initial column widths
+        self.live_table.setColumnWidth(0, 70)  # Real-time checkbox
+        self.live_table.setColumnWidth(1, 200)  # Variable name
+        self.live_table.setColumnWidth(2, 150)  # Current Value
+        self.live_table.setColumnWidth(3, 100)  # Data Type
+        self.live_table.setColumnWidth(4, 200)  # Node ID
+        self.live_table.setColumnWidth(5, 100)  # Access Level
+        self.live_table.setColumnWidth(6, 200)  # Description
+        
+        # Update the table's stylesheet for consistent dark theme
         self.live_table.setStyleSheet("""
             QTableWidget {
                 background: #333333;
@@ -681,7 +768,7 @@ class RecordingScenario(QWidget):
                 gridline-color: #4a4a4a;
             }
             QTableWidget::item {
-                background: #333333;
+                background: transparent;
                 color: #f0f0f0;
                 padding: 4px;
                 border: none;
@@ -706,70 +793,6 @@ class RecordingScenario(QWidget):
                 background: #333333;
             }
         """)
-        
-        for i, (var_name, node_id) in enumerate(self.selected_vars.items()):
-            # Create and configure checkbox
-            checkbox = QCheckBox()
-            checkbox.setChecked(True)  # Default to checked
-            
-            # Create checkbox cell widget with transparent background
-            checkbox_widget = QWidget()
-            checkbox_widget.setStyleSheet("""
-                QWidget {
-                    background: #333333;
-                }
-                QCheckBox {
-                    color: #f0f0f0;
-                    background: #333333;
-                }
-                QCheckBox::indicator {
-                    width: 15px;
-                    height: 15px;
-                    border-radius: 3px;
-                    border: 1px solid #808080;
-                    background: #333333;
-                }
-                QCheckBox::indicator:checked {
-                    background-color: #4CAF50;
-                    border-color: #4CAF50;
-                }
-                QCheckBox::indicator:hover {
-                    border-color: #a0a0a0;
-                }
-                QCheckBox::indicator:checked:hover {
-                    background-color: #45a049;
-                    border-color: #45a049;
-                }
-            """)
-            
-            checkbox_layout = QHBoxLayout(checkbox_widget)
-            checkbox_layout.addWidget(checkbox)
-            checkbox_layout.setAlignment(Qt.AlignCenter)
-            checkbox_layout.setContentsMargins(0, 0, 0, 0)
-            
-            self.live_table.setCellWidget(i, 0, checkbox_widget)
-            self.live_update_checkboxes[var_name] = checkbox
-            
-            # Create table items with proper background
-            for col, text in enumerate([var_name, "Waiting...", "", node_id, "", ""], start=1):
-                item = QTableWidgetItem(text)
-                item.setBackground(QColor("#333333"))
-                item.setForeground(Qt.white)
-                self.live_table.setItem(i, col, item)
-        
-        # Set all columns to be interactively resizable
-        header = self.live_table.horizontalHeader()
-        for i in range(self.live_table.columnCount()):
-            header.setSectionResizeMode(i, QHeaderView.Interactive)
-        
-        # Set initial column widths
-        self.live_table.setColumnWidth(0, 70)  # Real-time checkbox
-        self.live_table.setColumnWidth(1, 200)  # Variable name
-        self.live_table.setColumnWidth(2, 150)  # Current Value
-        self.live_table.setColumnWidth(3, 100)  # Data Type
-        self.live_table.setColumnWidth(4, 200)  # Node ID
-        self.live_table.setColumnWidth(5, 100)  # Access Level
-        self.live_table.setColumnWidth(6, 200)  # Description
 
     def start_live_updates(self):
         """Start live updates for selected variables."""
@@ -800,14 +823,12 @@ class RecordingScenario(QWidget):
                 # Format the value for display
                 formatted_value = self.format_value(value)
                 value_item = QTableWidgetItem(formatted_value)
-                value_item.setBackground(QColor("#333333"))
                 value_item.setForeground(Qt.white)
                 self.live_table.setItem(i, 2, value_item)
                 
                 # Show detailed type information
                 type_info = self.get_type_info(value)
                 type_item = QTableWidgetItem(type_info)
-                type_item.setBackground(QColor("#333333"))
                 type_item.setForeground(Qt.white)
                 self.live_table.setItem(i, 3, type_item)
                 
@@ -820,12 +841,10 @@ class RecordingScenario(QWidget):
                     if access_level & ua.AccessLevel.CurrentWrite:
                         access_str.append("Write")
                     access_item = QTableWidgetItem(" & ".join(access_str))
-                    access_item.setBackground(QColor("#333333"))
                     access_item.setForeground(Qt.white)
                     self.live_table.setItem(i, 5, access_item)
                 except Exception:
                     access_item = QTableWidgetItem("Unknown")
-                    access_item.setBackground(QColor("#333333"))
                     access_item.setForeground(Qt.white)
                     self.live_table.setItem(i, 5, access_item)
                 
@@ -833,34 +852,28 @@ class RecordingScenario(QWidget):
                 try:
                     desc = node.get_description().Text
                     desc_item = QTableWidgetItem(desc if desc else "No description")
-                    desc_item.setBackground(QColor("#333333"))
                     desc_item.setForeground(Qt.white)
                     self.live_table.setItem(i, 6, desc_item)
                 except Exception:
                     desc_item = QTableWidgetItem("No description")
-                    desc_item.setBackground(QColor("#333333"))
                     desc_item.setForeground(Qt.white)
                     self.live_table.setItem(i, 6, desc_item)
                     
             except Exception as e:
                 if checkbox.isChecked():  # Only update error message if checkbox is checked
                     error_item = QTableWidgetItem(f"Error: {str(e)}")
-                    error_item.setBackground(QColor("#333333"))
                     error_item.setForeground(Qt.white)
                     self.live_table.setItem(i, 2, error_item)
                     
                     type_item = QTableWidgetItem("Error")
-                    type_item.setBackground(QColor("#333333"))
                     type_item.setForeground(Qt.white)
                     self.live_table.setItem(i, 3, type_item)
                     
                     access_item = QTableWidgetItem("Unknown")
-                    access_item.setBackground(QColor("#333333"))
                     access_item.setForeground(Qt.white)
                     self.live_table.setItem(i, 5, access_item)
                     
                     desc_item = QTableWidgetItem("Error")
-                    desc_item.setBackground(QColor("#333333"))
                     desc_item.setForeground(Qt.white)
                     self.live_table.setItem(i, 6, desc_item)
 
@@ -1139,13 +1152,13 @@ class OPCUARecorder(QMainWindow):
             QCheckBox::indicator:checked {
                 background: #4CAF50;
                 border-color: #4CAF50;
-                image: url(data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff' d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z'/%3E%3C/svg%3E);
+
             }
             QCheckBox::indicator:hover {
                 border-color: #b0b0b0;
             }
             QCheckBox::indicator:checked:hover {
-                background-color: #45a049;
+                background: #45a049;
                 border-color: #45a049;
             }
         """)
@@ -1216,6 +1229,42 @@ class OPCUARecorder(QMainWindow):
         self.tree_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.tree_widget.header().setStretchLastSection(False)
         self.tree_widget.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.tree_widget.setStyleSheet("""
+            QTreeWidget {
+                background: #333333;
+                border: 1px solid #4a4a4a;
+                border-radius: 4px;
+                color: #f0f0f0;
+            }
+            QTreeWidget::item {
+                color: #f0f0f0;
+                padding: 4px;
+            }
+            QTreeWidget::item:hover {
+                background: #404040;
+            }
+            QTreeWidget::item:selected {
+                background: #505050;
+                color: #ffffff;
+            }
+            QTreeWidget::branch {
+                background: transparent;
+            }
+            QTreeWidget::branch:has-children:!has-siblings:closed,
+            QTreeWidget::branch:closed:has-children:has-siblings {
+                border-image: none;
+                border-style: solid;
+                border-width: 3px;
+                border-color: transparent transparent transparent #ffffff;
+            }
+            QTreeWidget::branch:open:has-children:!has-siblings,
+            QTreeWidget::branch:open:has-children:has-siblings {
+                border-image: none;
+                border-style: solid;
+                border-width: 3px;
+                border-color: #ffffff transparent transparent transparent;
+            }
+        """)
         tree_layout.addWidget(self.tree_widget)
         
         left_layout.addWidget(tree_frame)
