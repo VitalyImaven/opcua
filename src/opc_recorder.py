@@ -1172,10 +1172,57 @@ class OPCUARecorder(QMainWindow):
         self.url_combo = QComboBox()
         self.url_combo.setEditable(True)
         self.url_combo.addItems([
-            "opc.tcp://localhost:4840",
-            "opc.tcp://192.168.101.10:4840"
+            "opc.tcp://192.168.101.10:4840",
+            "opc.tcp://localhost:4840"
         ])
-        self.url_combo.setCurrentText("opc.tcp://localhost:4840")
+        self.url_combo.setCurrentText("opc.tcp://192.168.101.10:4840")
+        self.url_combo.setStyleSheet("""
+            QComboBox {
+                border: 1px solid #3d3d3d;
+                border-radius: 4px;
+                padding: 4px;
+                background: #2d2d2d;
+                color: #f0f0f0;
+            }
+            QComboBox:hover {
+                border: 1px solid #4d4d4d;
+                background: #353535;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #f0f0f0;
+                margin-right: 5px;
+            }
+            QComboBox QAbstractItemView {
+                background: #2d2d2d;
+                border: 1px solid #3d3d3d;
+                color: #f0f0f0;
+            }
+            QComboBox QAbstractItemView::item {
+                background: #2d2d2d;
+                color: #f0f0f0;
+                padding: 4px;
+            }
+            QComboBox QAbstractItemView::item:selected {
+                background: #404040;
+                color: #ffffff;
+            }
+            QComboBox QAbstractItemView::item:hover {
+                background: #353535;
+                color: #ffffff;
+            }
+            QComboBox QLineEdit {
+                background: #2d2d2d;
+                color: #f0f0f0;
+                border: none;
+                padding: 0px;
+            }
+        """)
         connection_layout.addWidget(self.url_combo)
 
         # Connect button
@@ -1200,24 +1247,25 @@ class OPCUARecorder(QMainWindow):
         self.tree_widget.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.tree_widget.setStyleSheet("""
             QTreeWidget {
-                background: #333333;
-                border: 1px solid #4a4a4a;
+                background-color: #2d2d2d;
+                border: 1px solid #3d3d3d;
                 border-radius: 4px;
                 color: #f0f0f0;
             }
             QTreeWidget::item {
                 color: #f0f0f0;
                 padding: 4px;
+                background-color: transparent;
             }
             QTreeWidget::item:hover {
-                background: #404040;
+                background-color: #353535;
             }
             QTreeWidget::item:selected {
-                background: #505050;
+                background-color: #404040;
                 color: #ffffff;
             }
             QTreeWidget::branch {
-                background: transparent;
+                background-color: transparent;
             }
             QTreeWidget::branch:has-children:!has-siblings:closed,
             QTreeWidget::branch:closed:has-children:has-siblings {
