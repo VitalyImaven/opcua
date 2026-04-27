@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OPC UA Subscription Monitor</title>
+<style>
+:root {
+  --bg: #0d1117; --bg2: #161b22; --bg3: #1c2333;
+  --border: #30363d; --text: #e6edf3; --dim: #8b949e;
+  --accent: #58a6ff; --accent2: #3fb950; --red: #f85149;
+  --orange: #d29922; --purple: #bc8cff; --radius: 8px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+button { background: var(--bg3); color: var(--text); border: 1px solid var(--border);
+  padding: 6px 14px; border-radius: var(--radius); cursor: pointer; font-size: 13px; transition: all .15s; }
+button:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+button.danger:hover { background: var(--red); border-color: var(--red); }
+button.primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+input, select { background: var(--bg); color: var(--text); border: 1px solid var(--border);
+  padding: 5px 10px; border-radius: var(--radius); font-size: 13px; }
+input:focus, select:focus { border-color: var(--accent); outline: none; }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+#header { display:flex; align-items:center; gap:12px; padding:8px 16px;
+  background:var(--bg2); border-bottom:1px solid var(--border); height:48px; flex-shrink:0; }
+#header h1 { font-size:16px; font-weight:600; white-space:nowrap; }
+.status { width:10px; height:10px; border-radius:50%; background:var(--red); flex-shrink:0; }
+.status.on { background:var(--accent2); }
+.spacer { flex:1; }
+.badge { background:var(--accent); color:#000; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; }
+.badge.warn { background:var(--orange); }
+
+#main { display:flex; flex:1; overflow:hidden; }
+
+/* sidebar */
+#sidebar { width:340px; min-width:260px; background:var(--bg2);
+  border-right:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; }
+#var-list-wrap { flex:1; overflow:auto; padding:4px 0; }
+.var-row { display:flex; align-items:center; padding:2px 8px; font-size:12px; gap:4px; }
+.var-row:hover { background:rgba(88,166,255,.06); }
+.var-row .name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--accent); }
+.var-row .val { color:var(--dim); font-family:monospace; font-size:11px; max-width:80px; overflow:hidden; text-overflow:ellipsis; }
+.var-row .type-tag { color:var(--purple); font-size:10px; margin-left:4px; }
+
+/* right panel */
+#content { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+#tabs { display:flex; background:var(--bg2); border-bottom:1px solid var(--border);
+  padding:0 8px; gap:2px; flex-shrink:0; }
+.tab { padding:8px 16px; font-size:13px; cursor:pointer; border-bottom:2px solid transparent;
+  color:var(--dim); white-space:nowrap; transition: all .15s; }
+.tab:hover { color:var(--text); }
+.tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+.tab-panel { display:none; padding:16px; height:100%; overflow:auto; }
+.tab-panel.active { display:flex; flex-direction:column; }
+
+/* monitor table */
+.monitor-table { width:100%; border-collapse:collapse; font-size:13px; }
+.monitor-table th { background:var(--bg3); color:var(--accent); text-align:left;
+  padding:8px 10px; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:1; }
+.monitor-table td { padding:5px 10px; border-bottom:1px solid var(--border); font-family:'Cascadia Code','Fira Code',monospace; font-size:12px; }
+.monitor-table tr:hover td { background:rgba(88,166,255,.04); }
+.val-changed { animation: flash .3s ease; }
+@keyframes flash { 0%{background:rgba(63,185,80,.3)} 100%{background:transparent} }
+
+/* stats */
+.stats-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px; margin-bottom:16px; }
+.stat-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:16px; text-align:center; }
+.stat-card .val { font-size:24px; font-weight:700; color:var(--accent2); }
+.stat-card .label { font-size:11px; color:var(--dim); margin-top:4px; }
+.stat-card .val.warn { color: var(--orange); }
+.stat-card .val.bad { color: var(--red); }
+
+.grade-badge { display:inline-block; padding:3px 10px; border-radius:12px; font-size:12px; font-weight:700; margin:2px 4px; }
+.grade-EXCELLENT, .grade-PERFECT { background:#238636; color:#fff; }
+.grade-GOOD { background:#1f6feb; color:#fff; }
+.grade-FAIR { background:#9e6a03; color:#fff; }
+.grade-POOR { background:#da3633; color:#fff; }
+
+.stats-section { margin-bottom:20px; }
+.stats-section h3 { font-size:14px; color:var(--accent); margin-bottom:8px; border-bottom:1px solid var(--border); padding-bottom:4px; }
+.timing-table { width:100%; border-collapse:collapse; font-size:12px; margin-bottom:12px; }
+.timing-table th { background:var(--bg3); color:var(--accent); text-align:left; padding:6px 8px; border-bottom:1px solid var(--border); }
+.timing-table td { padding:4px 8px; border-bottom:1px solid var(--border); font-family:'Cascadia Code','Fira Code',monospace; }
+.timing-table tr:hover td { background:rgba(88,166,255,.04); }
+
+.bench-controls { display:flex; gap:10px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+.bench-progress { height:6px; background:var(--bg3); border-radius:3px; flex:1; min-width:200px; overflow:hidden; }
+.bench-progress-bar { height:100%; background:var(--accent); border-radius:3px; transition:width .3s; }
+
+/* log */
+#log { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
+  padding:8px; font-family:monospace; font-size:11px; color:var(--dim); overflow:auto; max-height:120px; margin-top:8px; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>OPC UA Subscription Monitor</h1>
+  <span style="color:var(--dim);font-size:12px;">asyncua</span>
+  <div class="status" id="status-led"></div>
+  <input id="opcua-url" type="text" value="opc.tcp://192.168.101.10:4840" placeholder="OPC UA URL" style="width:280px">
+  <button class="primary" onclick="doConnect()">Connect</button>
+  <button class="danger" onclick="doDisconnect()">Disconnect</button>
+  <div class="spacer"></div>
+  <span class="badge" id="sub-count">Subscribed: 0</span>
+  <span class="badge warn" id="notif-rate">0 notif/s</span>
+</div>
+
+<div id="main">
+  <div id="sidebar">
+    <div style="padding:8px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:6px;">
+      <div style="display:flex; gap:6px; align-items:center;">
+        <label style="font-size:12px; color:var(--dim); white-space:nowrap;">Interval:</label>
+        <select id="sub-interval" style="flex:1">
+          <option value="10">10 ms</option>
+          <option value="20">20 ms</option>
+          <option value="50" selected>50 ms</option>
+          <option value="100">100 ms</option>
+          <option value="200">200 ms</option>
+          <option value="500">500 ms</option>
+        </select>
+      </div>
+      <button class="primary" onclick="doDiscover()" id="btn-discover">Discover gProtoTest</button>
+      <button onclick="doSubscribe()" id="btn-subscribe" disabled>Subscribe All</button>
+    </div>
+    <div id="var-list-wrap">
+      <div style="padding:8px; color:var(--dim); font-size:12px;">Connect and discover variables</div>
+    </div>
+    <div style="padding:6px 8px; border-top:1px solid var(--border); font-size:11px; color:var(--dim);">
+      <span id="discover-info">—</span>
+    </div>
+  </div>
+
+  <div id="content">
+    <div id="tabs">
+      <div class="tab active" onclick="switchTab('monitor')">Monitor</div>
+      <div class="tab" onclick="switchTab('stats')">Stats</div>
+    </div>
+
+    <!-- MONITOR TAB -->
+    <div class="tab-panel active" id="panel-monitor">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+        <span style="font-size:12px;color:var(--dim)" id="update-rate">—</span>
+        <div class="spacer"></div>
+        <button onclick="doResetStats()">Reset Stats</button>
+      </div>
+      <div style="flex:1;overflow:auto;">
+        <table class="monitor-table">
+          <thead><tr><th style="width:40px">#</th><th>Variable</th><th>Type</th><th style="width:200px">Value</th></tr></thead>
+          <tbody id="monitor-body"></tbody>
+        </table>
+      </div>
+      <div id="log"></div>
+    </div>
+
+    <!-- STATS TAB -->
+    <div class="tab-panel" id="panel-stats">
+      <div class="bench-controls">
+        <label style="font-size:13px;color:var(--dim)">Benchmark duration (s):</label>
+        <input id="bench-dur" type="number" value="10" min="1" max="60" style="width:70px">
+        <button class="primary" onclick="startBenchmark()">Run Benchmark</button>
+        <button onclick="doResetStats()">Reset Live Stats</button>
+        <div class="bench-progress" id="bench-progress-wrap" style="display:none">
+          <div class="bench-progress-bar" id="bench-bar" style="width:0%"></div>
+        </div>
+        <span style="font-size:12px;color:var(--dim)" id="bench-status-text"></span>
+      </div>
+
+      <!-- Overall Grade -->
+      <div class="stats-section" id="grade-section" style="display:none">
+        <h3>Overall Grade</h3>
+        <div id="grade-badges"></div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="stats-section">
+        <h3>Live Statistics</h3>
+        <div class="stats-grid" id="stats-grid"></div>
+      </div>
+
+      <!-- Timing Statistics -->
+      <div class="stats-section" id="timing-section" style="display:none">
+        <h3>Timing Analysis</h3>
+        <div>
+          <h4 style="font-size:12px;color:var(--dim);margin-bottom:6px;">Inter-Batch / Publish Cycle (ms)</h4>
+          <table class="timing-table" id="ibt-table"></table>
+        </div>
+      </div>
+
+      <!-- Per-Variable Changes -->
+      <div class="stats-section" id="pervar-section" style="display:none">
+        <h3>Per-Variable Notification Rates</h3>
+        <table class="timing-table" id="pervar-table"></table>
+      </div>
+
+      <!-- Benchmark Result -->
+      <div class="stats-section" id="bench-result-section" style="display:none">
+        <h3>Benchmark Result</h3>
+        <div id="bench-grade-badges" style="margin-bottom:12px;"></div>
+        <div class="stats-grid" id="bench-stats-grid"></div>
+        <div style="margin-top:12px;">
+          <h4 style="font-size:12px;color:var(--dim);margin-bottom:6px;">Benchmark Timing</h4>
+          <table class="timing-table" id="bench-ibt-table"></table>
+        </div>
+        <div style="margin-top:12px;">
+          <h4 style="font-size:12px;color:var(--dim);margin-bottom:6px;">Per-Variable (Benchmark)</h4>
+          <table class="timing-table" id="bench-pervar-table"></table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══ STATE ═══
+let connected = false;
+let discoveredVars = [];  // [{name, node_id, data_type}, ...]
+let subscribedVars = [];  // same after subscribe
+let updateCount = 0;
+let benchPollTimer = null;
+
+// ═══ INIT ═══
+document.addEventListener('DOMContentLoaded', () => { startStatsRefresh(); });
+
+// ═══ CONNECTION ═══
+async function doConnect() {
+  const url = document.getElementById('opcua-url').value;
+  log('Connecting to ' + url + '...');
+  const res = await api('/api/opcua/connect', {url});
+  if (res.ok) {
+    connected = true;
+    document.getElementById('status-led').classList.add('on');
+    log('Connected!');
+    document.getElementById('btn-discover').disabled = false;
+    // Auto-discover
+    doDiscover();
+  } else {
+    log('ERROR: ' + (res.error || 'unknown'));
+  }
+}
+
+async function doDisconnect() {
+  await api('/api/opcua/disconnect');
+  connected = false;
+  document.getElementById('status-led').classList.remove('on');
+  discoveredVars = [];
+  subscribedVars = [];
+  document.getElementById('var-list-wrap').innerHTML =
+    '<div style="padding:8px; color:var(--dim); font-size:12px;">Disconnected</div>';
+  document.getElementById('sub-count').textContent = 'Subscribed: 0';
+  log('Disconnected');
+}
+
+// ═══ DISCOVER ═══
+async function doDiscover() {
+  log('Discovering gProtoTest via OPC UA browse...');
+  document.getElementById('btn-discover').disabled = true;
+  let vars = await apiGet('/api/opcua/discover?source=browse');
+  if (!vars || vars.length === 0) {
+    log('Browse returned 0 vars, trying registry...');
+    vars = await apiGet('/api/opcua/discover?source=registry');
+  }
+  discoveredVars = vars || [];
+  document.getElementById('btn-discover').disabled = false;
+  document.getElementById('discover-info').textContent = `Discovered: ${discoveredVars.length} vars`;
+  log(`Discovered ${discoveredVars.length} variables`);
+
+  // Render sidebar
+  const wrap = document.getElementById('var-list-wrap');
+  if (discoveredVars.length === 0) {
+    wrap.innerHTML = '<div style="padding:8px; color:var(--dim); font-size:12px;">No variables found. Is gProtoTest enabled after cold restart?</div>';
+    return;
+  }
+
+  wrap.innerHTML = '';
+  discoveredVars.forEach((v, i) => {
+    const row = document.createElement('div');
+    row.className = 'var-row';
+    row.innerHTML = `<span style="color:var(--dim);width:28px;font-size:10px;text-align:right">${i+1}</span>
+      <span class="name" title="${v.node_id}">${v.name.replace('gProtoTest.','')}</span>
+      <span class="type-tag">${v.data_type}</span>
+      <span class="val" id="sv-${i}">—</span>`;
+    wrap.appendChild(row);
+  });
+
+  document.getElementById('btn-subscribe').disabled = false;
+}
+
+// ═══ SUBSCRIBE ═══
+async function doSubscribe() {
+  if (discoveredVars.length === 0) return;
+  const interval = parseInt(document.getElementById('sub-interval').value) || 50;
+  const nodeIds = discoveredVars.map(v => v.node_id);
+  const names = discoveredVars.map(v => v.name);
+
+  log(`Subscribing ${nodeIds.length} vars, interval=${interval}ms...`);
+  const res = await api('/api/opcua/subscribe', {
+    node_ids: nodeIds,
+    var_names: names,
+    interval_ms: interval,
+  });
+
+  if (res.ok) {
+    subscribedVars = discoveredVars;
+    document.getElementById('sub-count').textContent = `Subscribed: ${res.subscribed}`;
+    log(`Subscribed ${res.subscribed} vars at ${interval}ms`);
+    renderMonitorTable();
+    // Start trace for live updates
+    await api('/api/opcua/trace/start');
+  } else {
+    log('Subscribe ERROR: ' + (res.error || 'unknown'));
+  }
+}
+
+// ═══ MONITOR TABLE ═══
+function renderMonitorTable() {
+  const tbody = document.getElementById('monitor-body');
+  tbody.innerHTML = '';
+  subscribedVars.forEach((v, i) => {
+    const tr = document.createElement('tr');
+    tr.id = `mon-${i}`;
+    const shortName = v.name.replace('gProtoTest.','');
+    tr.innerHTML = `<td>${i+1}</td><td style="font-size:12px" title="${v.node_id}">${shortName}</td><td><span class="type-tag">${v.data_type}</span></td><td class="val-cell">—</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ═══ STATS ═══
+async function refreshStats() {
+  if (!connected || subscribedVars.length === 0) return;
+
+  // Fetch values for sidebar + monitor table
+  const vals = await apiGet('/api/opcua/values');
+  let changed = 0;
+  subscribedVars.forEach((v, i) => {
+    const val = vals[v.name];
+    if (val !== undefined) {
+      changed++;
+      // Sidebar
+      const svEl = document.getElementById(`sv-${i}`);
+      if (svEl) svEl.textContent = formatVal(val);
+      // Monitor table
+      const tr = document.getElementById(`mon-${i}`);
+      if (tr) {
+        const cell = tr.querySelector('.val-cell');
+        const str = formatVal(val);
+        if (cell && cell.textContent !== str) {
+          cell.textContent = str;
+          cell.classList.remove('val-changed');
+          void cell.offsetWidth;
+          cell.classList.add('val-changed');
+        }
+      }
+    }
+  });
+  updateCount = changed;
+
+  // Fetch detailed stats
+  const ds = await apiGet('/api/opcua/detailed_stats');
+  renderDetailedStats(ds);
+}
+
+function renderDetailedStats(ds) {
+  if (!ds) return;
+  // Summary cards
+  const grid = document.getElementById('stats-grid');
+  const cards = [
+    {label:'Batches (Publish Cycles)', val: ds.packets_received||0},
+    {label:'Batch Rate (/s)', val: ds.packet_rate||0},
+    {label:'Notifications', val: ds.total_var_updates||0},
+    {label:'Notification Rate (/s)', val: ds.var_update_rate||0},
+    {label:'Var Changes', val: ds.total_var_changes||0},
+    {label:'Var Change Rate (/s)', val: ds.var_change_rate||0},
+    {label:'Dropped', val: ds.dropped_packets||0, cls: (ds.dropped_packets>0?'warn':'')},
+    {label:'Subscribed Vars', val: ds.subscribed_count||0},
+    {label:'Elapsed', val: (ds.elapsed_s||0)+'s'},
+  ];
+  grid.innerHTML = cards.map(c =>
+    `<div class="stat-card"><div class="val ${c.cls||''}">${c.val}</div><div class="label">${c.label}</div></div>`
+  ).join('');
+
+  // Update header badge
+  document.getElementById('notif-rate').textContent = `${ds.var_update_rate||0} notif/s`;
+
+  // Grades
+  if (ds.grade) {
+    document.getElementById('grade-section').style.display = '';
+    document.getElementById('grade-badges').innerHTML = Object.entries(ds.grade).map(([k,v]) =>
+      `<span class="grade-badge grade-${v}">${k.replace('_',' ').toUpperCase()}: ${v}</span>`
+    ).join('');
+  }
+
+  // Timing
+  if (ds.inter_packet_ms && ds.inter_packet_ms.count) {
+    document.getElementById('timing-section').style.display = '';
+    renderTimingTable('ibt-table', ds.inter_packet_ms);
+  }
+
+  // Per-variable
+  if (ds.per_variable && ds.per_variable.length) {
+    document.getElementById('pervar-section').style.display = '';
+    renderPerVarTable('pervar-table', ds.per_variable);
+  }
+}
+
+function renderTimingTable(tableId, stats) {
+  const t = document.getElementById(tableId);
+  if (!stats || !stats.count) { t.innerHTML = '<tr><td style="color:var(--dim)">No data</td></tr>'; return; }
+  t.innerHTML = `
+    <tr><th>Metric</th><th>Value</th></tr>
+    <tr><td>Count</td><td>${stats.count}</td></tr>
+    <tr><td>Min</td><td>${stats.min} ms</td></tr>
+    <tr><td>Max</td><td>${stats.max} ms</td></tr>
+    <tr><td>Avg</td><td>${stats.avg} ms</td></tr>
+    <tr><td>Median</td><td>${stats.median} ms</td></tr>
+    <tr><td>Std Dev</td><td>${stats.stddev} ms</td></tr>
+    ${stats.p95 !== null && stats.p95 !== undefined ? `<tr><td>P95</td><td>${stats.p95} ms</td></tr>` : ''}
+    ${stats.p99 !== null && stats.p99 !== undefined ? `<tr><td>P99</td><td>${stats.p99} ms</td></tr>` : ''}
+  `;
+}
+
+function renderPerVarTable(tableId, vars) {
+  const t = document.getElementById(tableId);
+  t.innerHTML = `<tr><th>#</th><th>Variable</th><th>Type</th><th>Notifs</th><th>Changes</th><th>Rate (/s)</th></tr>` +
+    vars.map((v, i) => {
+      const short = (v.name||'').replace('gProtoTest.','');
+      return `<tr><td>${i+1}</td><td style="font-size:11px">${short}</td><td><span class="type-tag">${v.plc_type||''}</span></td><td>${v.notifications||0}</td><td>${v.changes}</td><td>${(v.rate||0).toFixed(1)}</td></tr>`;
+    }).join('');
+}
+
+// ── Benchmark ──
+async function startBenchmark() {
+  const dur = parseFloat(document.getElementById('bench-dur').value) || 10;
+  const res = await api('/api/opcua/benchmark/start', {duration_s: dur});
+  if (!res.ok) { log('Benchmark error: ' + (res.error||'')); return; }
+
+  document.getElementById('bench-status-text').textContent = 'Running...';
+  document.getElementById('bench-progress-wrap').style.display = '';
+  document.getElementById('bench-bar').style.width = '0%';
+  document.getElementById('bench-result-section').style.display = 'none';
+  log(`Benchmark started (${dur}s)...`);
+
+  if (benchPollTimer) clearInterval(benchPollTimer);
+  benchPollTimer = setInterval(async () => {
+    const st = await apiGet('/api/opcua/benchmark/status');
+    if (st.status === 'running') {
+      const pct = Math.min(100, (st.elapsed_s / dur) * 100);
+      document.getElementById('bench-bar').style.width = pct.toFixed(0) + '%';
+      document.getElementById('bench-status-text').textContent =
+        `Running... ${st.elapsed_s.toFixed(1)}s / ${dur}s  (${st.notifications||0} notifs)`;
+    } else if (st.status === 'done') {
+      clearInterval(benchPollTimer);
+      benchPollTimer = null;
+      document.getElementById('bench-progress-wrap').style.display = 'none';
+      document.getElementById('bench-status-text').textContent = 'Done!';
+      renderBenchmarkResult(st.result);
+      log('Benchmark complete!');
+    }
+  }, 500);
+}
+
+function renderBenchmarkResult(r) {
+  document.getElementById('bench-result-section').style.display = '';
+
+  if (r.grade) {
+    document.getElementById('bench-grade-badges').innerHTML = Object.entries(r.grade).map(([k,v]) =>
+      `<span class="grade-badge grade-${v}">${k.replace('_',' ').toUpperCase()}: ${v}</span>`
+    ).join('');
+  }
+
+  const grid = document.getElementById('bench-stats-grid');
+  const cards = [
+    {label:'Duration', val: r.elapsed_s+'s'},
+    {label:'Batches (Publish Cycles)', val: r.packets},
+    {label:'Batch Rate (/s)', val: r.packet_rate},
+    {label:'Notifications', val: r.var_updates},
+    {label:'Notification Rate (/s)', val: r.var_update_rate},
+    {label:'Var Changes', val: r.var_changes},
+    {label:'Var Change Rate (/s)', val: r.var_change_rate},
+    {label:'Dropped', val: r.dropped_packets},
+    {label:'Subscribed', val: r.subscribed_count},
+  ];
+  grid.innerHTML = cards.map(c =>
+    `<div class="stat-card"><div class="val">${c.val}</div><div class="label">${c.label}</div></div>`
+  ).join('');
+
+  renderTimingTable('bench-ibt-table', r.inter_packet_ms);
+  if (r.per_variable && r.per_variable.length) {
+    renderPerVarTable('bench-pervar-table', r.per_variable);
+  }
+
+  // Save to localStorage for comparison with PLC
+  localStorage.setItem('opcua_benchmark', JSON.stringify(r));
+}
+
+async function doResetStats() {
+  await api('/api/opcua/stats/reset', {});
+  log('Stats reset');
+}
+
+function startStatsRefresh() {
+  setInterval(() => {
+    if (connected && subscribedVars.length > 0) refreshStats();
+  }, 1000);
+}
+
+// ═══ UI HELPERS ═══
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.textContent.toLowerCase().includes(name)));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `panel-${name}`));
+}
+
+function formatVal(v) {
+  if (typeof v === 'number') return Number.isInteger(v) ? String(v) : v.toFixed(4);
+  if (typeof v === 'boolean') return v ? 'TRUE' : 'FALSE';
+  return String(v);
+}
+
+function log(msg) {
+  const el = document.getElementById('log');
+  const ts = new Date().toLocaleTimeString('en', {hour12:false});
+  el.innerHTML += `<div>[${ts}] ${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+
+async function api(url, body) {
+  const res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  return res.json();
+}
+async function apiGet(url) {
+  const res = await fetch(url);
+  return res.json();
+}
+</script>
+</body>
+</html>
