@@ -66,22 +66,20 @@ def main():
         print("No registry entries found.", file=sys.stderr)
         sys.exit(1)
 
-    # Build ordered dict by index (0, 1, 2, ...)
+    # Build dict keyed by PLC index to preserve exact var_id mapping
     max_idx  = max(entries)
-    registry = {}   # var_name → plc_type_string  (same format as original JSON)
+    registry = {}   # str(plc_index) → {"name": ..., "type": ...}
 
     missing_type = 0
-    for idx in range(max_idx + 1):
-        entry = entries.get(idx)
-        if entry is None:
-            continue                  # sparse gap — skip
+    for idx in sorted(entries):
+        entry = entries[idx]
         if "name" not in entry:
             continue
         type_code  = entry.get("typeCode", 4)   # default UDINT if missing
         plc_type   = TYPE_NAMES.get(type_code, f"UNKNOWN_{type_code}")
         if "typeCode" not in entry:
             missing_type += 1
-        registry[entry["name"]] = plc_type
+        registry[str(idx)] = {"name": entry["name"], "type": plc_type}
 
     OUTPUT.write_text(json.dumps(registry, indent=None), encoding="utf-8")
 
