@@ -7,9 +7,11 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QLineEdit, QLabel, QTreeWidget, QTreeWidgetItem, QComboBox, QListWidget,
     QListWidgetItem, QSpinBox, QTableWidget, QTableWidgetItem, QFileDialog, QMessageBox,
-    QFrame, QSplitter, QHeaderView, QCheckBox, QTabWidget, QInputDialog
+    QFrame, QSplitter, QHeaderView, QCheckBox, QTabWidget, QInputDialog, QMenu, QAction
 )
 from PyQt5.QtCore import QTimer, Qt
+from PyQt5.QtGui import QIcon, QColor, QFont
+from src.perf_benchmark import PerformanceBenchmark
 
 class RecordingScenario(QWidget):
     def __init__(self, parent=None, name="New Scenario", client=None):
@@ -30,45 +32,46 @@ class RecordingScenario(QWidget):
         if app:
             app.setStyleSheet("""
                 QMessageBox, QInputDialog {
-                    background-color: #333333;
+                    background-color: #16213e;
                 }
                 QMessageBox QLabel, QInputDialog QLabel {
-                    color: #f0f0f0;
+                    color: #e0e0e0;
                 }
                 QMessageBox QPushButton, QInputDialog QPushButton {
-                    background-color: #4a4a4a;
-                    color: #f0f0f0;
-                    border: 1px solid #5a5a5a;
-                    padding: 5px 15px;
-                    border-radius: 3px;
+                    background-color: #0f3460;
+                    color: #e0e0e0;
+                    border: 1px solid #2a3a5a;
+                    padding: 6px 18px;
+                    border-radius: 6px;
                 }
                 QMessageBox QPushButton:hover, QInputDialog QPushButton:hover {
-                    background-color: #5a5a5a;
+                    background-color: #1a5a8a;
                 }
                 QInputDialog QLineEdit {
-                    background-color: #333333;
-                    color: #f0f0f0;
-                    border: 1px solid #4a4a4a;
-                    padding: 5px;
+                    background-color: #16213e;
+                    color: #e0e0e0;
+                    border: 1px solid #2a3a5a;
+                    padding: 6px;
+                    border-radius: 6px;
                 }
                 QInputDialog QLineEdit:focus {
-                    border: 1px solid #5a5a5a;
+                    border: 1px solid #e94560;
                 }
                 QFileDialog {
-                    background-color: #2d2d2d;
+                    background-color: #1a1a2e;
                     color: #e0e0e0;
                 }
                 QFileDialog QLabel {
                     color: #e0e0e0;
                 }
                 QFileDialog QLineEdit {
-                    background-color: #2d2d2d;
+                    background-color: #16213e;
                     color: #e0e0e0;
-                    border: 1px solid #3d3d3d;
-                    padding: 5px;
+                    border: 1px solid #2a3a5a;
+                    padding: 6px;
                 }
                 QFileDialog QTreeView, QFileDialog QListView {
-                    background-color: #2d2d2d;
+                    background-color: #16213e;
                     color: #e0e0e0;
                 }
             """)
@@ -83,9 +86,9 @@ class RecordingScenario(QWidget):
         dir_frame = QFrame()
         dir_frame.setStyleSheet("""
             QFrame {
-                background: #2d2d2d;
-                border: 1px solid #3d3d3d;
-                border-radius: 4px;
+                background: #16213e;
+                border: 1px solid #2a3a5a;
+                border-radius: 8px;
                 padding: 10px;
             }
         """)
@@ -95,15 +98,14 @@ class RecordingScenario(QWidget):
         self.dir_combo = QComboBox()
         self.dir_combo.setStyleSheet("""
             QComboBox {
-                border: 1px solid #3d3d3d;
-                border-radius: 4px;
-                padding: 4px;
-                background: #2d2d2d;
+                border: 1px solid #2a3a5a;
+                border-radius: 6px;
+                padding: 6px;
+                background: #0f2940;
                 color: #e0e0e0;
             }
             QComboBox:hover {
-                border: 1px solid #4d4d4d;
-                background: #353535;
+                border: 1px solid #3a5a8a;
             }
             QComboBox::drop-down {
                 border: none;
@@ -112,18 +114,18 @@ class RecordingScenario(QWidget):
                 image: none;
                 border-left: 5px solid transparent;
                 border-right: 5px solid transparent;
-                border-top: 5px solid #e0e0e0;
+                border-top: 5px solid #8899aa;
                 margin-right: 5px;
             }
             QComboBox QAbstractItemView {
-                background: #2d2d2d;
-                border: 1px solid #3d3d3d;
-                selection-background-color: #404040;
+                background: #16213e;
+                border: 1px solid #2a3a5a;
+                selection-background-color: #0f3460;
                 selection-color: #e0e0e0;
                 color: #e0e0e0;
             }
             QComboBox QLineEdit {
-                background: #2d2d2d;
+                background: #0f2940;
                 color: #e0e0e0;
                 border: none;
                 padding: 0px;
@@ -141,19 +143,19 @@ class RecordingScenario(QWidget):
         self.var_list = QListWidget()
         self.var_list.setStyleSheet("""
             QListWidget {
-                background: #2d2d2d;
-                border: 1px solid #3d3d3d;
-                border-radius: 4px;
+                background: #0f2940;
+                border: 1px solid #2a3a5a;
+                border-radius: 8px;
                 color: #e0e0e0;
             }
             QListWidget::item {
                 padding: 5px;
             }
             QListWidget::item:hover {
-                background: #353535;
+                background: #1a3050;
             }
             QListWidget::item:selected {
-                background: #404040;
+                background: #0f3460;
                 color: #ffffff;
             }
         """)
@@ -167,12 +169,12 @@ class RecordingScenario(QWidget):
         self.live_table = QTableWidget()
         self.live_table.setStyleSheet("""
             QTableWidget {
-                background-color: #333333;
-                border: 1px solid #4a4a4a;
+                background-color: #16213e;
+                border: 1px solid #2a3a5a;
                 border-radius: 8px;
                 color: #f0f0f0;
-                gridline-color: #4a4a4a;
-                alternate-background-color: #383838;
+                gridline-color: #2a3a5a;
+                alternate-background-color: #1a2a45;
             }
             QTableWidget::item {
                 background-color: transparent;
@@ -181,23 +183,23 @@ class RecordingScenario(QWidget):
                 border: none;
             }
             QTableWidget::item:selected {
-                background-color: #505050;
+                background-color: #0f3460;
                 color: #ffffff;
             }
             QHeaderView::section {
-                background-color: #333333;
-                color: #f0f0f0;
+                background-color: #0f2940;
+                color: #8899aa;
                 border: none;
-                border-right: 1px solid #4a4a4a;
-                border-bottom: 1px solid #4a4a4a;
+                border-right: 1px solid #2a3a5a;
+                border-bottom: 1px solid #2a3a5a;
                 padding: 4px;
             }
             QTableCornerButton::section {
-                background-color: #333333;
+                background-color: #0f2940;
                 border: none;
             }
             QHeaderView {
-                background-color: #333333;
+                background-color: #0f2940;
             }
             QTableWidget QWidget {
                 background-color: transparent;
@@ -210,46 +212,45 @@ class RecordingScenario(QWidget):
         controls_frame = QFrame()
         controls_frame.setStyleSheet("""
             QFrame {
-                background: #2d2d2d;
-                border: 1px solid #3d3d3d;
-                border-radius: 4px;
+                background: #16213e;
+                border: 1px solid #2a3a5a;
+                border-radius: 8px;
                 padding: 10px;
             }
             QLabel {
                 color: #e0e0e0;
             }
             QSpinBox {
-                border: 1px solid #3d3d3d;
-                border-radius: 4px;
+                border: 1px solid #2a3a5a;
+                border-radius: 6px;
                 padding: 4px;
-                background: #2d2d2d;
+                background: #0f2940;
                 color: #e0e0e0;
-                selection-background-color: #404040;
+                selection-background-color: #0f3460;
                 selection-color: #ffffff;
             }
             QSpinBox:hover {
-                border: 1px solid #4d4d4d;
-                background: #353535;
+                border: 1px solid #3a5a8a;
             }
             QSpinBox::up-button, QSpinBox::down-button {
-                background: #3d3d3d;
+                background: #2a3a5a;
                 border: none;
                 border-radius: 2px;
             }
             QSpinBox::up-button:hover, QSpinBox::down-button:hover {
-                background: #4d4d4d;
+                background: #3a5a8a;
             }
             QSpinBox::up-arrow {
                 image: none;
                 border-left: 4px solid transparent;
                 border-right: 4px solid transparent;
-                border-bottom: 4px solid #e0e0e0;
+                border-bottom: 4px solid #8899aa;
             }
             QSpinBox::down-arrow {
                 image: none;
                 border-left: 4px solid transparent;
                 border-right: 4px solid transparent;
-                border-top: 4px solid #e0e0e0;
+                border-top: 4px solid #8899aa;
             }
         """)
         controls_layout = QHBoxLayout(controls_frame)
@@ -277,17 +278,18 @@ class RecordingScenario(QWidget):
         self.start_button.clicked.connect(self.start_recording)
         self.start_button.setStyleSheet("""
             QPushButton {
-                background-color: #2d6da4;
+                background-color: #0f3460;
                 color: #e0e0e0;
                 border: none;
                 padding: 8px 16px;
-                border-radius: 4px;
+                border-radius: 8px;
             }
             QPushButton:hover {
-                background-color: #3d7db4;
+                background-color: #e94560;
+                color: #ffffff;
             }
             QPushButton:pressed {
-                background-color: #1d5d94;
+                background-color: #c73650;
             }
         """)
         
@@ -295,17 +297,17 @@ class RecordingScenario(QWidget):
         self.stop_button.clicked.connect(self.stop_recording)
         self.stop_button.setStyleSheet("""
             QPushButton {
-                background-color: #a43d3d;
-                color: #e0e0e0;
+                background-color: #e94560;
+                color: #ffffff;
                 border: none;
                 padding: 8px 16px;
-                border-radius: 4px;
+                border-radius: 8px;
             }
             QPushButton:hover {
-                background-color: #b44d4d;
+                background-color: #ff6b81;
             }
             QPushButton:pressed {
-                background-color: #942d2d;
+                background-color: #c73650;
             }
         """)
         
@@ -320,12 +322,12 @@ class RecordingScenario(QWidget):
         self.data_table = QTableWidget()
         self.data_table.setStyleSheet("""
             QTableWidget {
-                background: #333333;
-                border: 1px solid #4a4a4a;
+                background: #16213e;
+                border: 1px solid #2a3a5a;
                 border-radius: 8px;
                 color: #f0f0f0;
-                gridline-color: #4a4a4a;
-                alternate-background-color: #404040;
+                gridline-color: #2a3a5a;
+                alternate-background-color: #1a2a45;
             }
             QTableWidget::item {
                 color: #f0f0f0;
@@ -333,23 +335,23 @@ class RecordingScenario(QWidget):
                 border: none;
             }
             QTableWidget::item:selected {
-                background: #505050;
+                background: #0f3460;
                 color: #ffffff;
             }
             QHeaderView::section {
-                background: #333333;
-                color: #f0f0f0;
+                background: #0f2940;
+                color: #8899aa;
                 border: none;
-                border-right: 1px solid #4a4a4a;
-                border-bottom: 1px solid #4a4a4a;
+                border-right: 1px solid #2a3a5a;
+                border-bottom: 1px solid #2a3a5a;
                 padding: 4px;
             }
             QTableCornerButton::section {
-                background: #333333;
+                background: #0f2940;
                 border: none;
             }
             QHeaderView {
-                background: #333333;
+                background: #0f2940;
             }
         """)
         self.data_table.setAlternatingRowColors(True)
@@ -361,25 +363,25 @@ class RecordingScenario(QWidget):
         self.auto_save_checkbox.setChecked(True)  # Set initial state to checked
         self.auto_save_checkbox.setStyleSheet("""
             QCheckBox {
-                color: #f0f0f0;
+                color: #e0e0e0;
             }
             QCheckBox::indicator {
-                width: 15px;
-                height: 15px;
+                width: 18px;
+                height: 18px;
                 border-radius: 4px;
-                border: 1px solid #909090;
-                background: #333333;
+                border: 2px solid #3a5a8a;
+                background: #0f2940;
             }
             QCheckBox::indicator:checked {
-                background: #4CAF50;
-                border-color: #4CAF50;
+                background: #e94560;
+                border-color: #e94560;
             }
             QCheckBox::indicator:hover {
-                border-color: #b0b0b0;
+                border-color: #5a8aba;
             }
             QCheckBox::indicator:checked:hover {
-                background-color: #45a049;
-                border-color: #45a049;
+                background-color: #ff6680;
+                border-color: #ff6680;
             }
         """)
         save_controls.addWidget(self.auto_save_checkbox)
@@ -387,17 +389,18 @@ class RecordingScenario(QWidget):
         self.save_button = QPushButton("Save CSV")
         self.save_button.setStyleSheet("""
             QPushButton {
-                background-color: #a36f0d !important;
+                background-color: #0f3460;
                 color: #e0e0e0;
                 border: none;
                 padding: 8px 16px;
-                border-radius: 4px;
+                border-radius: 8px;
             }
             QPushButton:hover {
-                background-color: #a36f0d !important;
+                background-color: #e94560;
+                color: #ffffff;
             }
             QPushButton:pressed {
-                background-color: #a36f0d !important;
+                background-color: #c73650;
             }
         """)
         self.save_button.clicked.connect(self.save_csv)
@@ -688,19 +691,19 @@ class RecordingScenario(QWidget):
                     width: 15px;
                     height: 15px;
                     border-radius: 3px;
-                    border: 1px solid #808080;
-                    background-color: #2d2d2d !important;
+                    border: 2px solid #3a5a8a;
+                    background-color: #0f2940 !important;
                 }
                 QCheckBox::indicator:checked {
-                    background-color: #b05cfa !important;
-                    border-color: #b05cfa;
+                    background-color: #e94560 !important;
+                    border-color: #e94560;
                 }
                 QCheckBox::indicator:hover {
-                    border-color: #a0a0a0;
+                    border-color: #5a8aba;
                 }
                 QCheckBox::indicator:checked:hover {
-                    background-color: #b3b1b5 !important;
-                    border-color: #b3b1b5;
+                    background-color: #ff6680 !important;
+                    border-color: #ff6680;
                 }
             """)
             self.live_update_checkboxes[var_name] = checkbox
@@ -719,19 +722,19 @@ class RecordingScenario(QWidget):
                     width: 20px;
                     height: 20px;
                     border-radius: 4px;
-                    border: 2px solid #808080;
-                    background-color: #2d2d2d !important;
+                    border: 2px solid #3a5a8a;
+                    background-color: #0f2940 !important;
                 }
                 QCheckBox::indicator:checked {
-                    background-color: #139415 !important;
-                    border-color: #139415;
+                    background-color: #00e676 !important;
+                    border-color: #00e676;
                 }
                 QCheckBox::indicator:hover {
-                    border-color: #a0a0a0;
+                    border-color: #5a8aba;
                 }
                 QCheckBox::indicator:checked:hover {
-                    background-color: #cc0000 !important;
-                    border-color: #cc0000;
+                    background-color: #e94560 !important;
+                    border-color: #e94560;
                 }
             """)
             checkbox_layout = QHBoxLayout(checkbox_widget)
@@ -938,198 +941,146 @@ class OPCUARecorder(QMainWindow):
         # Set window style and size
         self.setMinimumSize(1200, 800)
         self.setStyleSheet("""
-            QMainWindow {
-                background-color: #2b2b2b;
-            }
-            QLabel {
-                font-size: 11pt;
-                color: #f0f0f0;
-            }
-            /* Message Box and Input Dialog styling */
-            QMessageBox, QInputDialog {
-                background-color: #333333;
-                color: #f0f0f0;
-            }
-            QMessageBox QLabel, QInputDialog QLabel {
-                color: #f0f0f0;
-            }
+            * { font-family: 'Segoe UI', sans-serif; }
+            QMainWindow { background-color: #1a1a2e; }
+            QLabel { font-size: 10pt; color: #e0e0e0; }
+            QMessageBox, QInputDialog { background-color: #16213e; color: #e0e0e0; }
+            QMessageBox QLabel, QInputDialog QLabel { color: #e0e0e0; }
             QMessageBox QPushButton, QInputDialog QPushButton {
-                background-color: #4a4a4a;
-                color: #f0f0f0;
-                border: 1px solid #5a5a5a;
-                padding: 5px 15px;
-                border-radius: 3px;
-                min-width: 65px;
+                background-color: #0f3460; color: #e0e0e0;
+                border: 1px solid #1a4a7a; padding: 6px 18px;
+                border-radius: 6px; min-width: 70px;
             }
             QMessageBox QPushButton:hover, QInputDialog QPushButton:hover {
-                background-color: #5a5a5a;
+                background-color: #1a5a8a;
             }
             QInputDialog QLineEdit {
-                background-color: #333333;
-                color: #f0f0f0;
-                border: 1px solid #4a4a4a;
-                padding: 5px;
-                border-radius: 3px;
+                background-color: #16213e; color: #e0e0e0;
+                border: 1px solid #2a4a6a; padding: 6px; border-radius: 6px;
             }
-            QInputDialog QLineEdit:focus {
-                border: 1px solid #5a5a5a;
-            }
-            /* Rest of the existing styles */
             QPushButton {
-                background-color: #404040;
-                color: #f0f0f0;
-                border: 1px solid #4a4a4a;
-                padding: 8px 16px;
-                border-radius: 4px;
-                font-size: 11pt;
-                min-width: 100px;
+                background-color: #0f3460; color: #e0e0e0;
+                border: none; padding: 8px 16px;
+                border-radius: 6px; font-size: 10pt;
             }
-            QPushButton:hover {
-                background-color: #4a4a4a;
-                border: 1px solid #5a5a5a;
-            }
-            QPushButton:pressed {
-                background-color: #5a5a5a;
-            }
+            QPushButton:hover { background-color: #1a5a8a; }
+            QPushButton:pressed { background-color: #0a2640; }
             QTabWidget::pane {
-                border: 1px solid #4a4a4a;
-                background: #333333;
-                border-radius: 4px;
+                border: 1px solid #2a3a5a;
+                background: #16213e;
+                border-radius: 8px;
+                top: -1px;
             }
             QTabBar::tab {
-                background: #333333;
-                border: 1px solid #4a4a4a;
-                padding: 8px 12px;
+                background: #0f2940;
+                border: 1px solid #2a3a5a;
+                padding: 8px 16px;
                 margin-right: 2px;
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
-                color: #f0f0f0;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+                color: #8899aa;
+                font-size: 10pt;
             }
             QTabBar::tab:selected {
-                background: #4a4a4a;
-                border-bottom-color: #5a5a5a;
+                background: #16213e;
+                color: #e94560;
+                border-bottom-color: #16213e;
+                font-weight: bold;
             }
-            QTabBar::tab:hover {
-                background: #404040;
-            }
+            QTabBar::tab:hover { background: #1a3050; color: #e0e0e0; }
             QListWidget, QTableWidget, QTreeWidget {
-                background: #333333;
-                border: 1px solid #4a4a4a;
-                border-radius: 4px;
-                color: #f0f0f0;
+                background: #16213e;
+                border: 1px solid #2a3a5a;
+                border-radius: 8px;
+                color: #e0e0e0;
             }
-            QListWidget::item:hover, QTreeWidget::item:hover {
-                background: #404040;
-            }
+            QListWidget::item:hover, QTreeWidget::item:hover { background: #1a3050; }
             QListWidget::item:selected, QTreeWidget::item:selected {
-                background: #505050;
-                color: #ffffff;
+                background: #0f3460; color: #ffffff;
             }
             QHeaderView::section {
-                background: #333333;
-                color: #f0f0f0;
+                background: #0f2940;
+                color: #8899aa;
                 border: none;
-                border-right: 1px solid #4a4a4a;
-                border-bottom: 1px solid #4a4a4a;
-                padding: 4px;
+                border-right: 1px solid #2a3a5a;
+                border-bottom: 1px solid #2a3a5a;
+                padding: 6px 8px;
+                font-size: 9pt;
+                font-weight: bold;
             }
-            QTableWidget {
-                gridline-color: #4a4a4a;
-            }
-            QTableWidget::item {
-                padding: 4px;
-            }
+            QTableWidget { gridline-color: #2a3a5a; }
+            QTableWidget::item { padding: 4px; }
             QComboBox {
-                border: 1px solid #4a4a4a;
-                border-radius: 4px;
-                padding: 4px;
-                background: #333333;
-                color: #f0f0f0;
+                border: 1px solid #2a3a5a;
+                border-radius: 6px;
+                padding: 6px 8px;
+                background: #16213e;
+                color: #e0e0e0;
             }
-            QComboBox:hover {
-                border: 1px solid #5a5a5a;
-                background: #404040;
-            }
-            QComboBox::drop-down {
-                border: none;
-            }
+            QComboBox:hover { border: 1px solid #3a5a8a; }
+            QComboBox::drop-down { border: none; width: 24px; }
             QComboBox::down-arrow {
                 image: none;
                 border-left: 5px solid transparent;
                 border-right: 5px solid transparent;
-                border-top: 5px solid #f0f0f0;
-                margin-right: 5px;
+                border-top: 5px solid #8899aa;
+                margin-right: 8px;
+            }
+            QComboBox QAbstractItemView {
+                background: #16213e; border: 1px solid #2a3a5a;
+                selection-background-color: #0f3460; color: #e0e0e0;
             }
             QSpinBox {
-                border: 1px solid #4a4a4a;
-                border-radius: 4px;
-                padding: 4px;
-                background: #333333;
-                color: #f0f0f0;
+                border: 1px solid #2a3a5a;
+                border-radius: 6px;
+                padding: 4px 8px;
+                background: #16213e;
+                color: #e0e0e0;
             }
-            QSpinBox:hover {
-                border: 1px solid #5a5a5a;
-                background: #404040;
-            }
+            QSpinBox:hover { border: 1px solid #3a5a8a; }
             QFrame {
-                background: #333333;
-                border: 1px solid #4a4a4a;
-                border-radius: 4px;
+                background: #16213e;
+                border: 1px solid #2a3a5a;
+                border-radius: 8px;
             }
-            QSplitter::handle {
-                background: #4a4a4a;
-                width: 2px;
-            }
+            QSplitter::handle { background: #2a3a5a; width: 2px; }
             QScrollBar:vertical {
-                border: none;
-                background: #333333;
-                width: 10px;
-                margin: 0px;
+                border: none; background: #1a1a2e; width: 8px;
             }
             QScrollBar::handle:vertical {
-                background: #4a4a4a;
-                min-height: 20px;
-                border-radius: 5px;
+                background: #2a3a5a; min-height: 20px; border-radius: 4px;
             }
-            QScrollBar::handle:vertical:hover {
-                background: #5a5a5a;
-            }
+            QScrollBar::handle:vertical:hover { background: #3a5a8a; }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
             QScrollBar:horizontal {
-                border: none;
-                background: #333333;
-                height: 10px;
-                margin: 0px;
+                border: none; background: #1a1a2e; height: 8px;
             }
             QScrollBar::handle:horizontal {
-                background: #4a4a4a;
-                min-width: 20px;
-                border-radius: 5px;
+                background: #2a3a5a; min-width: 20px; border-radius: 4px;
             }
-            QScrollBar::handle:horizontal:hover {
-                background: #5a5a5a;
-            }
-            QCheckBox {
-                color: #f0f0f0;
-            }
+            QScrollBar::handle:horizontal:hover { background: #3a5a8a; }
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
+            QCheckBox { color: #e0e0e0; spacing: 6px; }
             QCheckBox::indicator {
-                width: 20px;
-                height: 20px;
+                width: 18px; height: 18px;
                 border-radius: 4px;
-                border: 2px solid #909090;
-                background: #333333;
+                border: 2px solid #3a5a8a;
+                background: #0f2940;
             }
             QCheckBox::indicator:checked {
-                background: #4CAF50;
-                border-color: #4CAF50;
-
+                background: #e94560;
+                border-color: #e94560;
             }
-            QCheckBox::indicator:hover {
-                border-color: #b0b0b0;
-            }
+            QCheckBox::indicator:hover { border-color: #5a8aba; }
             QCheckBox::indicator:checked:hover {
-                background: #45a049;
-                border-color: #45a049;
+                background: #ff6680; border-color: #ff6680;
             }
+            QLineEdit {
+                background: #16213e; color: #e0e0e0;
+                border: 1px solid #2a3a5a; border-radius: 6px;
+                padding: 6px 10px; font-size: 10pt;
+            }
+            QLineEdit:focus { border: 1px solid #e94560; }
         """)
 
         # Create main horizontal splitter
@@ -1138,37 +1089,39 @@ class OPCUARecorder(QMainWindow):
 
         # Left side widget - Address Space and Connection Controls
         left_widget = QWidget()
+        left_widget.setStyleSheet("QWidget { background: transparent; border: none; }")
         left_layout = QVBoxLayout(left_widget)
-        left_layout.setSpacing(15)
-        left_layout.setContentsMargins(10, 10, 10, 10)
+        left_layout.setSpacing(8)
+        left_layout.setContentsMargins(8, 8, 4, 8)
 
-        # Connection controls at the top
+        # Connection controls
         connection_frame = QFrame()
+        connection_frame.setStyleSheet("""
+            QFrame { background: #16213e; border: 1px solid #2a3a5a; border-radius: 10px; }
+        """)
         connection_layout = QVBoxLayout(connection_frame)
-        connection_layout.setSpacing(10)
+        connection_layout.setSpacing(8)
+        connection_layout.setContentsMargins(12, 12, 12, 12)
 
-        # Server status
+        # Status row
         status_layout = QHBoxLayout()
         self.status_led = QLabel()
-        self.status_led.setFixedSize(16, 16)
+        self.status_led.setFixedSize(12, 12)
         self.status_led.setStyleSheet("""
             QLabel {
-                background-color: #e74c3c;
-                border-radius: 8px;
-                border: 2px solid #c0392b;
+                background-color: #e94560;
+                border-radius: 6px;
+                border: none;
             }
         """)
-        status_label = QLabel("Server Status:")
-        status_label.setStyleSheet("font-weight: bold;")
-        status_layout.addWidget(status_label)
+        status_label = QLabel("Status")
+        status_label.setStyleSheet("font-weight: bold; font-size: 9pt; color: #8899aa;")
         status_layout.addWidget(self.status_led)
+        status_layout.addWidget(status_label)
         status_layout.addStretch()
         connection_layout.addLayout(status_layout)
 
-        # Server URL
-        url_label = QLabel("OPC UA Server URL:")
-        url_label.setStyleSheet("font-weight: bold;")
-        connection_layout.addWidget(url_label)
+        # URL
         self.url_combo = QComboBox()
         self.url_combo.setEditable(True)
         self.url_combo.addItems([
@@ -1176,121 +1129,150 @@ class OPCUARecorder(QMainWindow):
             "opc.tcp://localhost:4840"
         ])
         self.url_combo.setCurrentText("opc.tcp://192.168.101.10:4840")
-        self.url_combo.setStyleSheet("""
-            QComboBox {
-                border: 1px solid #3d3d3d;
-                border-radius: 4px;
-                padding: 4px;
-                background: #2d2d2d;
-                color: #f0f0f0;
-            }
-            QComboBox:hover {
-                border: 1px solid #4d4d4d;
-                background: #353535;
-            }
-            QComboBox::drop-down {
-                border: none;
-            }
-            QComboBox::down-arrow {
-                image: none;
-                border-left: 5px solid transparent;
-                border-right: 5px solid transparent;
-                border-top: 5px solid #f0f0f0;
-                margin-right: 5px;
-            }
-            QComboBox QAbstractItemView {
-                background: #2d2d2d;
-                border: 1px solid #3d3d3d;
-                color: #f0f0f0;
-            }
-            QComboBox QAbstractItemView::item {
-                background: #2d2d2d;
-                color: #f0f0f0;
-                padding: 4px;
-            }
-            QComboBox QAbstractItemView::item:selected {
-                background: #404040;
-                color: #ffffff;
-            }
-            QComboBox QAbstractItemView::item:hover {
-                background: #353535;
-                color: #ffffff;
-            }
-            QComboBox QLineEdit {
-                background: #2d2d2d;
-                color: #f0f0f0;
-                border: none;
-                padding: 0px;
-            }
-        """)
         connection_layout.addWidget(self.url_combo)
 
         # Connect button
-        self.connect_button = QPushButton("Connect and Browse")
+        self.connect_button = QPushButton("Connect")
+        self.connect_button.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #e94560, stop:1 #c23152);
+                color: white; border: none; padding: 10px;
+                border-radius: 8px; font-size: 11pt; font-weight: bold;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #ff5a75, stop:1 #d24162);
+            }
+            QPushButton:pressed { background: #a02040; }
+        """)
         self.connect_button.clicked.connect(self.connect_and_browse)
         connection_layout.addWidget(self.connect_button)
         
         left_layout.addWidget(connection_frame)
 
-        # Address space tree
+        # Tree section
         tree_frame = QFrame()
+        tree_frame.setStyleSheet("""
+            QFrame { background: #16213e; border: 1px solid #2a3a5a; border-radius: 10px; }
+        """)
         tree_layout = QVBoxLayout(tree_frame)
-        tree_label = QLabel("OPC UA Address Space")
-        tree_label.setStyleSheet("font-weight: bold; font-size: 12pt;")
-        tree_layout.addWidget(tree_label)
+        tree_layout.setContentsMargins(10, 10, 10, 10)
+        tree_layout.setSpacing(6)
+
+        tree_header = QLabel("Address Space")
+        tree_header.setStyleSheet("font-weight: bold; font-size: 11pt; color: #e94560; border: none;")
+        tree_layout.addWidget(tree_header)
+
+        # Search
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("  Search variables...")
+        self.search_input.setClearButtonEnabled(True)
+        self.search_input.setStyleSheet("""
+            QLineEdit {
+                background: #0f2940; color: #e0e0e0;
+                border: 1px solid #2a3a5a; border-radius: 8px;
+                padding: 8px 12px; font-size: 10pt;
+            }
+            QLineEdit:focus { border: 1px solid #e94560; }
+        """)
+        self.search_input.textChanged.connect(self._on_search_changed)
+        tree_layout.addWidget(self.search_input)
+
+        # Action buttons
+        btn_row = QHBoxLayout()
+        self.add_to_bench_btn = QPushButton("+ Add to Benchmark")
+        self.add_to_bench_btn.setStyleSheet("""
+            QPushButton {
+                background: #0f3460; color: #e0e0e0; border: 1px solid #2a4a6a;
+                padding: 6px 14px; border-radius: 6px; font-size: 9pt;
+            }
+            QPushButton:hover { background: #1a5a8a; border-color: #3a6a9a; }
+        """)
+        self.add_to_bench_btn.clicked.connect(self._add_selected_to_benchmark)
+        btn_row.addWidget(self.add_to_bench_btn)
+        btn_row.addStretch()
+        tree_layout.addLayout(btn_row)
         
+        # Tree widget with checkboxes
         self.tree_widget = QTreeWidget()
-        self.tree_widget.setHeaderLabel("")
+        self.tree_widget.setHeaderLabels(["Name", "Type"])
+        self.tree_widget.setColumnCount(2)
+        self.tree_widget.setSelectionMode(QTreeWidget.ExtendedSelection)
         self.tree_widget.setHorizontalScrollMode(QTreeWidget.ScrollPerPixel)
         self.tree_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.tree_widget.header().setStretchLastSection(False)
-        self.tree_widget.header().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.tree_widget.setAnimated(True)
+        self.tree_widget.setIndentation(18)
+        self.tree_widget.header().setStretchLastSection(True)
+        self.tree_widget.header().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.tree_widget.header().setSectionResizeMode(1, QHeaderView.Fixed)
+        self.tree_widget.setColumnWidth(1, 70)
+        self.tree_widget.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.tree_widget.customContextMenuRequested.connect(self._tree_context_menu)
         self.tree_widget.setStyleSheet("""
             QTreeWidget {
-                background-color: #2d2d2d;
-                border: 1px solid #3d3d3d;
-                border-radius: 4px;
-                color: #f0f0f0;
+                background-color: #0f2940;
+                border: 1px solid #1a3a5a;
+                border-radius: 8px;
+                color: #d4d4d4;
+                font-family: 'Segoe UI', Consolas, sans-serif;
+                font-size: 10pt;
+                outline: none;
             }
             QTreeWidget::item {
-                color: #f0f0f0;
-                padding: 4px;
-                background-color: transparent;
+                padding: 4px 6px;
+                border-radius: 4px;
+                margin: 1px 2px;
             }
             QTreeWidget::item:hover {
-                background-color: #353535;
+                background-color: #162850;
             }
             QTreeWidget::item:selected {
-                background-color: #404040;
+                background-color: #0f3460;
                 color: #ffffff;
+                border: 1px solid #e94560;
+                border-radius: 4px;
             }
             QTreeWidget::branch {
                 background-color: transparent;
             }
             QTreeWidget::branch:has-children:!has-siblings:closed,
             QTreeWidget::branch:closed:has-children:has-siblings {
-                border-image: none;
-                border-style: solid;
-                border-width: 3px;
-                border-color: transparent transparent transparent #ffffff;
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #5a7a9a;
+                margin: 6px 4px;
             }
             QTreeWidget::branch:open:has-children:!has-siblings,
             QTreeWidget::branch:open:has-children:has-siblings {
-                border-image: none;
-                border-style: solid;
-                border-width: 3px;
-                border-color: #ffffff transparent transparent transparent;
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-bottom: 5px solid #e94560;
+                margin: 6px 4px;
+            }
+            QHeaderView::section {
+                background-color: #0a1f35;
+                color: #5a7a9a;
+                border: none;
+                border-bottom: 2px solid #e94560;
+                padding: 6px 10px;
+                font-size: 9pt;
+                font-weight: bold;
+                text-transform: uppercase;
             }
         """)
         tree_layout.addWidget(self.tree_widget)
         
-        left_layout.addWidget(tree_frame)
+        left_layout.addWidget(tree_frame, 1)
 
         # Right side widget - Recording Scenarios
         right_widget = QWidget()
+        right_widget.setStyleSheet("QWidget { background: transparent; border: none; }")
         right_layout = QVBoxLayout(right_widget)
-        right_layout.setSpacing(15)
-        right_layout.setContentsMargins(10, 10, 10, 10)
+        right_layout.setSpacing(8)
+        right_layout.setContentsMargins(4, 8, 8, 8)
 
         # Tab widget for scenarios
         self.tab_widget = QTabWidget()
@@ -1314,6 +1296,10 @@ class OPCUARecorder(QMainWindow):
 
         # Set the initial sizes of the splitter (30-70 split)
         main_splitter.setSizes([300, 900])
+
+        # Create Performance Benchmark tab (always first)
+        self.benchmark_tab = PerformanceBenchmark(self, self.client)
+        self.tab_widget.insertTab(0, self.benchmark_tab, "Performance")
 
         # Create initial scenario
         self.add_new_scenario("Scenario 1")
@@ -1344,6 +1330,8 @@ class OPCUARecorder(QMainWindow):
 
     def close_scenario_tab(self, index):
         """Close a scenario tab."""
+        if index == 0:  # Don't close the Performance tab
+            return
         if index != self.tab_widget.count() - 1:  # Don't close the '+' tab
             # Get the widget and check if it's recording
             widget = self.tab_widget.widget(index)
@@ -1372,22 +1360,59 @@ class OPCUARecorder(QMainWindow):
             print(f"Attempting to connect to: {server_url}")
             self.client = Client(server_url)
             
-            # Simple connection without any special configuration
             self.client.connect()
             print("Successfully connected to server")
             self.update_connection_status(True)
             
-            # Get root node and start browsing from there
+            # Get root node and browse only the path Root -> Objects -> PLC
             root = self.client.get_root_node()
-            print(f"Got root node: {root}")
-            
-            # Create root item
             root_item = QTreeWidgetItem(["Root"])
             root_item.setData(0, 1, root.nodeid.to_string())
             self.tree_widget.addTopLevelItem(root_item)
             
-            # Browse from root node
-            self.browse_nodes(root, root_item)
+            # Navigate to PLC node quickly: Root -> Objects -> PLC
+            try:
+                objects_node = root.get_child(["0:Objects"])
+                objects_item = QTreeWidgetItem(["Objects"])
+                objects_item.setData(0, 1, objects_node.nodeid.to_string())
+                root_item.addChild(objects_item)
+                
+                plc_node = None
+                for child in objects_node.get_children():
+                    name = child.get_display_name().Text
+                    if name == "PLC":
+                        plc_node = child
+                        break
+                
+                if plc_node:
+                    plc_item = QTreeWidgetItem(["PLC"])
+                    plc_item.setData(0, 1, plc_node.nodeid.to_string())
+                    objects_item.addChild(plc_item)
+                    
+                    # Browse first level under PLC (lazy - don't go deeper)
+                    self._browse_one_level(plc_node, plc_item)
+                    
+                    plc_item.setExpanded(True)
+                    objects_item.setExpanded(True)
+                    root_item.setExpanded(True)
+                else:
+                    # No PLC node found, browse Objects one level
+                    self._browse_one_level(objects_node, objects_item)
+                    objects_item.setExpanded(True)
+                    root_item.setExpanded(True)
+                    
+            except Exception as e:
+                print(f"Error navigating to PLC: {e}")
+                # Fallback: browse root one level
+                self._browse_one_level(root, root_item)
+                root_item.setExpanded(True)
+            
+            # Connect lazy expand signal (disconnect first to avoid duplicates)
+            try:
+                self.tree_widget.itemExpanded.disconnect(self._on_item_expanded)
+            except TypeError:
+                pass
+            self.tree_widget.itemExpanded.connect(self._on_item_expanded)
             
             # Update all existing scenarios with the new client and directories
             for i in range(self.tab_widget.count() - 1):  # Exclude '+' tab
@@ -1395,6 +1420,13 @@ class OPCUARecorder(QMainWindow):
                 if isinstance(scenario, RecordingScenario):
                     scenario.client = self.client
                     scenario.update_directory_list(self.browsed_directories)
+
+            # Update benchmark tab
+            self.benchmark_tab.client = self.client
+            self.benchmark_tab.update_directory_list(self.browsed_directories)
+            
+            # Auto-discover opctest variables and add to benchmark
+            self._auto_add_opctest_vars()
             
             QMessageBox.information(self, "Success", "Connected to OPC UA server successfully!")
             
@@ -1405,53 +1437,77 @@ class OPCUARecorder(QMainWindow):
             self.update_connection_status(False)
             self.disconnect_client()
 
-    def browse_nodes(self, node, parent_item):
-        """Recursively browse nodes and add them to the tree."""
-        try:
-            display_name = node.get_display_name().Text
-            node_id = node.nodeid.to_string()
-            print(f"\nBrowsing node: {display_name} (ID: {node_id})")
-            
-            # Define the path we want to follow
-            target_path = ['Root', 'Objects', 'PLC']
-            current_level = parent_item.text(0)  # Get the current node name
-            
+    def _auto_add_opctest_vars(self):
+        """Auto-discover opctest1..opctest200 global variables and add to benchmark."""
+        if not self.client:
+            return
+        added = 0
+        failed = 0
+        # B&R global variables are at ns=6;s=::AsGlobalPV:varname
+        # Also try the IO task name pattern ns=6;s=::IOSimulat:varname
+        prefixes = ["::AsGlobalPV:", "::IOSimulat:", "::gMainSimo:"]
+        found_prefix = None
+
+        # Probe first variable to find the right prefix
+        for prefix in prefixes:
+            node_path = f"ns=6;s={prefix}opctest1"
             try:
-                children = node.get_children()
-                print(f"Found {len(children)} children for node {display_name}")
-            except Exception as ce:
-                print(f"Error getting children for node {display_name}: {str(ce)}")
-                return
-                
+                node = self.client.get_node(node_path)
+                _ = node.get_value()
+                found_prefix = prefix
+                print(f"Found opctest vars at prefix: {prefix}")
+                break
+            except Exception:
+                continue
+
+        if not found_prefix:
+            print("opctest vars not found at any known prefix, skipping auto-add")
+            return
+
+        for i in range(1, 201):
+            var_name = f"opctest{i}"
+            node_path = f"ns=6;s={found_prefix}{var_name}"
+            try:
+                node = self.client.get_node(node_path)
+                _ = node.get_value()  # Verify it's readable
+                if self.benchmark_tab.add_variable(var_name, node_path):
+                    added += 1
+            except Exception:
+                failed += 1
+
+        if added > 0:
+            print(f"Auto-added {added} opctest variables to benchmark (prefix: {found_prefix})")
+        if failed > 0:
+            print(f"  ({failed} opctest variables not found/readable)")
+
+    def _browse_one_level(self, node, parent_item):
+        """Browse one level of children and add placeholder items for expandable nodes."""
+        try:
+            children = node.get_children()
             for child in children:
                 try:
-                    # Get node name and class
                     browse_name = child.get_display_name().Text
                     child_id = child.nodeid.to_string()
+                    node_class = child.get_node_class()
                     
-                    # If we haven't reached PLC yet, only follow the target path
-                    if current_level in target_path and current_level != 'PLC':
-                        current_index = target_path.index(current_level)
-                        if current_index + 1 < len(target_path):
-                            # If we're not at PLC level, only process next item in path
-                            if browse_name != target_path[current_index + 1]:
-                                continue
+                    is_variable = (node_class == ua.NodeClass.Variable)
+                    type_label = "Variable" if is_variable else "Folder"
                     
-                    # Get node class
-                    node_class = None
-                    try:
-                        node_class = child.get_node_class()
-                    except Exception:
-                        print(f"Could not get node class for {browse_name}")
-                    
-                    print(f"Processing child: {browse_name} (Class: {node_class}, ID: {child_id})")
-                    
-                    # Create tree item
-                    child_item = QTreeWidgetItem([browse_name])
+                    child_item = QTreeWidgetItem([browse_name, type_label])
                     child_item.setData(0, 1, child_id)
+                    child_item.setData(0, Qt.UserRole + 1, int(node_class) if node_class else 0)
+                    
+                    # Color-code: variables = cyan, folders = warm yellow
+                    if is_variable:
+                        child_item.setForeground(0, QColor("#4fc3f7"))  # light blue
+                        child_item.setForeground(1, QColor("#66bb6a"))  # green
+                    else:
+                        child_item.setForeground(0, QColor("#ffcc80"))  # warm orange
+                        child_item.setForeground(1, QColor("#5a7a9a"))
+                    
                     parent_item.addChild(child_item)
                     
-                    # Build the full path for this node
+                    # Build full path
                     path_parts = []
                     temp_item = child_item
                     while temp_item is not None:
@@ -1459,55 +1515,195 @@ class OPCUARecorder(QMainWindow):
                         temp_item = temp_item.parent()
                     full_path = '/'.join(path_parts)
                     
-                    # If we're at or below PLC level, show all variables and directories
-                    if current_level == 'PLC' or browse_name == 'PLC' or not current_level in target_path:
-                        # Try to read value if it might be a variable
-                        try:
-                            if node_class == ua.NodeClass.Variable:
-                                value = child.get_value()
-                                value_type = type(value).__name__
-                                print(f"Variable {browse_name} value: {value} (Type: {value_type})")
-                                
-                                # Add value info to tree
-                                value_str = f"Value: {value}, Type: {value_type}"
-                                value_item = QTreeWidgetItem([value_str])
-                                child_item.addChild(value_item)
-                                
-                                # Add to variables dict
-                                self.browsed_variables[browse_name] = child_id
-                        except Exception as ve:
-                            print(f"Error reading value for {browse_name}: {ve}")
-                        
-                        # Add to directories if it has children
-                        try:
-                            if len(child.get_children()) > 0:
-                                self.browsed_directories[full_path] = child_id
-                        except Exception:
-                            pass
-                        
-                        # Continue browsing all nodes under PLC
-                        self.browse_nodes(child, child_item)
+                    if is_variable:
+                        self.browsed_variables[browse_name] = child_id
                     else:
-                        # If we're still in the path to PLC, continue browsing
-                        if current_level in target_path:
-                            self.browse_nodes(child, child_item)
+                        self.browsed_directories[full_path] = child_id
+                        dummy = QTreeWidgetItem(["Loading...", ""])
+                        dummy.setData(0, 1, "__placeholder__")
+                        dummy.setForeground(0, QColor("#666666"))
+                        child_item.addChild(dummy)
                         
-                except Exception as ce:
-                    print(f"Error processing child node {getattr(child, 'nodeid', 'unknown')}: {str(ce)}")
+                except Exception as e:
+                    print(f"Error browsing child: {e}")
                     continue
-                
         except Exception as e:
-            print(f"Error browsing node {getattr(node, 'nodeid', 'unknown')}: {str(e)}")
+            print(f"Error getting children: {e}")
+
+    def _on_item_expanded(self, item):
+        """Lazy load children when a tree item is expanded."""
+        if not self.client:
+            return
+        # Check if this item has a placeholder child
+        if item.childCount() == 1 and item.child(0).data(0, 1) == "__placeholder__":
+            # Remove placeholder
+            item.removeChild(item.child(0))
+            # Browse this node's children
+            node_id = item.data(0, 1)
+            if node_id:
+                node = self.client.get_node(node_id)
+                self._browse_one_level(node, item)
+
+    def browse_nodes(self, node, parent_item):
+        """Legacy recursive browse - no longer used for initial load."""
+        self._browse_one_level(node, parent_item)
+
+    def _on_search_changed(self, text):
+        """Filter tree items based on search text."""
+        if not text:
+            # Show all items
+            self._set_all_visible(self.tree_widget.invisibleRootItem(), True)
+            return
+        
+        text_lower = text.lower()
+        self._filter_tree(self.tree_widget.invisibleRootItem(), text_lower)
+
+    def _filter_tree(self, item, text):
+        """Recursively filter tree items. Returns True if this item or any child matches."""
+        match = False
+        for i in range(item.childCount()):
+            child = item.child(i)
+            child_match = text in child.text(0).lower()
+            # Check children recursively
+            descendant_match = self._filter_tree(child, text)
+            visible = child_match or descendant_match
+            child.setHidden(not visible)
+            if child_match:
+                # Expand parents to show match
+                parent = child.parent()
+                while parent:
+                    parent.setExpanded(True)
+                    parent = parent.parent()
+            if visible:
+                match = True
+        return match
+
+    def _set_all_visible(self, item, visible):
+        """Set all tree items visible/hidden."""
+        for i in range(item.childCount()):
+            child = item.child(i)
+            child.setHidden(not visible)
+            self._set_all_visible(child, visible)
+
+    def _tree_context_menu(self, position):
+        """Show context menu on right-click in tree."""
+        items = self.tree_widget.selectedItems()
+        if not items:
+            return
+        
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: #16213e; color: #e0e0e0;
+                border: 1px solid #2a3a5a; border-radius: 8px; padding: 4px;
+            }
+            QMenu::item { padding: 8px 24px; border-radius: 4px; }
+            QMenu::item:selected { background-color: #0f3460; color: #e94560; }
+        """)
+        
+        # Count variables in selection
+        var_items = [it for it in items if it.text(1) == "Variable"]
+        folder_items = [it for it in items if it.text(1) != "Variable" and it.data(0, 1) != "__placeholder__"]
+        
+        if var_items:
+            add_action = menu.addAction(f"Add {len(var_items)} variable(s) to Benchmark")
+            add_action.triggered.connect(lambda: self._add_items_to_benchmark(var_items))
+        
+        if folder_items:
+            add_folder_action = menu.addAction(f"Add all variables from {len(folder_items)} folder(s)")
+            add_folder_action.triggered.connect(lambda: self._add_folders_to_benchmark(folder_items))
+        
+        if var_items or folder_items:
+            menu.exec_(self.tree_widget.viewport().mapToGlobal(position))
+
+    def _add_selected_to_benchmark(self):
+        """Add selected tree items to benchmark variable list."""
+        items = self.tree_widget.selectedItems()
+        if not items:
+            QMessageBox.information(self, "No Selection", 
+                "Select variables in the tree first.\nUse Ctrl+Click for multiple selection.")
+            return
+        
+        var_items = [it for it in items if it.text(1) == "Variable"]
+        folder_items = [it for it in items if it.text(1) != "Variable" 
+                       and it.data(0, 1) and it.data(0, 1) != "__placeholder__"]
+        
+        if var_items:
+            self._add_items_to_benchmark(var_items)
+        if folder_items:
+            self._add_folders_to_benchmark(folder_items)
+        
+        if not var_items and not folder_items:
+            QMessageBox.information(self, "No Variables", 
+                "Select variable nodes (blue) or folder nodes to add.")
+
+    def _add_items_to_benchmark(self, items):
+        """Add specific variable items to the benchmark tab."""
+        added = 0
+        for item in items:
+            node_id = item.data(0, 1)
+            if not node_id:
+                continue
+            # Build full path
+            path_parts = []
+            temp = item
+            while temp:
+                path_parts.insert(0, temp.text(0))
+                temp = temp.parent()
+            full_path = '/'.join(path_parts)
+            
+            if self.benchmark_tab.add_variable(full_path, node_id):
+                added += 1
+        
+        if added > 0:
+            # Switch to Performance tab
+            self.tab_widget.setCurrentIndex(0)
+            print(f"Added {added} variable(s) to benchmark")
+
+    def _add_folders_to_benchmark(self, folder_items):
+        """Add all variables from folders to benchmark."""
+        if not self.client:
+            return
+        added = 0
+        for folder_item in folder_items:
+            node_id = folder_item.data(0, 1)
+            if not node_id:
+                continue
+            try:
+                node = self.client.get_node(node_id)
+                children = node.get_children()
+                for child in children:
+                    try:
+                        if child.get_node_class() == ua.NodeClass.Variable:
+                            name = child.get_display_name().Text
+                            # Build path
+                            path_parts = []
+                            temp = folder_item
+                            while temp:
+                                path_parts.insert(0, temp.text(0))
+                                temp = temp.parent()
+                            full_path = '/'.join(path_parts) + '/' + name
+                            cid = child.nodeid.to_string()
+                            if self.benchmark_tab.add_variable(full_path, cid):
+                                added += 1
+                    except Exception:
+                        pass
+            except Exception as e:
+                print(f"Error browsing folder: {e}")
+        
+        if added > 0:
+            self.tab_widget.setCurrentIndex(0)
+            print(f"Added {added} variable(s) from folder(s) to benchmark")
 
     def update_connection_status(self, connected=False):
         """Update the connection status LED."""
         if connected:
             self.status_led.setStyleSheet(
-                "QLabel { background-color: #27ae60; border-radius: 8px; }"
+                "QLabel { background-color: #00e676; border-radius: 6px; border: none; }"
             )
         else:
             self.status_led.setStyleSheet(
-                "QLabel { background-color: #e74c3c; border-radius: 8px; }"
+                "QLabel { background-color: #e94560; border-radius: 6px; border: none; }"
             )
 
     def disconnect_client(self):

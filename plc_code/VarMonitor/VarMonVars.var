@@ -1,0 +1,64 @@
+(********************************************************************
+ * VarMonitor — Variable declarations
+ ********************************************************************)
+VAR CONSTANT
+    VM_TCP_PORT : UINT := 55000;        (* TCP command port *)
+    VM_UDP_PORT : UINT := 55001;        (* UDP data port on Python side *)
+    VM_MAX_SUBSCRIPTIONS : UINT := 500; (* Max variables to subscribe *)
+    VM_MAX_REGISTRY : UINT := 2000;     (* Max variables in registry *)
+    VM_UDP_BUF_SIZE : UINT := 1400;     (* Max UDP packet size *)
+    VM_TCP_BUF_SIZE : UINT := 2048;     (* TCP receive buffer *)
+    VM_MAGIC : UINT := 16#AB01;         (* Packet magic number *)
+END_VAR
+
+VAR
+    (* State machine *)
+    vmState : VM_States_enum;
+    vmIdx   : UINT;
+    
+    (* TCP server *)
+    vmTcpOpen    : TcpOpen;
+    vmTcpServer  : TcpServer;
+    vmTcpRecv    : TcpRecv;
+    vmTcpSend    : TcpSend;
+    vmTcpClose   : TcpClose;
+    vmTcpIdent   : UDINT;
+    vmTcpClientIdent : UDINT;
+    vmTcpRxBuf   : ARRAY[0..2047] OF USINT;
+    vmTcpTxBuf   : ARRAY[0..2047] OF USINT;
+    vmClientIpAddr : STRING[20];
+    vmClientConnected : BOOL;
+    
+    (* UDP sender *)
+    vmUdpOpen    : UdpOpen;
+    vmUdpSend    : UdpSend;
+    vmUdpClose   : UdpClose;
+    vmUdpIdent   : UDINT;
+    vmUdpBuf     : ARRAY[0..1399] OF USINT;  (* Send buffer *)
+    vmClientPort : UINT;
+    
+    (* Subscription management *)
+    vmSubscription : ARRAY[0..499] OF UINT;  (* Active var_id list *)
+    vmSubCount   : UINT;                      (* Number of active subscriptions *)
+    vmSendIntervalMs : UINT;                  (* Send interval in ms *)
+    vmSeqNum     : UDINT;                     (* Packet sequence counter *)
+    vmLastSendTime : UDINT;                   (* Last send timestamp *)
+    
+    (* Variable registry — populated in _INIT or by code generator *)
+    vmRegistry   : ARRAY[0..1999] OF VM_VarEntry_typ;
+    vmRegCount   : UINT;                      (* Number of registered variables *)
+    
+    (* Temp vars for packing *)
+    vmBufPos     : UINT;
+    vmTempBool   : BOOL;
+    vmTempInt    : INT;
+    vmTempUint   : UINT;
+    vmTempDint   : DINT;
+    vmTempUdint  : UDINT;
+    vmTempReal   : REAL;
+    vmTempLreal  : LREAL;
+    vmTempUsint  : USINT;
+    vmTempString : STRING[80];
+    vmTempStrLen : USINT;
+    vmVarId      : UINT;
+END_VAR

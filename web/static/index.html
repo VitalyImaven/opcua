@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Protocol Test Suite</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0d1117; --bg2: #161b22; --bg3: #1c2333;
+  --border: #30363d; --text: #e6edf3; --dim: #8b949e;
+  --accent: #58a6ff; --accent2: #3fb950; --red: #f85149;
+  --orange: #d29922; --purple: #bc8cff;
+  --radius: 8px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+a { color: var(--accent); }
+button { background: var(--bg3); color: var(--text); border: 1px solid var(--border);
+  padding: 6px 14px; border-radius: var(--radius); cursor: pointer; font-size: 13px;
+  transition: all .15s; }
+button:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+button.danger:hover { background: var(--red); border-color: var(--red); }
+button.primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+button:disabled { opacity: .4; cursor: default; }
+input, select { background: var(--bg); color: var(--text); border: 1px solid var(--border);
+  padding: 5px 10px; border-radius: var(--radius); font-size: 13px; }
+input:focus, select:focus { border-color: var(--accent); outline: none; }
+label { font-size: 13px; color: var(--dim); }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* layout */
+#header { display:flex; align-items:center; gap:12px; padding:8px 16px;
+  background:var(--bg2); border-bottom:1px solid var(--border); height:48px; flex-shrink:0; }
+#header h1 { font-size:16px; font-weight:600; white-space:nowrap; }
+#header .status { width:10px; height:10px; border-radius:50%; background:var(--red); flex-shrink:0; }
+#header .status.on { background:var(--accent2); }
+#conn-url { width:300px; }
+.spacer { flex:1; }
+
+#main { display:flex; flex:1; overflow:hidden; }
+
+/* sidebar */
+#sidebar { width:320px; min-width:260px; background:var(--bg2);
+  border-right:1px solid var(--border); display:flex; flex-direction:column; flex-shrink: 0; }
+#sidebar .search { padding:8px; border-bottom:1px solid var(--border); }
+#sidebar .search input { width:100%; }
+#tree-wrap { flex:1; overflow:auto; padding:4px 0; }
+
+/* tree styles */
+.tree-node { user-select:none; }
+.tree-row { display:flex; align-items:center; padding:2px 8px; cursor:pointer;
+  gap:4px; font-size:13px; white-space:nowrap; }
+.tree-row:hover { background: rgba(88,166,255,.08); }
+.tree-row .arrow { width:16px; text-align:center; color:var(--dim); font-size:10px; flex-shrink:0; }
+.tree-row .arrow.empty { visibility:hidden; }
+.tree-row .icon { font-size:14px; flex-shrink:0; }
+.tree-row .name { flex:1; overflow:hidden; text-overflow:ellipsis; }
+.tree-row .val { color:var(--dim); font-size:12px; margin-left:8px; }
+.tree-row input[type=checkbox] { accent-color:var(--accent); flex-shrink:0; }
+.tree-children { margin-left:16px; }
+.tree-children.collapsed { display:none; }
+.tree-row.folder .name { color: var(--orange); }
+.tree-row.variable .name { color: var(--accent); }
+
+/* content tabs */
+#content { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+#tabs { display:flex; background:var(--bg2); border-bottom:1px solid var(--border);
+  padding:0 8px; gap:2px; flex-shrink:0; overflow-x:auto; }
+.tab { padding:8px 16px; font-size:13px; cursor:pointer; border-bottom:2px solid transparent;
+  color:var(--dim); white-space:nowrap; transition: all .15s; }
+.tab:hover { color:var(--text); }
+.tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+#tab-content { flex:1; overflow:auto; }
+.tab-panel { display:none; padding:16px; height:100%; }
+.tab-panel.active { display:flex; flex-direction:column; }
+
+/* cards */
+.card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
+  padding:16px; margin-bottom:12px; }
+.card h3 { font-size:14px; margin-bottom:10px; color:var(--accent); }
+.card-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+.card-row label { min-width:100px; }
+
+/* tests panel */
+.tests-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:12px; margin-bottom:12px; }
+.test-card { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius);
+  padding:12px; display:flex; flex-direction:column; gap:8px; }
+.test-card .test-header { display:flex; align-items:center; gap:8px; }
+.test-card .test-header input { flex-shrink:0; }
+.test-card .test-header span { font-weight:600; font-size:14px; }
+.test-card .test-params { display:grid; grid-template-columns:auto 1fr; gap:4px 8px; font-size:12px; }
+.test-card .test-params label { color:var(--dim); }
+.test-card .test-params input { width:80px; padding:3px 6px; font-size:12px; }
+
+/* progress */
+.progress-bar { height:4px; background:var(--bg); border-radius:2px; overflow:hidden; margin:8px 0; }
+.progress-bar .fill { height:100%; background:var(--accent); width:0; transition:width .3s; }
+
+/* results table */
+.results-table { width:100%; border-collapse:collapse; font-size:13px; }
+.results-table th { background:var(--bg3); color:var(--accent); text-align:left;
+  padding:8px 10px; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:1; }
+.results-table td { padding:6px 10px; border-bottom:1px solid var(--border); }
+.results-table tr:hover td { background:rgba(88,166,255,.04); }
+
+/* log */
+#log-output { flex:1; background:var(--bg); font-family:'Cascadia Code','Fira Code',monospace;
+  font-size:12px; padding:12px; overflow:auto; white-space:pre; line-height:1.6;
+  border:1px solid var(--border); border-radius:var(--radius); }
+
+/* trace panel */
+.trace-controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+.trace-grid { display:grid; grid-template-columns:1fr; gap:12px; flex:1; overflow:auto; }
+.trace-chart-wrap { background:var(--bg2); border:1px solid var(--border);
+  border-radius:var(--radius); padding:12px; height:250px; position:relative; }
+.trace-chart-wrap canvas { width:100%!important; height:100%!important; }
+
+/* summary */
+.summary-card { background: linear-gradient(135deg, #1c2333, #161b22);
+  border:1px solid var(--accent); border-radius:12px; padding:20px; margin-bottom:16px; }
+.summary-card h2 { color:var(--accent); margin-bottom:12px; font-size:18px; }
+.summary-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:16px; }
+.summary-stat { text-align:center; }
+.summary-stat .val { font-size:28px; font-weight:700; color:var(--accent2); }
+.summary-stat .label { font-size:12px; color:var(--dim); margin-top:4px; }
+.grade { display:inline-block; padding:4px 12px; border-radius:20px; font-weight:700; font-size:14px; }
+.grade.EXCELLENT { background:#3fb950; color:#000; }
+.grade.GOOD { background:#58a6ff; color:#000; }
+.grade.FAIR { background:#d29922; color:#000; }
+.grade.POOR { background:#f85149; color:#fff; }
+
+/* selected vars badge */
+.selected-badge { background:var(--accent); color:#000; padding:2px 8px; border-radius:10px;
+  font-size:11px; font-weight:600; }
+
+/* responsive */
+@media (max-width:900px) {
+  #sidebar { width:240px; }
+  .tests-grid { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+<!-- HEADER -->
+<div id="header">
+  <h1>Protocol Test Suite</h1>
+  <select id="protocol-select">
+    <option value="opcua" selected>OPC UA</option>
+    <option value="pvi">PVI (ANSL)</option>
+    <option value="protobuf" disabled>Protobuf (coming soon)</option>
+  </select>
+  <div class="status" id="status-led"></div>
+  <input id="conn-url" type="text" value="opc.tcp://192.168.101.10:4840" placeholder="Server URL">
+  <button id="btn-connect" class="primary" onclick="doConnect()">Connect</button>
+  <button id="btn-disconnect" class="danger" onclick="doDisconnect()">Disconnect</button>
+  <div class="spacer"></div>
+  <span id="selected-count" class="selected-badge">0 selected</span>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <!-- SIDEBAR: TREE -->
+  <div id="sidebar">
+    <div class="search">
+      <input id="tree-search" type="text" placeholder="Search variables..." oninput="filterTree()">
+    </div>
+    <div id="tree-wrap"></div>
+    <div style="padding:8px; border-top:1px solid var(--border); display:flex; gap:6px; flex-wrap:wrap;">
+      <button onclick="selectAll(true)" style="flex:1">Select All</button>
+      <button onclick="selectAll(false)" style="flex:1">Deselect All</button>
+      <button onclick="autoDiscover()" style="flex:1" title="Find opctest1..200">Auto-Find</button>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content">
+    <div id="tabs">
+      <div class="tab active" data-tab="tests" onclick="switchTab('tests')">Tests</div>
+      <div class="tab" data-tab="pvi" onclick="switchTab('pvi')">PVI Monitor</div>
+      <div class="tab" data-tab="traces" onclick="switchTab('traces')">Traces</div>
+      <div class="tab" data-tab="results" onclick="switchTab('results')">Results</div>
+      <div class="tab" data-tab="summary" onclick="switchTab('summary')">Summary</div>
+      <div class="tab" data-tab="log" onclick="switchTab('log')">Log</div>
+    </div>
+    <div id="tab-content">
+
+      <!-- TESTS TAB -->
+      <div class="tab-panel active" id="panel-tests">
+        <div class="card">
+          <h3>Global Parameters</h3>
+          <div class="card-row">
+            <label>Iterations</label><input id="p-iterations" type="number" value="100" min="1" max="50000" style="width:80px">
+            <label>Throughput (s)</label><input id="p-throughput-dur" type="number" value="5" min="1" max="60" style="width:60px">
+            <label>Detection (s)</label><input id="p-detection-dur" type="number" value="10" min="1" max="120" style="width:60px">
+            <label>PLC Cycle (ms)</label><input id="p-plc-cycle" type="number" value="1.6" step="0.1" min="0.1" style="width:70px">
+            <label>Probe Reads</label><input id="p-probe-reads" type="number" value="200" min="10" max="50000" style="width:80px">
+          </div>
+        </div>
+
+        <div class="tests-grid" id="tests-grid">
+          <!-- test cards generated by JS -->
+        </div>
+
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="primary" id="btn-run" onclick="runBenchmark()" style="font-size:15px;padding:10px 28px;">
+            Run Selected Tests
+          </button>
+          <button id="btn-stop" onclick="stopBenchmark()" disabled>Stop</button>
+          <div class="progress-bar" style="flex:1"><div class="fill" id="progress-fill"></div></div>
+          <span id="progress-text" style="font-size:12px;color:var(--dim)">0%</span>
+        </div>
+      </div>
+
+      <!-- PVI TAB -->
+      <div class="tab-panel" id="panel-pvi">
+        <div class="card">
+          <h3>PVI Connection (ANSL over TCP/IP)</h3>
+          <div class="card-row">
+            <label>PLC IP</label>
+            <input id="pvi-ip" type="text" value="192.168.101.10" style="width:180px">
+            <button class="primary" id="btn-pvi-connect" onclick="pviConnect()">Connect PVI</button>
+            <button class="danger" id="btn-pvi-disconnect" onclick="pviDisconnect()">Disconnect</button>
+            <span id="pvi-status" style="font-size:12px;color:var(--dim)">Not connected</span>
+          </div>
+          <div style="font-size:12px;color:var(--dim);margin-top:4px;">Requires PVI Development Setup installed + PVI Manager running</div>
+        </div>
+
+        <div class="card">
+          <h3>Variable Configuration &mdash; Per-Variable Refresh Time</h3>
+          <div class="card-row">
+            <label>Duration (s)</label>
+            <input id="pvi-duration" type="number" value="10" min="1" max="120" style="width:70px">
+            <label>PLC Cycle (ms)</label>
+            <input id="pvi-plc-cycle" type="number" value="1.6" step="0.1" min="0.1" style="width:70px">
+            <button onclick="pviAutoFill()">Auto-fill opctest1..200</button>
+          </div>
+          <div style="margin-top:8px;font-size:12px;color:var(--dim);">Define variables and their refresh times (RF in ms). Lower RF = faster polling by PVI.</div>
+          <div id="pvi-var-groups" style="margin-top:12px;"></div>
+          <button onclick="pviAddGroup()" style="margin-top:8px;">+ Add Variable Group</button>
+        </div>
+
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="primary" id="btn-pvi-run" onclick="pviRunMonitor()" style="font-size:15px;padding:10px 28px;">Run PVI Monitor</button>
+          <button id="btn-pvi-stop" onclick="pviStopMonitor()" disabled>Stop</button>
+          <div class="progress-bar" style="flex:1"><div class="fill" id="pvi-progress-fill"></div></div>
+          <span id="pvi-progress-text" style="font-size:12px;color:var(--dim)">0%</span>
+        </div>
+      </div>
+
+      <!-- TRACES TAB -->
+      <div class="tab-panel" id="panel-traces">
+        <div class="trace-controls">
+          <label>Interval (ms)</label>
+          <input id="trace-interval" type="number" value="100" min="10" max="5000" style="width:80px">
+          <button class="primary" onclick="startTrace()">Start Trace</button>
+          <button class="danger" onclick="stopTrace()">Stop Trace</button>
+          <button onclick="addTraceChart()">+ Add Chart</button>
+          <button onclick="clearTraces()">Clear All</button>
+          <div class="spacer"></div>
+          <span style="color:var(--dim);font-size:12px;" id="trace-status">Stopped</span>
+        </div>
+        <div class="trace-grid" id="trace-grid">
+          <div style="color:var(--dim);padding:40px;text-align:center;">
+            Select variables in the tree, then click "+ Add Chart" to create trace charts.
+          </div>
+        </div>
+      </div>
+
+      <!-- RESULTS TAB -->
+      <div class="tab-panel" id="panel-results">
+        <div style="display:flex;gap:8px;margin-bottom:12px;">
+          <button onclick="exportCSV()">Export CSV</button>
+          <button onclick="clearResults()">Clear</button>
+        </div>
+        <div style="flex:1;overflow:auto;">
+          <table class="results-table" id="results-table">
+            <thead><tr>
+              <th>Test</th><th>Variable</th><th>Min (ms)</th><th>Avg (ms)</th>
+              <th>Median (ms)</th><th>P95 (ms)</th><th>Max (ms)</th><th>Samples</th><th>Errors</th>
+            </tr></thead>
+            <tbody id="results-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- SUMMARY TAB -->
+      <div class="tab-panel" id="panel-summary">
+        <div id="summary-content">
+          <div style="color:var(--dim);padding:40px;text-align:center;">
+            Run benchmarks to see summary results here.
+          </div>
+        </div>
+      </div>
+
+      <!-- LOG TAB -->
+      <div class="tab-panel" id="panel-log">
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button onclick="clearLog()">Clear Log</button>
+          <button onclick="copyLog()">Copy to Clipboard</button>
+          <div class="spacer"></div>
+          <span style="color:var(--dim);font-size:12px;" id="log-lines">0 lines</span>
+        </div>
+        <div id="log-output"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let ws = null;
+let connected = false;
+let selectedVars = new Map(); // name → node_id
+let allResults = {};
+let logLines = [];
+let traceCharts = []; // [{chart, canvas, varNames, data}]
+let traceRunning = false;
+const MAX_TRACE_POINTS = 500;
+
+// ═══════════════════════════════════════════════════════════════
+// TEST DEFINITIONS
+// ═══════════════════════════════════════════════════════════════
+const TESTS = [
+  {id:'single_read', name:'Single Read', desc:'Individual variable read latency', enabled:true,
+   params:[]},
+  {id:'batch_read', name:'Batch Read', desc:'Read all vars sequentially, measure total', enabled:true,
+   params:[]},
+  {id:'throughput', name:'Throughput', desc:'Maximum reads per second', enabled:true,
+   params:[]},
+  {id:'write_latency', name:'Write Latency', desc:'Write round-trip time (writable vars)', enabled:false,
+   params:[]},
+  {id:'round_trip', name:'Round Trip', desc:'Write→Read→Verify cycle', enabled:false,
+   params:[]},
+  {id:'detection', name:'Detection Capability', desc:'Min detectable event duration analysis', enabled:true,
+   params:[]},
+  {id:'cycle_probe', name:'Cycle Latency Probe', desc:'Real PLC→Python latency via cycling counters', enabled:true,
+   params:[]},
+  {id:'multi_rate', name:'Multi-Rate Sampling', desc:'Test 5 speed tiers (2/5/10/50/100ms) in batches of 50 vars', enabled:false,
+   params:[]},
+  {id:'subscription', name:'OPC UA Subscription', desc:'Server-push via asyncua monitored items — compare with polling', enabled:false,
+   params:[]},
+  {id:'sub_monitor', name:'Subscription Monitor', desc:'Subscribe to all 200 vars at once, report per-tier detection vs missed', enabled:false,
+   params:[]},
+];
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  renderTestCards();
+  connectWS();
+});
+
+function connectWS() {
+  const loc = window.location;
+  const proto = loc.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${proto}//${loc.host}/ws`);
+  ws.onopen = () => console.log('WS connected');
+  ws.onmessage = (e) => handleWS(JSON.parse(e.data));
+  ws.onclose = () => setTimeout(connectWS, 2000);
+}
+
+function handleWS(msg) {
+  if (msg.type === 'log') {
+    appendLog(msg.msg);
+  } else if (msg.type === 'progress') {
+    setProgress(msg.pct);
+    setPviProgress(msg.pct);
+  } else if (msg.type === 'benchmark_done') {
+    benchmarkDone(msg.results);
+  } else if (msg.type === 'pvi_monitor_done') {
+    pviMonitorDone(msg.results);
+  } else if (msg.type === 'trace') {
+    handleTrace(msg);
+  } else if (msg.type === 'error') {
+    appendLog('ERROR: ' + msg.msg);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CONNECTION
+// ═══════════════════════════════════════════════════════════════
+async function doConnect() {
+  const url = document.getElementById('conn-url').value;
+  const btn = document.getElementById('btn-connect');
+  btn.disabled = true; btn.textContent = 'Connecting...';
+  try {
+    const res = await api('/api/connect', {url});
+    if (res.ok) {
+      connected = true;
+      document.getElementById('status-led').classList.add('on');
+      appendLog(`Connected to ${url}`);
+      loadTree();
+    } else {
+      appendLog('Connection failed: ' + (res.error || 'unknown'));
+    }
+  } catch(e) {
+    appendLog('Connection error: ' + e.message);
+  }
+  btn.disabled = false; btn.textContent = 'Connect';
+}
+
+async function doDisconnect() {
+  await api('/api/disconnect');
+  connected = false;
+  document.getElementById('status-led').classList.remove('on');
+  document.getElementById('tree-wrap').innerHTML = '';
+  appendLog('Disconnected');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TREE
+// ═══════════════════════════════════════════════════════════════
+async function loadTree(nodeId=null, container=null) {
+  const url = nodeId ? `/api/browse?node_id=${encodeURIComponent(nodeId)}` : '/api/browse';
+  const items = await apiGet(url);
+  if (!container) {
+    container = document.getElementById('tree-wrap');
+    container.innerHTML = '';
+  }
+  items.forEach(item => {
+    const node = document.createElement('div');
+    node.className = 'tree-node';
+    node.dataset.name = item.name.toLowerCase();
+
+    const row = document.createElement('div');
+    row.className = 'tree-row ' + (item.is_variable ? 'variable' : 'folder');
+    row.dataset.nodeId = item.id;
+
+    // arrow
+    const arrow = document.createElement('span');
+    arrow.className = 'arrow' + (item.is_variable ? ' empty' : '');
+    arrow.textContent = item.has_children ? '▶' : '';
+    row.appendChild(arrow);
+
+    // checkbox
+    if (item.is_variable) {
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = selectedVars.has(item.name);
+      cb.onclick = (e) => {
+        e.stopPropagation();
+        toggleVar(item.name, item.id, cb.checked);
+      };
+      row.appendChild(cb);
+    }
+
+    // icon
+    const icon = document.createElement('span');
+    icon.className = 'icon';
+    icon.textContent = item.is_variable ? '◈' : '📁';
+    row.appendChild(icon);
+
+    // name
+    const nameEl = document.createElement('span');
+    nameEl.className = 'name';
+    nameEl.textContent = item.name;
+    row.appendChild(nameEl);
+
+    // value preview
+    if (item.is_variable && item.value) {
+      const valEl = document.createElement('span');
+      valEl.className = 'val';
+      valEl.textContent = item.value;
+      row.appendChild(valEl);
+    }
+
+    node.appendChild(row);
+
+    // children container (lazy)
+    if (item.has_children) {
+      const children = document.createElement('div');
+      children.className = 'tree-children collapsed';
+      children.dataset.nodeId = item.id;
+      children.dataset.loaded = 'false';
+      node.appendChild(children);
+
+      row.onclick = () => {
+        const isCollapsed = children.classList.contains('collapsed');
+        children.classList.toggle('collapsed');
+        arrow.textContent = isCollapsed ? '▼' : '▶';
+        if (isCollapsed && children.dataset.loaded === 'false') {
+          children.dataset.loaded = 'true';
+          children.innerHTML = '<div style="padding:4px 8px;color:var(--dim);font-size:12px;">Loading...</div>';
+          loadTree(item.id, children);
+        }
+      };
+    }
+
+    container.appendChild(node);
+  });
+}
+
+function toggleVar(name, nodeId, checked) {
+  if (checked) selectedVars.set(name, nodeId);
+  else selectedVars.delete(name);
+  updateSelectedCount();
+}
+
+function selectAll(checked) {
+  if (!checked) {
+    selectedVars.clear();
+    document.querySelectorAll('#tree-wrap .tree-row.variable input[type=checkbox]').forEach(cb => cb.checked = false);
+    updateSelectedCount();
+    return;
+  }
+  document.querySelectorAll('#tree-wrap .tree-row.variable').forEach(row => {
+    if (row.closest('.tree-node').style.display === 'none') return;
+    const cb = row.querySelector('input[type=checkbox]');
+    const name = row.querySelector('.name').textContent;
+    const nodeId = row.dataset.nodeId;
+    if (cb && nodeId) { cb.checked = true; selectedVars.set(name, nodeId); }
+  });
+  updateSelectedCount();
+}
+
+function updateSelectedCount() {
+  document.getElementById('selected-count').textContent = `${selectedVars.size} selected`;
+}
+
+async function autoDiscover() {
+  appendLog('Auto-discovering opctest variables...');
+  const vars = await apiGet('/api/discover');
+  if (vars.length === 0) { appendLog('No opctest vars found.'); return; }
+  vars.forEach(v => selectedVars.set(v.name, v.node_id));
+  updateSelectedCount();
+  appendLog(`Found ${vars.length} opctest variables.`);
+  // check matching tree checkboxes
+  document.querySelectorAll('#tree-wrap .tree-row.variable').forEach(row => {
+    const name = row.querySelector('.name').textContent;
+    const cb = row.querySelector('input[type=checkbox]');
+    if (cb && selectedVars.has(name)) cb.checked = true;
+  });
+}
+
+function filterTree() {
+  const q = document.getElementById('tree-search').value.toLowerCase();
+  document.querySelectorAll('#tree-wrap .tree-node').forEach(node => {
+    const name = node.dataset.name || '';
+    if (!q || name.includes(q)) {
+      node.style.display = '';
+      // show parents
+      let p = node.parentElement;
+      while (p && p.classList?.contains('tree-children')) {
+        p.classList.remove('collapsed');
+        p.style.display = '';
+        p = p.parentElement?.parentElement;
+      }
+    } else {
+      // hide only leaf nodes without matching children
+      const hasVisibleChild = node.querySelector('.tree-node:not([style*="display: none"])');
+      if (!hasVisibleChild) node.style.display = 'none';
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TEST CARDS
+// ═══════════════════════════════════════════════════════════════
+function renderTestCards() {
+  const grid = document.getElementById('tests-grid');
+  grid.innerHTML = '';
+  TESTS.forEach(test => {
+    const card = document.createElement('div');
+    card.className = 'test-card';
+    card.innerHTML = `
+      <div class="test-header">
+        <input type="checkbox" id="chk-${test.id}" ${test.enabled?'checked':''}>
+        <span>${test.name}</span>
+      </div>
+      <div style="font-size:12px;color:var(--dim);">${test.desc}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BENCHMARK
+// ═══════════════════════════════════════════════════════════════
+async function runBenchmark() {
+  const autoDiscoverTests = ['multi_rate', 'subscription', 'sub_monitor'];
+  const hasAutoTest = autoDiscoverTests.some(id => document.getElementById('chk-'+id)?.checked);
+  const otherTests = TESTS.filter(t => !autoDiscoverTests.includes(t.id) && document.getElementById('chk-'+t.id)?.checked);
+  if (selectedVars.size === 0 && !hasAutoTest) { alert('No variables selected.'); return; }
+  if (selectedVars.size === 0 && hasAutoTest && otherTests.length > 0) { alert('Select variables for the other enabled tests, or disable them.'); return; }
+  const config = {
+    node_ids: [...selectedVars.values()],
+    var_names: [...selectedVars.keys()],
+    iterations: intVal('p-iterations'),
+    throughput_duration: intVal('p-throughput-dur'),
+    detection_duration: intVal('p-detection-dur'),
+    plc_cycle_ms: parseFloat(document.getElementById('p-plc-cycle').value),
+    cycle_probe_reads: intVal('p-probe-reads'),
+  };
+  TESTS.forEach(t => { config[t.id] = document.getElementById('chk-'+t.id)?.checked || false; });
+
+  document.getElementById('btn-run').disabled = true;
+  document.getElementById('btn-stop').disabled = false;
+  setProgress(0);
+  appendLog('\n' + '═'.repeat(60));
+  appendLog('BENCHMARK STARTED — ' + new Date().toLocaleTimeString());
+  appendLog('═'.repeat(60));
+  switchTab('log');
+
+  await api('/api/benchmark/start', config);
+}
+
+async function stopBenchmark() {
+  await api('/api/benchmark/stop');
+  appendLog('Benchmark stopped by user.');
+}
+
+function benchmarkDone(results) {
+  allResults = results;
+  document.getElementById('btn-run').disabled = false;
+  document.getElementById('btn-stop').disabled = true;
+  setProgress(100);
+  appendLog('\n' + '═'.repeat(60));
+  appendLog('BENCHMARK COMPLETE');
+  appendLog('═'.repeat(60));
+  populateResults(results);
+  populateSummary(results);
+}
+
+function setProgress(pct) {
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = pct + '%';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RESULTS TABLE
+// ═══════════════════════════════════════════════════════════════
+function populateResults(results) {
+  const tbody = document.getElementById('results-body');
+  tbody.innerHTML = '';
+
+  // Single Read
+  if (results.single_read) {
+    for (const [name, s] of Object.entries(results.single_read)) {
+      addResultRow('Single Read', name, s.min_ms, s.avg_ms, s.median_ms, s.p95_ms, s.max_ms, s.samples, s.errors);
+    }
+  }
+  // Batch Read
+  if (results.batch_read) {
+    const b = results.batch_read;
+    addResultRow('Batch Read', `${b.num_variables} vars`, b.min_ms, b.avg_ms, b.median_ms, b.p95_ms, b.max_ms, b.samples, b.errors);
+  }
+  // Throughput
+  if (results.throughput) {
+    const t = results.throughput;
+    addResultRow('Throughput', `${t.reads_per_sec} reads/s`, '', '', '', '', '', t.total_reads, t.errors);
+  }
+  // Write Latency
+  if (results.write_latency) {
+    for (const [name, s] of Object.entries(results.write_latency)) {
+      addResultRow('Write', name, s.min_ms, s.avg_ms, s.median_ms, s.p95_ms, s.max_ms||'', s.samples, s.errors);
+    }
+  }
+  // Round Trip
+  if (results.round_trip) {
+    for (const [name, s] of Object.entries(results.round_trip)) {
+      addResultRow('Round Trip', name, s.min_ms, s.avg_ms, s.median_ms, s.p95_ms, s.max_ms, s.samples, s.errors||0);
+    }
+  }
+  // Detection
+  if (results.detection) {
+    const d = results.detection;
+    addResultRow('Detection', 'Single Var', d.single_read_ms, '', '', d.single_p95_ms, '', d.single_rate+' reads/s', '');
+    addResultRow('Detection', `${d.scan_vars} Vars Scan`, d.scan_ms, '', '', d.scan_p95_ms, '', d.scan_rate+' scans/s', '');
+  }
+  // Cycle Probe
+  if (results.cycle_probe) {
+    for (const [name, s] of Object.entries(results.cycle_probe)) {
+      if (name === '_summary') continue;
+      addResultRow('Cycle Probe', name, s.min_ms, s.avg_ms, s.median_ms, s.p95_ms, s.max_ms, s.samples, '');
+    }
+  }
+  // Multi-Rate
+  if (results.multi_rate) {
+    for (const [name, s] of Object.entries(results.multi_rate)) {
+      if (name === '_summary') continue;
+      addResultRow('Multi-Rate', name + ' @' + s.tier_ms + 'ms',
+        s.min_read_ms, s.avg_read_ms, '', '', s.max_read_ms,
+        s.total_reads, s.missed_cycles + ' missed');
+    }
+  }
+  // Subscription
+  if (results.subscription) {
+    for (const [name, s] of Object.entries(results.subscription)) {
+      if (name === '_summary') continue;
+      addResultRow('Subscription', name,
+        s.min_gap_ms, s.avg_gap_ms, '', s.p95_gap_ms, s.max_gap_ms,
+        s.notifications, s.missed + ' missed');
+    }
+  }
+  // Subscription Monitor
+  if (results.sub_monitor) {
+    for (const [name, s] of Object.entries(results.sub_monitor)) {
+      if (name === '_summary') continue;
+      addResultRow('Sub Monitor', name,
+        s.min_gap_ms, s.avg_gap_ms, '', '', s.max_gap_ms,
+        s.notifications + ' notifs', s.missed + ' missed');
+    }
+  }
+  // PVI Monitor
+  if (results.pvi_monitor) {
+    for (const [name, s] of Object.entries(results.pvi_monitor)) {
+      if (name === '_summary') continue;
+      addResultRow('PVI Monitor', name + ' @RF=' + s.refresh_ms + 'ms',
+        s.min_gap_ms, s.avg_gap_ms, '', '', s.max_gap_ms,
+        s.notifications + ' notifs', s.missed + ' missed');
+    }
+  }
+
+  switchTab('results');
+}
+
+function addResultRow(test, variable, min, avg, med, p95, max, samples, errors) {
+  const tr = document.createElement('tr');
+  [test, variable, min, avg, med, p95, max, samples, errors].forEach(v => {
+    const td = document.createElement('td');
+    td.textContent = v ?? '';
+    tr.appendChild(td);
+  });
+  document.getElementById('results-body').appendChild(tr);
+}
+
+function clearResults() {
+  document.getElementById('results-body').innerHTML = '';
+  allResults = {};
+}
+
+function exportCSV() {
+  const table = document.getElementById('results-table');
+  let csv = '';
+  for (const row of table.rows) {
+    const cells = [...row.cells].map(c => '"'+c.textContent.replace(/"/g,'""')+'"');
+    csv += cells.join(',') + '\n';
+  }
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'benchmark_results_' + new Date().toISOString().slice(0,19).replace(/:/g,'-') + '.csv';
+  a.click();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SUMMARY
+// ═══════════════════════════════════════════════════════════════
+function populateSummary(results) {
+  const el = document.getElementById('summary-content');
+  let html = '';
+
+  // Overview card
+  html += `<div class="summary-card"><h2>Benchmark Summary</h2>
+    <div style="color:var(--dim);margin-bottom:12px;">${new Date().toLocaleString()} | ${selectedVars.size} variables</div>
+    <div class="summary-grid">`;
+
+  if (results.single_read) {
+    const vals = Object.values(results.single_read);
+    const avgAll = (vals.reduce((s,v)=>s+v.avg_ms,0)/vals.length).toFixed(2);
+    html += `<div class="summary-stat"><div class="val">${avgAll}ms</div><div class="label">Avg Single Read</div></div>`;
+  }
+  if (results.throughput) {
+    html += `<div class="summary-stat"><div class="val">${results.throughput.reads_per_sec}</div><div class="label">Reads/sec</div></div>`;
+  }
+  if (results.detection) {
+    const d = results.detection;
+    html += `<div class="summary-stat"><div class="val">${d.single_read_ms}ms</div><div class="label">Single Read Speed</div></div>`;
+    html += `<div class="summary-stat"><div class="val">${d.scan_ms}ms</div><div class="label">Full Scan (${d.scan_vars} vars)</div></div>`;
+  }
+  if (results.cycle_probe?._summary) {
+    const cp = results.cycle_probe._summary;
+    html += `<div class="summary-stat"><div class="val">${cp.overall_median_ms}ms</div><div class="label">Network Latency (median)</div></div>`;
+    html += `<div class="summary-stat"><div class="val"><span class="grade ${cp.grade}">${cp.grade}</span></div><div class="label">Latency Grade</div></div>`;
+  }
+  html += '</div></div>';
+
+  // Detection table
+  if (results.detection?.table) {
+    html += `<div class="card"><h3>Detection Capability</h3>
+      <table class="results-table"><thead><tr>
+        <th>Event Duration</th><th>1 Variable</th><th>${results.detection.scan_vars} Variables</th><th>Verdict</th>
+      </tr></thead><tbody>`;
+    results.detection.table.forEach(r => {
+      const color = r.verdict === 'YES' ? 'var(--accent2)' : r.verdict === 'NO' ? 'var(--red)' : 'var(--orange)';
+      html += `<tr><td>${r.event_ms}ms</td><td>${r.single_pct}%</td><td>${r.multi_pct}%</td>
+        <td style="color:${color};font-weight:600">${r.verdict}</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+  }
+
+  // Practical limits
+  if (results.detection?.limits) {
+    html += `<div class="card"><h3>Practical Limits</h3>
+      <table class="results-table"><thead><tr><th>Target Event</th><th>Max Variables</th></tr></thead><tbody>`;
+    for (const [k, v] of Object.entries(results.detection.limits)) {
+      html += `<tr><td>${k}</td><td>~${v} variables</td></tr>`;
+    }
+    html += '</tbody></table></div>';
+  }
+
+  // Multi-Rate tier summary
+  if (results.multi_rate?._summary) {
+    const mr = results.multi_rate._summary;
+    html += `<div class="card"><h3>Multi-Rate Sampling (${mr.total_vars} vars)</h3>
+      <table class="results-table"><thead><tr>
+        <th>Tier</th><th>Vars</th><th>Avg Reads</th><th>Avg Missed</th><th>Perfect %</th><th>Avg Read Time</th>
+      </tr></thead><tbody>`;
+    mr.tiers.forEach(t => {
+      const color = t.perfect_pct >= 95 ? 'var(--accent2)' : t.perfect_pct >= 50 ? 'var(--orange)' : 'var(--red)';
+      html += `<tr><td>${t.tier_ms}ms</td><td>${t.vars}</td><td>${t.avg_reads}</td>
+        <td>${t.avg_missed}</td><td style="color:${color};font-weight:600">${t.perfect_pct}%</td>
+        <td>${t.avg_read_ms}ms</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+  }
+
+  // Subscription summary
+  if (results.subscription?._summary) {
+    const ss = results.subscription._summary;
+    html += `<div class="card"><h3>OPC UA Subscription (${ss.total_vars} vars, ${ss.interval_ms}ms interval)</h3>
+      <div class="summary-grid">
+        <div class="summary-stat"><div class="val">${ss.total_notifications}</div><div class="label">Total Notifications</div></div>
+        <div class="summary-stat"><div class="val">${ss.total_changes}</div><div class="label">Value Changes</div></div>
+        <div class="summary-stat"><div class="val">${ss.total_missed}</div><div class="label">Missed PLC Cycles</div></div>
+        <div class="summary-stat"><div class="val">${ss.miss_pct}%</div><div class="label">Miss Rate</div></div>
+        <div class="summary-stat"><div class="val">${ss.perfect_count}/${ss.total_vars}</div><div class="label">Perfect Integrity</div></div>
+        <div class="summary-stat"><div class="val">${ss.avg_notifs_per_var}</div><div class="label">Avg Notifs/var</div></div>
+      </div></div>`;
+  }
+
+  // Subscription Monitor tier report
+  if (results.sub_monitor?._summary) {
+    const sm = results.sub_monitor._summary;
+    html += `<div class="card"><h3>Subscription Monitor (${sm.total_vars} vars, ${sm.duration_sec}s, ${sm.interval_ms}ms interval)</h3>
+      <div class="summary-grid">
+        <div class="summary-stat"><div class="val">${sm.total_notifications}</div><div class="label">Total Notifications</div></div>
+        <div class="summary-stat"><div class="val">${sm.total_changes}</div><div class="label">Changes Detected</div></div>
+        <div class="summary-stat"><div class="val">${sm.total_missed}</div><div class="label">Missed</div></div>
+        <div class="summary-stat"><div class="val">${sm.detect_pct}%</div><div class="label">Detection Rate</div></div>
+      </div>
+      <table class="results-table" style="margin-top:12px"><thead><tr>
+        <th>PLC Tier</th><th>Vars</th><th>Change Every</th><th>Expected</th>
+        <th>Detected</th><th>Missed</th><th>Detection %</th><th>Perfect</th><th>Verdict</th>
+      </tr></thead><tbody>`;
+    sm.tiers.forEach(t => {
+      const color = t.verdict === 'PASS' ? 'var(--accent2)' : t.verdict === 'FAIL' ? 'var(--red)' : 'var(--orange)';
+      html += `<tr><td>${t.label}</td><td>${t.vars}</td><td>${t.change_ms}ms</td><td>~${t.expected}/var</td>
+        <td>${t.changes}</td><td>${t.missed}</td>
+        <td style="font-weight:600">${t.detect_pct}%</td>
+        <td>${t.perfect}/${t.vars}</td>
+        <td style="color:${color};font-weight:600">${t.verdict}</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+  }
+
+  // PVI Monitor tier report
+  if (results.pvi_monitor?._summary) {
+    const pm = results.pvi_monitor._summary;
+    html += `<div class="card" style="border-color:var(--purple)"><h3 style="color:var(--purple)">PVI Monitor (${pm.total_vars} vars, ${pm.duration_sec}s)</h3>
+      <div class="summary-grid">
+        <div class="summary-stat"><div class="val" style="color:var(--purple)">${pm.total_notifications}</div><div class="label">Total Notifications</div></div>
+        <div class="summary-stat"><div class="val" style="color:var(--purple)">${pm.total_changes}</div><div class="label">Changes Detected</div></div>
+        <div class="summary-stat"><div class="val" style="color:var(--purple)">${pm.total_missed}</div><div class="label">Missed</div></div>
+        <div class="summary-stat"><div class="val" style="color:var(--purple)">${pm.detect_pct}%</div><div class="label">Detection Rate</div></div>
+      </div>
+      <table class="results-table" style="margin-top:12px"><thead><tr>
+        <th>PLC Tier</th><th>Vars</th><th>Change Every</th><th>Expected</th>
+        <th>Detected</th><th>Missed</th><th>Detection %</th><th>Perfect</th><th>Verdict</th>
+      </tr></thead><tbody>`;
+    pm.tiers.forEach(t => {
+      const color = t.verdict === 'PASS' ? 'var(--accent2)' : t.verdict === 'FAIL' ? 'var(--red)' : 'var(--orange)';
+      html += `<tr><td>${t.label}</td><td>${t.vars}</td><td>${t.change_ms}ms</td><td>~${t.expected}/var</td>
+        <td>${t.changes}</td><td>${t.missed}</td>
+        <td style="font-weight:600">${t.detect_pct}%</td>
+        <td>${t.perfect}/${t.vars}</td>
+        <td style="color:${color};font-weight:600">${t.verdict}</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+  }
+
+  el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TRACES
+// ═══════════════════════════════════════════════════════════════
+function addTraceChart() {
+  if (selectedVars.size === 0) { alert('Select variables first.'); return; }
+  const grid = document.getElementById('trace-grid');
+  // clear placeholder
+  if (traceCharts.length === 0) grid.innerHTML = '';
+
+  const idx = traceCharts.length;
+  const wrap = document.createElement('div');
+  wrap.className = 'trace-chart-wrap';
+  wrap.id = 'trace-chart-' + idx;
+
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;';
+  header.innerHTML = `<span style="font-size:12px;color:var(--dim)">Chart ${idx+1} — ${selectedVars.size} vars</span>
+    <button onclick="removeTraceChart(${idx})" style="padding:2px 8px;font-size:11px;">✕</button>`;
+  wrap.appendChild(header);
+
+  const canvas = document.createElement('canvas');
+  wrap.appendChild(canvas);
+  grid.appendChild(wrap);
+
+  const varNames = [...selectedVars.keys()];
+  const colors = generateColors(varNames.length);
+
+  const chart = new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: varNames.map((name, i) => ({
+        label: name, data: [], borderColor: colors[i],
+        borderWidth: 1.5, pointRadius: 0, tension: 0.2, fill: false,
+      })),
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: false,
+      scales: {
+        x: { display: true, ticks: { maxTicksLimit: 8, color: '#8b949e', font:{size:10} },
+             grid: {color:'rgba(48,54,61,.5)'} },
+        y: { ticks: {color:'#8b949e', font:{size:10}}, grid:{color:'rgba(48,54,61,.5)'} }
+      },
+      plugins: {
+        legend: { labels: { color: '#e6edf3', font:{size:11}, boxWidth:12 } }
+      },
+    }
+  });
+
+  traceCharts.push({chart, wrap, varNames, nodeIds: varNames.map(n=>selectedVars.get(n))});
+}
+
+function removeTraceChart(idx) {
+  if (traceCharts[idx]) {
+    traceCharts[idx].chart.destroy();
+    traceCharts[idx].wrap.remove();
+    traceCharts[idx] = null;
+  }
+}
+
+function clearTraces() {
+  traceCharts.forEach((tc,i) => { if(tc) removeTraceChart(i); });
+  traceCharts = [];
+  document.getElementById('trace-grid').innerHTML =
+    '<div style="color:var(--dim);padding:40px;text-align:center;">Select variables, then click "+ Add Chart".</div>';
+}
+
+async function startTrace() {
+  const allNodes = [];
+  traceCharts.forEach(tc => {
+    if (!tc) return;
+    tc.varNames.forEach((name, i) => {
+      if (!allNodes.find(n => n.name === name))
+        allNodes.push({name, node_id: tc.nodeIds[i]});
+    });
+  });
+  if (allNodes.length === 0) { alert('Add a chart first.'); return; }
+
+  const interval = parseInt(document.getElementById('trace-interval').value) || 100;
+  await api('/api/trace/start', {nodes: allNodes, interval_ms: interval});
+  traceRunning = true;
+  document.getElementById('trace-status').textContent = 'Running';
+  document.getElementById('trace-status').style.color = 'var(--accent2)';
+}
+
+async function stopTrace() {
+  await api('/api/trace/stop');
+  traceRunning = false;
+  document.getElementById('trace-status').textContent = 'Stopped';
+  document.getElementById('trace-status').style.color = 'var(--dim)';
+}
+
+function handleTrace(msg) {
+  const timeStr = new Date(msg.ts).toLocaleTimeString('en',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit',fractionalSecondDigits:1});
+  traceCharts.forEach(tc => {
+    if (!tc) return;
+    tc.chart.data.labels.push(timeStr);
+    if (tc.chart.data.labels.length > MAX_TRACE_POINTS) tc.chart.data.labels.shift();
+    tc.varNames.forEach((name, i) => {
+      const val = msg.values[name] ?? null;
+      tc.chart.data.datasets[i].data.push(val);
+      if (tc.chart.data.datasets[i].data.length > MAX_TRACE_POINTS)
+        tc.chart.data.datasets[i].data.shift();
+    });
+    tc.chart.update('none');
+  });
+}
+
+function generateColors(n) {
+  const base = ['#58a6ff','#3fb950','#f85149','#d29922','#bc8cff','#f778ba','#79c0ff','#56d364','#ffa657','#ff7b72'];
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(base[i % base.length]);
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LOG
+// ═══════════════════════════════════════════════════════════════
+function appendLog(msg) {
+  logLines.push(msg);
+  const el = document.getElementById('log-output');
+  el.textContent += msg + '\n';
+  el.scrollTop = el.scrollHeight;
+  document.getElementById('log-lines').textContent = logLines.length + ' lines';
+}
+
+function clearLog() {
+  logLines = [];
+  document.getElementById('log-output').textContent = '';
+  document.getElementById('log-lines').textContent = '0 lines';
+}
+
+function copyLog() {
+  navigator.clipboard.writeText(logLines.join('\n'));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab===name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id==='panel-'+name));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// API HELPERS
+// ═══════════════════════════════════════════════════════════════
+async function api(url, body) {
+  const res = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  return res.json();
+}
+async function apiGet(url) {
+  const res = await fetch(url);
+  return res.json();
+}
+function intVal(id) { return parseInt(document.getElementById(id).value) || 0; }
+
+// ═══════════════════════════════════════════════════════════════
+// PVI
+// ═══════════════════════════════════════════════════════════════
+let pviConnected = false;
+let pviVarGroups = []; // [{prefix, from, to, refresh_ms}]
+
+async function pviConnect() {
+  const ip = document.getElementById('pvi-ip').value;
+  const btn = document.getElementById('btn-pvi-connect');
+  btn.disabled = true; btn.textContent = 'Connecting...';
+  document.getElementById('pvi-status').textContent = 'Connecting...';
+  document.getElementById('pvi-status').style.color = 'var(--orange)';
+  try {
+    const res = await api('/api/pvi/connect', {ip});
+    if (res.ok) {
+      pviConnected = true;
+      document.getElementById('pvi-status').textContent = 'Connected to ' + ip;
+      document.getElementById('pvi-status').style.color = 'var(--accent2)';
+      appendLog('PVI connected to ' + ip);
+    } else {
+      document.getElementById('pvi-status').textContent = 'Failed: ' + (res.error || 'unknown');
+      document.getElementById('pvi-status').style.color = 'var(--red)';
+      appendLog('PVI connection failed: ' + (res.error || 'unknown'));
+    }
+  } catch(e) {
+    document.getElementById('pvi-status').textContent = 'Error: ' + e.message;
+    document.getElementById('pvi-status').style.color = 'var(--red)';
+    appendLog('PVI error: ' + e.message);
+  }
+  btn.disabled = false; btn.textContent = 'Connect PVI';
+}
+
+async function pviDisconnect() {
+  await api('/api/pvi/disconnect');
+  pviConnected = false;
+  document.getElementById('pvi-status').textContent = 'Not connected';
+  document.getElementById('pvi-status').style.color = 'var(--dim)';
+  appendLog('PVI disconnected');
+}
+
+function pviAddGroup(prefix='opctest', from=1, to=10, rf=50) {
+  const idx = pviVarGroups.length;
+  pviVarGroups.push({prefix, from, to, refresh_ms: rf});
+  renderPviGroups();
+}
+
+function pviRemoveGroup(idx) {
+  pviVarGroups.splice(idx, 1);
+  renderPviGroups();
+}
+
+function pviUpdateGroup(idx) {
+  const row = document.querySelector(`#pvi-group-${idx}`);
+  if (!row) return;
+  pviVarGroups[idx] = {
+    prefix: row.querySelector('.pvi-prefix').value,
+    from: parseInt(row.querySelector('.pvi-from').value) || 1,
+    to: parseInt(row.querySelector('.pvi-to').value) || 10,
+    refresh_ms: parseInt(row.querySelector('.pvi-rf').value) || 50,
+  };
+}
+
+function renderPviGroups() {
+  const container = document.getElementById('pvi-var-groups');
+  container.innerHTML = '';
+  if (pviVarGroups.length === 0) {
+    container.innerHTML = '<div style="color:var(--dim);font-size:12px;">No variable groups defined. Click "Auto-fill" or "+ Add Variable Group".</div>';
+    return;
+  }
+  pviVarGroups.forEach((g, idx) => {
+    const total = Math.max(0, g.to - g.from + 1);
+    const row = document.createElement('div');
+    row.id = `pvi-group-${idx}`;
+    row.className = 'card-row';
+    row.style.cssText = 'background:var(--bg3);padding:8px;border-radius:6px;margin-bottom:6px;';
+    row.innerHTML = `
+      <label style="min-width:auto">Prefix</label>
+      <input class="pvi-prefix" value="${g.prefix}" style="width:90px" onchange="pviUpdateGroup(${idx})">
+      <label style="min-width:auto">From</label>
+      <input class="pvi-from" type="number" value="${g.from}" style="width:60px" onchange="pviUpdateGroup(${idx})">
+      <label style="min-width:auto">To</label>
+      <input class="pvi-to" type="number" value="${g.to}" style="width:60px" onchange="pviUpdateGroup(${idx})">
+      <label style="min-width:auto;color:var(--accent)">RF (ms)</label>
+      <input class="pvi-rf" type="number" value="${g.refresh_ms}" min="1" style="width:70px;border-color:var(--accent)" onchange="pviUpdateGroup(${idx})">
+      <span style="font-size:12px;color:var(--dim)">${total} vars</span>
+      <button onclick="pviRemoveGroup(${idx})" style="padding:2px 8px;font-size:11px;">✕</button>
+    `;
+    container.appendChild(row);
+  });
+  // Total count
+  const total = pviVarGroups.reduce((s,g) => s + Math.max(0, g.to - g.from + 1), 0);
+  const summary = document.createElement('div');
+  summary.style.cssText = 'font-size:12px;color:var(--accent);margin-top:4px;';
+  summary.textContent = `Total: ${total} variables`;
+  container.appendChild(summary);
+}
+
+function pviAutoFill() {
+  pviVarGroups = [
+    {prefix: 'opctest', from: 1, to: 10, refresh_ms: 2},
+    {prefix: 'opctest', from: 11, to: 20, refresh_ms: 5},
+    {prefix: 'opctest', from: 21, to: 30, refresh_ms: 10},
+    {prefix: 'opctest', from: 31, to: 200, refresh_ms: 50},
+  ];
+  renderPviGroups();
+}
+
+function pviGetVarConfigs() {
+  const configs = [];
+  pviVarGroups.forEach(g => {
+    for (let i = g.from; i <= g.to; i++) {
+      configs.push({name: g.prefix + i, refresh_ms: g.refresh_ms});
+    }
+  });
+  return configs;
+}
+
+async function pviRunMonitor() {
+  const varConfigs = pviGetVarConfigs();
+  if (varConfigs.length === 0) { alert('No variables configured. Use Auto-fill or add groups.'); return; }
+  if (!pviConnected) { alert('PVI not connected. Connect first.'); return; }
+
+  const config = {
+    var_configs: varConfigs,
+    duration: intVal('pvi-duration'),
+    plc_cycle_ms: parseFloat(document.getElementById('pvi-plc-cycle').value) || 1.6,
+  };
+
+  document.getElementById('btn-pvi-run').disabled = true;
+  document.getElementById('btn-pvi-stop').disabled = false;
+  setPviProgress(0);
+  appendLog('\n' + '═'.repeat(60));
+  appendLog('PVI MONITOR STARTED — ' + new Date().toLocaleTimeString());
+  appendLog('═'.repeat(60));
+  switchTab('log');
+
+  await api('/api/pvi/monitor/start', config);
+}
+
+async function pviStopMonitor() {
+  await api('/api/pvi/monitor/stop');
+  appendLog('PVI monitor stopped by user.');
+}
+
+function pviMonitorDone(results) {
+  allResults.pvi_monitor = results;
+  document.getElementById('btn-pvi-run').disabled = false;
+  document.getElementById('btn-pvi-stop').disabled = true;
+  setPviProgress(100);
+  appendLog('\n' + '═'.repeat(60));
+  appendLog('PVI MONITOR COMPLETE');
+  appendLog('═'.repeat(60));
+  populateResults(allResults);
+  populateSummary(allResults);
+}
+
+function setPviProgress(pct) {
+  const fill = document.getElementById('pvi-progress-fill');
+  const text = document.getElementById('pvi-progress-text');
+  if (fill) fill.style.width = pct + '%';
+  if (text) text.textContent = pct + '%';
+}
+</script>
+</body>
+</html>
