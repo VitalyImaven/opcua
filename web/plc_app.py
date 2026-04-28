@@ -74,6 +74,26 @@ async def connect(req: ConnectRequest):
         return {"ok": False, "error": str(e)}
 
 
+class DiscoverRequest(BaseModel):
+    batch_size: int = 2000
+    batch_wait_s: float = 0.3
+
+@app.post("/api/plc/discover")
+async def discover(req: DiscoverRequest):
+    """Probe the PLC to discover which variables actually exist in this config."""
+    try:
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None, engine.discover_available, req.batch_size, req.batch_wait_s
+        )
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+@app.get("/api/plc/discovery_status")
+async def discovery_status():
+    return engine.get_discovery_status()
+
+
 @app.post("/api/plc/disconnect")
 async def disconnect():
     return engine.disconnect()
@@ -85,6 +105,8 @@ async def status():
         "connected": engine.connected,
         "ip": engine.plc_ip,
         "registry_size": len(engine.registry),
+        "available_count": len(engine.available_vars),
+        "discovery_done": engine._discovery_done,
         "subscribed": len(engine.subscribed),
         "stats": engine.stats,
     }

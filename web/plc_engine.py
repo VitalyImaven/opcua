@@ -55,6 +55,10 @@ class PlcMonitorEngine:
         self.registry: dict[int, dict] = {}
         # Reverse map: name → var_id
         self.name_to_id: dict[str, int] = {}
+        # Available vars (discovered on PLC): set of var_id that actually exist
+        self.available_vars: set[int] = set()
+        self._discovery_done = False
+        self._discovering = False
         # Current values cache: var_id → value
         self.values: dict[int, any] = {}
         # Per-variable change timestamps: var_id → {plc_ts, py_ts}
@@ -121,10 +125,22 @@ class PlcMonitorEngine:
                 self.registry[idx] = {"name": idx_str, "plc_type": info}
                 self.name_to_id[idx_str] = idx
 
+    def _iter_visible_vars(self):
+        """Iterate over variables visible to the UI.
+        If discovery has been done, only yield available vars.
+        Otherwise yield all registry vars (pre-discovery fallback)."""
+        if self._discovery_done and self.available_vars:
+            for var_id in self.available_vars:
+                info = self.registry.get(var_id)
+                if info:
+                    yield var_id, info
+        else:
+            yield from self.registry.items()
+
     def get_default_vars(self, prefix: str = "gProtoTest") -> list[dict]:
         """Return all leaf variables under a prefix (for auto-selection)."""
         result = []
-        for var_id, info in self.registry.items():
+        for var_id, info in self._iter_visible_vars():
             if info["name"].startswith(prefix + ".") or info["name"] == prefix:
                 result.append({
                     "id": str(var_id),
@@ -192,7 +208,7 @@ class PlcMonitorEngine:
         if node_id is None:
             # Root level — return top-level struct variable names
             roots = {}
-            for var_id, info in self.registry.items():
+            for var_id, info in self._iter_visible_vars():
                 top = info["name"].split(".")[0]
                 if top not in roots:
                     roots[top] = {"count": 0}
@@ -219,7 +235,7 @@ class PlcMonitorEngine:
 
         # Find all vars/folders under this prefix
         children = {}
-        for var_id, info in self.registry.items():
+        for var_id, info in self._iter_visible_vars():
             name = info["name"]
             if not name.startswith(prefix + "."):
                 continue
@@ -298,6 +314,75 @@ class PlcMonitorEngine:
                 self._udp_thread.start()
 
             return {"ok": True, "url": f"{plc_ip}:{TCP_PORT}"}
+
+    def discover_available(self, batch_size: int = 2000,
+                           batch_wait_s: float = 0.3) -> dict:
+        """Discover which variables actually exist on the connected PLC.
+        Subscribes in small batches so the PLC can respond with all valid vars
+        within each batch (they fit in 1-2 UDP packets). Collects which var_ids
+        actually produce data — those have pAddress resolved on the PLC."""
+        if not self.connected:
+            return {"ok": False, "error": "Not connected"}
+        if self._discovering:
+            return {"ok": False, "error": "Discovery already in progress"}
+
+        self._discovering = True
+        self.available_vars.clear()
+        self._discovery_done = False
+
+        all_ids = sorted(self.registry.keys())
+        if not all_ids:
+            self._discovering = False
+            return {"ok": False, "error": "Registry is empty"}
+
+        # Set a fast interval for discovery
+        self._send_tcp_command(0x04, [], count_override=10)
+        time.sleep(0.05)
+
+        # Process in batches — subscribe each batch with SET, wait, collect
+        total_batches = (len(all_ids) + batch_size - 1) // batch_size
+        for batch_num, i in enumerate(range(0, len(all_ids), batch_size)):
+            if not self._running:
+                break
+            batch = all_ids[i:i + batch_size]
+            # SET this batch (replaces previous subscription)
+            self._send_tcp_command(0x01, batch)
+            # Wait for PLC to respond with data for valid vars in this batch
+            time.sleep(batch_wait_s)
+            # Collect any var_ids that appeared in values during this window
+            self.available_vars.update(self.values.keys())
+            # Clear values for next batch
+            self.values.clear()
+            if (batch_num + 1) % 10 == 0:
+                print(f"[DISCOVERY] Batch {batch_num+1}/{total_batches} "
+                      f"— found {len(self.available_vars)} so far")
+
+        # Clear subscription
+        self._send_tcp_command(0x01, [])
+        self.subscribed.clear()
+        self.values.clear()
+        self.last_changed.clear()
+
+        self._discovery_done = True
+        self._discovering = False
+
+        print(f"[DISCOVERY] Found {len(self.available_vars)} available variables "
+              f"out of {len(self.registry)} in registry")
+
+        return {
+            "ok": True,
+            "available_count": len(self.available_vars),
+            "registry_count": len(self.registry),
+        }
+
+    def get_discovery_status(self) -> dict:
+        """Return current discovery state."""
+        return {
+            "done": self._discovery_done,
+            "discovering": self._discovering,
+            "available_count": len(self.available_vars),
+            "registry_count": len(self.registry),
+        }
 
     def disconnect(self) -> dict:
         """Disconnect from PLC."""
@@ -635,10 +720,10 @@ class PlcMonitorEngine:
 
     # ── Search ───────────────────────────────────────────────────
     def search(self, query: str, limit: int = 100) -> list[dict]:
-        """Search variable names by substring."""
+        """Search variable names by substring (only available vars after discovery)."""
         query_lower = query.lower()
         results = []
-        for var_id, info in self.registry.items():
+        for var_id, info in self._iter_visible_vars():
             if query_lower in info["name"].lower():
                 results.append({
                     "id": str(var_id),

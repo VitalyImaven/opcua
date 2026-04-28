@@ -123,6 +123,7 @@ input:focus { border-color: var(--accent); outline: none; }
   <button class="danger" onclick="doDisconnect()">Disconnect</button>
   <div class="spacer"></div>
   <span class="badge" id="reg-count">Registry: 0</span>
+  <span class="badge" id="avail-count" style="display:none">Available: 0</span>
   <span class="badge" id="sub-count">Subscribed: 0</span>
   <span class="badge warn" id="pkt-rate">0 pkt/s</span>
 </div>
@@ -136,6 +137,7 @@ input:focus { border-color: var(--accent); outline: none; }
     <div style="padding:8px; border-top:1px solid var(--border); display:flex; gap:6px; flex-wrap:wrap;">
       <button onclick="subscribeSelected()" class="primary" style="flex:1">Subscribe Selected</button>
       <button onclick="clearSelection()" style="flex:1">Clear</button>
+      <button onclick="discoverVariables()" title="Re-discover available variables">Discover</button>
     </div>
   </div>
 
@@ -287,12 +289,29 @@ async function doConnect() {
   if (res.ok) {
     connected = true;
     document.getElementById('status-led').classList.add('on');
-    loadTree();
     refreshStatus();
-    // Auto-select gProtoTest variables
-    await autoSelectDefaults();
+    // Start variable discovery
+    await discoverVariables();
   } else {
     alert('Connect failed: ' + (res.error||'unknown'));
+  }
+}
+
+async function discoverVariables() {
+  const treeWrap = document.getElementById('tree-wrap');
+  treeWrap.innerHTML = '<div style="padding:16px;color:var(--dim);font-size:13px;">Discovering available variables...<br><small>Probing PLC in batches (~15s)</small></div>';
+  document.getElementById('avail-count').style.display = '';
+  document.getElementById('avail-count').textContent = 'Discovering...';
+
+  const res = await api('/api/plc/discover', {batch_size: 2000, batch_wait_s: 0.3});
+  if (res.ok) {
+    document.getElementById('avail-count').textContent = `Available: ${res.available_count}`;
+    loadTree();
+    // Auto-select default preset vars (if any are available)
+    await autoSelectDefaults();
+  } else {
+    treeWrap.innerHTML = `<div style="padding:16px;color:var(--red);font-size:13px;">Discovery failed: ${res.error||'unknown'}</div>`;
+    document.getElementById('avail-count').textContent = 'Discovery failed';
   }
 }
 
@@ -560,6 +579,10 @@ async function refreshStatus() {
   if (!connected) return;
   const s = await apiGet('/api/plc/status');
   document.getElementById('reg-count').textContent = `Registry: ${s.registry_size||0}`;
+  if (s.discovery_done) {
+    document.getElementById('avail-count').style.display = '';
+    document.getElementById('avail-count').textContent = `Available: ${s.available_count||0}`;
+  }
 
   // Also fetch detailed stats
   const ds = await apiGet('/api/plc/detailed_stats');
