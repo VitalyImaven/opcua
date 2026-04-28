@@ -45,7 +45,9 @@ class PlcMonitorEngine:
         self.plc_ip: str = ""
         self.connected = False
         self._tcp_sock: socket.socket | None = None
+        self._udp_sock: socket.socket | None = None
         self._rx_thread: threading.Thread | None = None
+        self._udp_thread: threading.Thread | None = None
         self._running = False
         self._lock = threading.Lock()
 
@@ -272,11 +274,28 @@ class PlcMonitorEngine:
             self.connected = True
             self._running = True
 
-            # Start TCP receiver thread (PLC sends data on same connection)
+            # Start TCP receiver thread (for ACKs/responses from PLC)
             self._rx_thread = threading.Thread(
                 target=self._tcp_receive_loop, daemon=True
             )
             self._rx_thread.start()
+
+            # Open UDP socket for receiving variable data from PLC
+            try:
+                self._udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                self._udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                self._udp_sock.bind(("0.0.0.0", UDP_PORT))
+                self._udp_sock.settimeout(1.0)
+            except Exception as e:
+                print(f"[UDP] Failed to bind port {UDP_PORT}: {e}")
+                # Non-fatal — TCP data path may still work
+                self._udp_sock = None
+
+            if self._udp_sock:
+                self._udp_thread = threading.Thread(
+                    target=self._udp_receive_loop, daemon=True
+                )
+                self._udp_thread.start()
 
             return {"ok": True, "url": f"{plc_ip}:{TCP_PORT}"}
 
@@ -290,6 +309,12 @@ class PlcMonitorEngine:
                 except Exception:
                     pass
                 self._tcp_sock = None
+            if self._udp_sock:
+                try:
+                    self._udp_sock.close()
+                except Exception:
+                    pass
+                self._udp_sock = None
             self.connected = False
             self.subscribed.clear()
         return {"ok": True}
@@ -373,6 +398,21 @@ class PlcMonitorEngine:
             except OSError:
                 break
         print("[TCP RX] Thread stopped")
+
+    # ── UDP Receiver ─────────────────────────────────────────────
+    def _udp_receive_loop(self):
+        """Background thread: receive variable data packets from PLC via UDP."""
+        print(f"[UDP RX] Receiver started on port {UDP_PORT}")
+        while self._running:
+            try:
+                data, addr = self._udp_sock.recvfrom(1500)
+                if data and len(data) >= 12:
+                    self._decode_packet(data)
+            except socket.timeout:
+                continue
+            except OSError:
+                break
+        print("[UDP RX] Thread stopped")
 
     def _process_tcp_buffer(self, buf: bytes) -> bytes:
         """Extract and decode complete packets from TCP stream buffer.
