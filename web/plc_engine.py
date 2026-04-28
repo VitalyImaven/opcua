@@ -3,12 +3,11 @@ PLC Variable Monitor — Gateway Engine
 Handles TCP connection to PLC for subscription commands and
 UDP reception for variable value updates.
 
-Wire protocol (PLC → Python, UDP):
-  [MAGIC:2B=0xAB01][SEQ:4B][TIMESTAMP:4B][COUNT:2B]
-  Per var: [VAR_ID:4B][TYPE:1B][VALUE: variable]
+Wire protocol: Standard Protocol Buffers (protobuf) binary format.
+Schema: proto/plcmonitor.proto
 
-Wire protocol (Python → PLC, TCP):
-  [CMD:1B][COUNT:2B LE][PAYLOAD: COUNT x 4B LE]
+TCP framing: [LENGTH:4B LE][PROTOBUF_BYTES:LENGTH]
+UDP: Raw protobuf VarUpdatePacket (no framing needed)
 """
 
 import json
@@ -21,19 +20,23 @@ from collections import deque
 from pathlib import Path
 from typing import Callable
 
-# Type codes matching PLC VM_TypeCode_enum
-TYPE_BOOL   = 0
-TYPE_INT    = 1
-TYPE_UINT   = 2
-TYPE_DINT   = 3
-TYPE_UDINT  = 4
-TYPE_REAL   = 5
-TYPE_LREAL  = 6
-TYPE_STRING = 7
-TYPE_USINT  = 8
-TYPE_SINT   = 9
+# Import generated protobuf classes
+import sys
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from proto import plcmonitor_pb2 as pb
 
-MAGIC = 0xAB01
+# MsgType enum values (from PlcMessage.MsgType)
+MSGTYPE_VAR_UPDATE       = 0
+MSGTYPE_SUBSCRIBE_CMD    = 1
+MSGTYPE_REGISTRY_REQUEST = 2
+MSGTYPE_REGISTRY_RESP    = 3
+MSGTYPE_HEARTBEAT        = 4
+
+# SubscribeCommand.Action enum values
+ACTION_SET    = 0
+ACTION_ADD    = 1
+ACTION_REMOVE = 2
+
 TCP_PORT = 55000
 UDP_PORT = 55001
 
@@ -442,20 +445,49 @@ class PlcMonitorEngine:
 
     def _send_tcp_command(self, cmd: int, var_ids: list[int],
                           count_override: int | None = None):
-        """Send a TCP command to PLC."""
+        """Send a protobuf-encoded PlcMessage command to PLC over TCP.
+        
+        cmd mapping (legacy → protobuf):
+          0x01 (SET)       → SubscribeCommand(action=SET, var_ids=...)
+          0x02 (ADD)       → SubscribeCommand(action=ADD, var_ids=...)
+          0x03 (REMOVE)    → SubscribeCommand(action=REMOVE, var_ids=...)
+          0x04 (INTERVAL)  → SubscribeCommand(action=SET, interval_ms=count_override)
+          0xFF (HEARTBEAT) → PlcMessage(type=HEARTBEAT)
+        """
         if not self._tcp_sock:
             return
 
-        count = count_override if count_override is not None else len(var_ids)
-        buf = struct.pack("<BH", cmd, count)
-        for vid in var_ids:
-            buf += struct.pack("<I", vid)  # UDINT — 4 bytes
+        msg = pb.PlcMessage()
+        
+        if cmd == 0xFF:
+            # Heartbeat
+            msg.type = MSGTYPE_HEARTBEAT
+        elif cmd == 0x04:
+            # Set interval
+            msg.type = MSGTYPE_SUBSCRIBE_CMD
+            msg.subscribe.action = ACTION_SET
+            msg.subscribe.interval_ms = count_override if count_override else 0
+        else:
+            # Subscribe command (SET=0x01, ADD=0x02, REMOVE=0x03)
+            msg.type = MSGTYPE_SUBSCRIBE_CMD
+            action_map = {0x01: ACTION_SET, 0x02: ACTION_ADD, 0x03: ACTION_REMOVE}
+            msg.subscribe.action = action_map.get(cmd, ACTION_SET)
+            msg.subscribe.var_ids.extend(var_ids)
+            if count_override is not None and cmd == 0x04:
+                msg.subscribe.interval_ms = count_override
+
+        # Serialize to protobuf bytes
+        pb_bytes = msg.SerializeToString()
+        
+        # Length-delimited TCP framing: [4B LE length][protobuf bytes]
+        frame = struct.pack("<I", len(pb_bytes)) + pb_bytes
 
         try:
-            self._tcp_sock.sendall(buf)
-            print(f"[TCP TX] cmd=0x{cmd:02X} count={count} payload={len(buf)}B")
+            self._tcp_sock.sendall(frame)
+            print(f"[TCP TX] type={msg.type} action={msg.subscribe.action if msg.HasField('subscribe') else '-'} "
+                  f"vars={len(var_ids)} frame={len(frame)}B")
         except Exception as e:
-            print(f"[TCP TX ERROR] cmd=0x{cmd:02X}: {e}")
+            print(f"[TCP TX ERROR] {e}")
             self.connected = False
             try:
                 self._tcp_sock.close()
@@ -465,7 +497,7 @@ class PlcMonitorEngine:
 
     # ── TCP Receiver ─────────────────────────────────────────────
     def _tcp_receive_loop(self):
-        """Background thread: receive data packets from PLC over TCP."""
+        """Background thread: receive length-delimited protobuf messages from PLC over TCP."""
         print(f"[TCP RX] Receiver started")
         buf = b""
         while self._running:
@@ -476,7 +508,7 @@ class PlcMonitorEngine:
                     self.connected = False
                     break
                 buf += chunk
-                # Process all complete packets in the buffer
+                # Process all complete length-delimited messages
                 buf = self._process_tcp_buffer(buf)
             except socket.timeout:
                 continue
@@ -486,12 +518,12 @@ class PlcMonitorEngine:
 
     # ── UDP Receiver ─────────────────────────────────────────────
     def _udp_receive_loop(self):
-        """Background thread: receive variable data packets from PLC via UDP."""
+        """Background thread: receive protobuf VarUpdatePacket from PLC via UDP."""
         print(f"[UDP RX] Receiver started on port {UDP_PORT}")
         while self._running:
             try:
                 data, addr = self._udp_sock.recvfrom(1500)
-                if data and len(data) >= 12:
+                if data and len(data) >= 2:
                     self._decode_packet(data)
             except socket.timeout:
                 continue
@@ -500,68 +532,76 @@ class PlcMonitorEngine:
         print("[UDP RX] Thread stopped")
 
     def _process_tcp_buffer(self, buf: bytes) -> bytes:
-        """Extract and decode complete packets from TCP stream buffer.
+        """Extract and decode complete length-delimited protobuf messages.
+        TCP framing: [LENGTH:4B LE][PROTOBUF_BYTES:LENGTH]
         Returns the remaining unprocessed bytes."""
-        while len(buf) >= 12:  # Minimum header size
-            # Look for magic bytes 0xAB01
-            magic = struct.unpack_from("<H", buf, 0)[0]
-            if magic != MAGIC:
-                # Not a data packet — could be a 3-byte ACK from PLC
-                # Skip 1 byte and rescan
+        while len(buf) >= 4:
+            # Read 4-byte LE length prefix
+            msg_len = struct.unpack_from("<I", buf, 0)[0]
+            
+            # Sanity check
+            if msg_len > 65535:
+                # Invalid — skip 1 byte and rescan
                 buf = buf[1:]
                 continue
-
-            # We have a valid header — try to determine full packet size
-            _, seq, timestamp, count = struct.unpack_from("<HIIH", buf, 0)
-
-            # We need to scan through to find packet length
-            # (variable-length fields make this necessary)
-            pkt_len = self._calc_packet_len(buf, count)
-            if pkt_len is None or pkt_len > len(buf):
-                break  # Incomplete packet, wait for more data
-
-            # Extract and decode complete packet
-            pkt = buf[:pkt_len]
-            buf = buf[pkt_len:]
-            self._decode_packet(pkt)
+            
+            # Check if full message is available
+            if len(buf) < 4 + msg_len:
+                break  # Wait for more data
+            
+            # Extract protobuf bytes
+            pb_bytes = buf[4:4 + msg_len]
+            buf = buf[4 + msg_len:]
+            
+            # Decode the PlcMessage
+            try:
+                msg = pb.PlcMessage()
+                msg.ParseFromString(pb_bytes)
+                
+                if msg.type == MSGTYPE_VAR_UPDATE and msg.HasField('update'):
+                    # Variable update packet received over TCP
+                    self._decode_protobuf_update(msg.update)
+                elif msg.type == MSGTYPE_SUBSCRIBE_CMD:
+                    # ACK from subscribe command
+                    if msg.HasField('subscribe'):
+                        print(f"[TCP RX] Subscribe ACK: action={msg.subscribe.action} "
+                              f"count={msg.subscribe.interval_ms}")
+                elif msg.type == MSGTYPE_HEARTBEAT:
+                    if msg.HasField('update'):
+                        print(f"[TCP RX] Heartbeat: subs={msg.update.sequence} "
+                              f"registry={msg.update.timestamp}")
+                else:
+                    print(f"[TCP RX] Message type={msg.type}")
+            except Exception as e:
+                print(f"[TCP RX] Protobuf decode error: {e}")
 
         return buf
 
-    def _calc_packet_len(self, data: bytes, count: int) -> int | None:
-        """Calculate total packet length by walking the variable entries."""
-        offset = 12  # After header
-        for _ in range(count):
-            if offset + 5 > len(data):
-                return None  # Incomplete
-            type_code = data[offset + 4]  # type byte after 4-byte var_id
-            offset += 5
-            if type_code in (TYPE_BOOL, TYPE_USINT, TYPE_SINT):
-                offset += 1
-            elif type_code in (TYPE_INT, TYPE_UINT):
-                offset += 2
-            elif type_code in (TYPE_DINT, TYPE_UDINT, TYPE_REAL):
-                offset += 4
-            elif type_code == TYPE_LREAL:
-                offset += 8
-            elif type_code == TYPE_STRING:
-                if offset >= len(data):
-                    return None
-                str_len = data[offset]
-                offset += 1 + str_len
-            else:
-                return None  # Unknown type
-            if offset > len(data):
-                return None
-        return offset
-
     def _decode_packet(self, data: bytes):
-        """Decode a variable update packet."""
-        if len(data) < 12:
+        """Decode a protobuf VarUpdatePacket from UDP."""
+        if len(data) < 2:
             return
 
-        magic, seq, timestamp, count = struct.unpack_from("<HIIH", data, 0)
-        if magic != MAGIC:
+        try:
+            update = pb.VarUpdatePacket()
+            update.ParseFromString(data)
+        except Exception:
             return
+
+        seq = update.sequence
+        timestamp = update.timestamp
+        count = len(update.values)
+        
+        if count == 0 and seq == 0:
+            return  # Empty/invalid packet
+
+        self._decode_protobuf_update(update, len(data))
+
+    def _decode_protobuf_update(self, update, pkt_bytes: int = 0):
+        """Process a decoded VarUpdatePacket protobuf message."""
+        seq = update.sequence
+        timestamp = update.timestamp
+        count = len(update.values)
 
         py_now = time.perf_counter()
 
@@ -570,21 +610,13 @@ class PlcMonitorEngine:
             if self.stats["packets_received"] == 0:
                 self._stats_start_time = py_now
 
-            # Detect drops using PLC timestamp gaps:
-            # If the gap between consecutive PLC timestamps is much larger
-            # than the typical interval, packets were lost.
-            # Track sequence step to learn the PLC's actual increment pattern.
             prev_seq = self.stats["last_seq"]
             prev_ts = self.stats["last_timestamp"]
             if prev_seq > 0:
                 seq_step = seq - prev_seq
-                # Track the most common seq step (PLC may skip seq numbers)
                 self._seq_step_counts[seq_step] = self._seq_step_counts.get(seq_step, 0) + 1
-                # Use PLC timestamp gap to detect real drops:
-                # If ts gap > 2x the median PLC interval, count missed packets
                 if prev_ts > 0 and len(self._plc_timestamps) > 10:
                     ts_gap = timestamp - prev_ts
-                    # Expect ~20ms per packet; if gap > 50ms, we missed some
                     expected_interval = self._get_median_plc_interval()
                     if expected_interval > 0 and ts_gap > expected_interval * 2.5:
                         missed = round(ts_gap / expected_interval) - 1
@@ -595,7 +627,7 @@ class PlcMonitorEngine:
             self.stats["seq_step_mode"] = max(self._seq_step_counts, key=self._seq_step_counts.get) if self._seq_step_counts else 1
             self.stats["last_timestamp"] = timestamp
             self.stats["packets_received"] += 1
-            self.stats["bytes_received"] += len(data)
+            self.stats["bytes_received"] += pkt_bytes
 
             # Inter-packet timing
             if self._last_packet_py_time > 0:
@@ -606,55 +638,31 @@ class PlcMonitorEngine:
             # PLC timestamps
             self._plc_timestamps.append(timestamp)
 
-        # Decode variable values
-        offset = 12  # After header
+        # Decode variable values from protobuf oneof
         updates = {}
-        raw_updates = {}  # var_id → value (for stats tracking)
+        raw_updates = {}
 
-        for i in range(count):
-            if offset + 3 > len(data):
-                break
-
-            var_id, type_code = struct.unpack_from("<IB", data, offset)  # UDINT var_id
-            offset += 5
-
+        for var_val in update.values:
+            var_id = var_val.var_id
             value = None
-            try:
-                if type_code == TYPE_BOOL:
-                    value = bool(data[offset])
-                    offset += 1
-                elif type_code == TYPE_INT:
-                    value = struct.unpack_from("<h", data, offset)[0]
-                    offset += 2
-                elif type_code == TYPE_UINT:
-                    value = struct.unpack_from("<H", data, offset)[0]
-                    offset += 2
-                elif type_code == TYPE_DINT:
-                    value = struct.unpack_from("<i", data, offset)[0]
-                    offset += 4
-                elif type_code == TYPE_UDINT:
-                    value = struct.unpack_from("<I", data, offset)[0]
-                    offset += 4
-                elif type_code == TYPE_REAL:
-                    value = round(struct.unpack_from("<f", data, offset)[0], 6)
-                    offset += 4
-                elif type_code == TYPE_LREAL:
-                    value = round(struct.unpack_from("<d", data, offset)[0], 9)
-                    offset += 8
-                elif type_code == TYPE_STRING:
-                    str_len = data[offset]
-                    offset += 1
-                    value = data[offset:offset + str_len].decode("ascii", errors="replace")
-                    offset += str_len
-                elif type_code == TYPE_USINT:
-                    value = data[offset]
-                    offset += 1
-                elif type_code == TYPE_SINT:
-                    value = struct.unpack_from("<b", data, offset)[0]
-                    offset += 1
-            except (struct.error, IndexError):
-                break
-
+            
+            # Extract value from protobuf oneof field
+            which = var_val.WhichOneof('value')
+            if which == 'bool_val':
+                value = var_val.bool_val
+            elif which == 'int_val':
+                value = var_val.int_val
+            elif which == 'uint_val':
+                value = var_val.uint_val
+            elif which == 'dint_val':
+                value = var_val.dint_val
+            elif which == 'real_val':
+                value = round(var_val.real_val, 6)
+            elif which == 'lreal_val':
+                value = round(var_val.lreal_val, 9)
+            elif which == 'string_val':
+                value = var_val.string_val
+            
             if value is not None:
                 self.values[var_id] = value
                 raw_updates[var_id] = value
