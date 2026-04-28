@@ -315,12 +315,12 @@ class PlcMonitorEngine:
 
             return {"ok": True, "url": f"{plc_ip}:{TCP_PORT}"}
 
-    def discover_available(self, batch_size: int = 2000,
-                           batch_wait_s: float = 0.3) -> dict:
+    def discover_available(self, batch_size: int = 500,
+                           batch_wait_s: float = 0.15) -> dict:
         """Discover which variables actually exist on the connected PLC.
-        Subscribes in small batches so the PLC can respond with all valid vars
-        within each batch (they fit in 1-2 UDP packets). Collects which var_ids
-        actually produce data — those have pAddress resolved on the PLC."""
+        Subscribes in small batches (PLC subscription array is 500 max)
+        and collects which var_ids produce data — those have pAddress
+        resolved on the PLC."""
         if not self.connected:
             return {"ok": False, "error": "Not connected"}
         if self._discovering:

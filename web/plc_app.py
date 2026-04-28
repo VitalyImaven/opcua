@@ -75,8 +75,8 @@ async def connect(req: ConnectRequest):
 
 
 class DiscoverRequest(BaseModel):
-    batch_size: int = 2000
-    batch_wait_s: float = 0.3
+    batch_size: int = 500
+    batch_wait_s: float = 0.15
 
 @app.post("/api/plc/discover")
 async def discover(req: DiscoverRequest):

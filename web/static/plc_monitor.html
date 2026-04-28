@@ -299,11 +299,11 @@ async function doConnect() {
 
 async function discoverVariables() {
   const treeWrap = document.getElementById('tree-wrap');
-  treeWrap.innerHTML = '<div style="padding:16px;color:var(--dim);font-size:13px;">Discovering available variables...<br><small>Probing PLC in batches (~15s)</small></div>';
+  treeWrap.innerHTML = '<div style="padding:16px;color:var(--dim);font-size:13px;">Discovering available variables...<br><small>Probing PLC in batches (~30s for full scan)</small></div>';
   document.getElementById('avail-count').style.display = '';
   document.getElementById('avail-count').textContent = 'Discovering...';
 
-  const res = await api('/api/plc/discover', {batch_size: 2000, batch_wait_s: 0.3});
+  const res = await api('/api/plc/discover', {batch_size: 500, batch_wait_s: 0.15});
   if (res.ok) {
     document.getElementById('avail-count').textContent = `Available: ${res.available_count}`;
     loadTree();
