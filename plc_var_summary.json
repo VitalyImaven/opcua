@@ -1,6 +1,6 @@
 {
   "total_struct_variables": 497,
-  "total_leaf_fields": 92118,
+  "total_leaf_fields": 92205,
   "variables": [
     {
       "variable": "Hardware",
@@ -1123,6 +1123,13 @@
       "unresolved_count": 0
     },
     {
+      "variable": "gProtoTest",
+      "type": "gProtoTest_typ",
+      "source": "gProtoTest.var",
+      "leaf_count": 108,
+      "unresolved_count": 0
+    },
+    {
       "variable": "gSpmZ",
       "type": "SPM_Z_typ",
       "source": "Exit\\SPM_XZ\\SpmZDrive\\SpmZDriveGlobal.var",
@@ -1540,13 +1547,6 @@
       "type": "GduCal_Mgr_typ",
       "source": "TPL\\GduCal_MgrGlobal.var",
       "leaf_count": 26,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gProtoTest",
-      "type": "gProtoTest_typ",
-      "source": "gProtoTest.var",
-      "leaf_count": 21,
       "unresolved_count": 0
     },
     {

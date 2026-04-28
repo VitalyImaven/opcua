@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Protocol Benchmark Comparison — Protobuf vs OPC UA</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d27;
+    --border: #2a2d3a;
+    --text: #e0e0e8;
+    --muted: #8888a0;
+    --accent-proto: #4fc3f7;
+    --accent-opcua: #ff8a65;
+    --green: #66bb6a;
+    --red: #ef5350;
+    --yellow: #fdd835;
+    --purple: #ab47bc;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; padding: 24px; line-height: 1.5; }
+  h1 { text-align: center; font-size: 1.8rem; margin-bottom: 6px; }
+  .subtitle { text-align: center; color: var(--muted); margin-bottom: 28px; font-size: .95rem; }
+
+  /* Summary cards */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 32px;
+  }
+  .proto-card, .opcua-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+  }
+  .proto-card { border-top: 3px solid var(--accent-proto); }
+  .opcua-card { border-top: 3px solid var(--accent-opcua); }
+  .card-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot-proto { background: var(--accent-proto); }
+  .dot-opcua { background: var(--accent-opcua); }
+
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .badge {
+    font-size: .7rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+  .badge-excellent { background: #1b5e20; color: #a5d6a7; }
+  .badge-perfect  { background: #0d47a1; color: #90caf9; }
+  .badge-fair     { background: #e65100; color: #ffcc80; }
+  .badge-poor     { background: #b71c1c; color: #ef9a9a; }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
+  }
+  .kpi { background: rgba(255,255,255,.04); border-radius: 8px; padding: 10px 12px; text-align: center; }
+  .kpi-value { font-size: 1.25rem; font-weight: 700; }
+  .kpi-label { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+
+  /* Winner banner */
+  .winner-section {
+    background: linear-gradient(135deg, #1a237e 0%, #0d47a1 100%);
+    border-radius: 12px;
+    padding: 24px 32px;
+    margin-bottom: 32px;
+    text-align: center;
+  }
+  .winner-section h2 { font-size: 1.3rem; margin-bottom: 8px; }
+  .winner-section p { color: #bbdefb; font-size: .92rem; }
+
+  /* Comparison table */
+  .comp-section { margin-bottom: 32px; }
+  .comp-section h2 { font-size: 1.2rem; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; letter-spacing: .5px; }
+  tr:hover { background: rgba(255,255,255,.03); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .winner-cell { font-weight: 700; }
+  .proto-win { color: var(--accent-proto); }
+  .opcua-win { color: var(--accent-opcua); }
+  .tie { color: var(--yellow); }
+  .better-arrow { font-size: .75rem; margin-left: 4px; }
+
+  /* Bar chart */
+  .bar-section { margin-bottom: 32px; }
+  .bar-section h2 { font-size: 1.2rem; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  .bar-row { display: flex; align-items: center; margin-bottom: 8px; }
+  .bar-label { width: 180px; font-size: .82rem; color: var(--muted); flex-shrink: 0; }
+  .bar-track { flex: 1; height: 26px; background: rgba(255,255,255,.04); border-radius: 6px; position: relative; overflow: hidden; display: flex; }
+  .bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; font-size: .72rem; font-weight: 700; transition: width .5s ease; min-width: 40px; }
+  .bar-proto { background: linear-gradient(90deg, #0277bd, #4fc3f7); }
+  .bar-opcua { background: linear-gradient(90deg, #d84315, #ff8a65); }
+  .bar-gap { width: 3px; }
+  .bar-vals { width: 200px; display: flex; justify-content: space-between; font-size: .78rem; margin-left: 12px; }
+  .bar-vals span:first-child { color: var(--accent-proto); }
+  .bar-vals span:last-child  { color: var(--accent-opcua); }
+
+  /* Timing */
+  .timing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 32px; }
+  .timing-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; }
+  .timing-card h3 { font-size: .95rem; margin-bottom: 10px; }
+  .no-data { color: var(--muted); font-style: italic; padding: 20px 0; text-align: center; }
+
+  /* Per-variable comparison */
+  .var-table-wrap { max-height: 520px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; }
+  .var-table-wrap table { font-size: .82rem; }
+  .var-table-wrap th { position: sticky; top: 0; background: var(--card); z-index: 2; }
+  .var-table-wrap td { white-space: nowrap; }
+  .group-fast   { border-left: 3px solid #e53935; }
+  .group-medium { border-left: 3px solid #fdd835; }
+  .group-slow   { border-left: 3px solid #66bb6a; }
+  .group-status { border-left: 3px solid #ab47bc; }
+  .ratio-good { color: var(--green); }
+  .ratio-bad  { color: var(--red); }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .summary-grid, .timing-grid { grid-template-columns: 1fr; }
+    .bar-label { width: 120px; }
+    .bar-vals { width: 140px; }
+  }
+
+  .footer { text-align: center; color: var(--muted); font-size: .75rem; margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<h1>Protocol Benchmark Comparison</h1>
+<p class="subtitle">Protobuf vs OPC UA &mdash; 108 subscribed variables &mdash; ~10 s test duration</p>
+
+<!-- ========== WINNER BANNER ========== -->
+<div class="winner-section">
+  <h2>&#127942; Protobuf Wins Overall</h2>
+  <p>
+    Protobuf delivers <strong>12.8&times;</strong> higher packet rate, <strong>12.8&times;</strong> higher variable-update throughput,
+    and <strong>3.3&times;</strong> more variable changes per second compared to OPC UA — with full timing data and type information preserved.
+  </p>
+</div>
+
+<!-- ========== SUMMARY CARDS ========== -->
+<div class="summary-grid">
+  <!-- Protobuf -->
+  <div class="proto-card">
+    <div class="card-title"><span class="dot dot-proto"></span> Protobuf</div>
+    <div class="badges">
+      <span class="badge badge-excellent">Packet Rate: Excellent</span>
+      <span class="badge badge-perfect">Integrity: Perfect</span>
+      <span class="badge badge-fair">Jitter: Fair</span>
+      <span class="badge badge-fair">Overall: Fair</span>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-value">10.01s</div><div class="kpi-label">Duration</div></div>
+      <div class="kpi"><div class="kpi-value">1,563</div><div class="kpi-label">Packets</div></div>
+      <div class="kpi"><div class="kpi-value">156.2</div><div class="kpi-label">Pkt Rate (/s)</div></div>
+      <div class="kpi"><div class="kpi-value">168,804</div><div class="kpi-label">Var Updates</div></div>
+      <div class="kpi"><div class="kpi-value">16,865</div><div class="kpi-label">Update Rate (/s)</div></div>
+      <div class="kpi"><div class="kpi-value">43,594</div><div class="kpi-label">Var Changes</div></div>
+      <div class="kpi"><div class="kpi-value">4,355</div><div class="kpi-label">Change Rate (/s)</div></div>
+      <div class="kpi"><div class="kpi-value">0</div><div class="kpi-label">Dropped</div></div>
+      <div class="kpi"><div class="kpi-value">24,048</div><div class="kpi-label">Max Safe Vars</div></div>
+    </div>
+  </div>
+  <!-- OPC UA -->
+  <div class="opcua-card">
+    <div class="card-title"><span class="dot dot-opcua"></span> OPC UA</div>
+    <div class="badges">
+      <span class="badge badge-poor">Packet Rate: Poor</span>
+      <span class="badge badge-perfect">Integrity: Perfect</span>
+      <span class="badge badge-poor">Jitter: Poor</span>
+      <span class="badge badge-poor">Overall: Poor</span>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-value">10s</div><div class="kpi-label">Duration</div></div>
+      <div class="kpi"><div class="kpi-value">0</div><div class="kpi-label">Packets</div></div>
+      <div class="kpi"><div class="kpi-value">0</div><div class="kpi-label">Pkt Rate (/s)</div></div>
+      <div class="kpi"><div class="kpi-value">13,139</div><div class="kpi-label">Var Updates</div></div>
+      <div class="kpi"><div class="kpi-value">1,314</div><div class="kpi-label">Update Rate (/s)</div></div>
+      <div class="kpi"><div class="kpi-value">13,043</div><div class="kpi-label">Var Changes</div></div>
+      <div class="kpi"><div class="kpi-value">1,304</div><div class="kpi-label">Change Rate (/s)</div></div>
+      <div class="kpi"><div class="kpi-value">0</div><div class="kpi-label">Dropped</div></div>
+      <div class="kpi"><div class="kpi-value">&mdash;</div><div class="kpi-label">Max Safe Vars</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== HEAD-TO-HEAD COMPARISON ========== -->
+<div class="comp-section">
+  <h2>Head-to-Head Comparison</h2>
+  <table>
+    <thead>
+      <tr><th>Metric</th><th class="num">Protobuf</th><th class="num">OPC UA</th><th class="num">Ratio</th><th>Winner</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Packet Rate (pkt/s)</td>
+        <td class="num winner-cell proto-win">156.2</td>
+        <td class="num">0</td>
+        <td class="num">&infin;</td>
+        <td class="proto-win">Protobuf</td>
+      </tr>
+      <tr>
+        <td>Total Var Updates</td>
+        <td class="num winner-cell proto-win">168,804</td>
+        <td class="num">13,139</td>
+        <td class="num">12.8&times;</td>
+        <td class="proto-win">Protobuf</td>
+      </tr>
+      <tr>
+        <td>Var Update Rate (/s)</td>
+        <td class="num winner-cell proto-win">16,865</td>
+        <td class="num">1,314</td>
+        <td class="num">12.8&times;</td>
+        <td class="proto-win">Protobuf</td>
+      </tr>
+      <tr>
+        <td>Total Var Changes</td>
+        <td class="num winner-cell proto-win">43,594</td>
+        <td class="num">13,043</td>
+        <td class="num">3.3&times;</td>
+        <td class="proto-win">Protobuf</td>
+      </tr>
+      <tr>
+        <td>Var Change Rate (/s)</td>
+        <td class="num winner-cell proto-win">4,355</td>
+        <td class="num">1,304</td>
+        <td class="num">3.3&times;</td>
+        <td class="proto-win">Protobuf</td>
+      </tr>
+      <tr>
+        <td>Dropped Packets</td>
+        <td class="num">0</td>
+        <td class="num">0</td>
+        <td class="num">&mdash;</td>
+        <td class="tie">Tie</td>
+      </tr>
+      <tr>
+        <td>Integrity</td>
+        <td class="num">Perfect</td>
+        <td class="num">Perfect</td>
+        <td class="num">&mdash;</td>
+        <td class="tie">Tie</td>
+      </tr>
+      <tr>
+        <td>Type Information</td>
+        <td class="num">&#10003; Full types</td>
+        <td class="num">&#10007; Unknown (?)</td>
+        <td class="num">&mdash;</td>
+        <td class="proto-win">Protobuf</td>
+      </tr>
+      <tr>
+        <td>Timing Data</td>
+        <td class="num">&#10003; Available</td>
+        <td class="num">&#10007; No data</td>
+        <td class="num">&mdash;</td>
+        <td class="proto-win">Protobuf</td>
+      </tr>
+      <tr>
+        <td>Max Safe Vars (est)</td>
+        <td class="num winner-cell proto-win">24,048</td>
+        <td class="num">&mdash;</td>
+        <td class="num">&mdash;</td>
+        <td class="proto-win">Protobuf</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ========== BAR CHART ========== -->
+<div class="bar-section">
+  <h2>Visual Throughput Comparison</h2>
+
+  <div class="bar-row">
+    <div class="bar-label">Var Update Rate (/s)</div>
+    <div class="bar-track">
+      <div class="bar-fill bar-proto" style="width:100%;">16,865</div>
+    </div>
+    <div class="bar-vals"><span>16,865</span><span></span></div>
+  </div>
+  <div class="bar-row">
+    <div class="bar-label"></div>
+    <div class="bar-track">
+      <div class="bar-fill bar-opcua" style="width:7.8%;">1,314</div>
+    </div>
+    <div class="bar-vals"><span></span><span>1,314</span></div>
+  </div>
+
+  <div style="height:16px"></div>
+
+  <div class="bar-row">
+    <div class="bar-label">Var Change Rate (/s)</div>
+    <div class="bar-track">
+      <div class="bar-fill bar-proto" style="width:100%;">4,355</div>
+    </div>
+    <div class="bar-vals"><span>4,355</span><span></span></div>
+  </div>
+  <div class="bar-row">
+    <div class="bar-label"></div>
+    <div class="bar-track">
+      <div class="bar-fill bar-opcua" style="width:30%;">1,304</div>
+    </div>
+    <div class="bar-vals"><span></span><span>1,304</span></div>
+  </div>
+
+  <div style="height:16px"></div>
+
+  <div class="bar-row">
+    <div class="bar-label">Total Var Updates</div>
+    <div class="bar-track">
+      <div class="bar-fill bar-proto" style="width:100%;">168,804</div>
+    </div>
+    <div class="bar-vals"><span>168,804</span><span></span></div>
+  </div>
+  <div class="bar-row">
+    <div class="bar-label"></div>
+    <div class="bar-track">
+      <div class="bar-fill bar-opcua" style="width:7.8%;">13,139</div>
+    </div>
+    <div class="bar-vals"><span></span><span>13,139</span></div>
+  </div>
+
+  <div style="height:16px"></div>
+
+  <div class="bar-row">
+    <div class="bar-label">Total Var Changes</div>
+    <div class="bar-track">
+      <div class="bar-fill bar-proto" style="width:100%;">43,594</div>
+    </div>
+    <div class="bar-vals"><span>43,594</span><span></span></div>
+  </div>
+  <div class="bar-row">
+    <div class="bar-label"></div>
+    <div class="bar-track">
+      <div class="bar-fill bar-opcua" style="width:30%;">13,043</div>
+    </div>
+    <div class="bar-vals"><span></span><span>13,043</span></div>
+  </div>
+</div>
+
+<!-- ========== TIMING ========== -->
+<div class="comp-section">
+  <h2>Packet Timing — Protobuf</h2>
+  <div class="timing-grid">
+    <div class="timing-card">
+      <h3>Inter-Packet Interval</h3>
+      <table>
+        <tr><th>Metric</th><th class="num">Value</th></tr>
+        <tr><td>Count</td><td class="num">1,562</td></tr>
+        <tr><td>Min</td><td class="num">0.341 ms</td></tr>
+        <tr><td>Max</td><td class="num">21.154 ms</td></tr>
+        <tr><td>Avg</td><td class="num">6.4 ms</td></tr>
+        <tr><td>Median</td><td class="num">4.993 ms</td></tr>
+        <tr><td>Std Dev</td><td class="num">5.242 ms</td></tr>
+        <tr><td>P95</td><td class="num">12.261 ms</td></tr>
+        <tr><td>P99</td><td class="num">13.445 ms</td></tr>
+      </table>
+    </div>
+    <div class="timing-card">
+      <h3>Round-Trip / Processing</h3>
+      <table>
+        <tr><th>Metric</th><th class="num">Value</th></tr>
+        <tr><td>Count</td><td class="num">1,562</td></tr>
+        <tr><td>Min</td><td class="num">6 ms</td></tr>
+        <tr><td>Max</td><td class="num">7 ms</td></tr>
+        <tr><td>Avg</td><td class="num">6.4 ms</td></tr>
+        <tr><td>Median</td><td class="num">6 ms</td></tr>
+        <tr><td>Std Dev</td><td class="num">0.49 ms</td></tr>
+        <tr><td>P95</td><td class="num">7 ms</td></tr>
+        <tr><td>P99</td><td class="num">7 ms</td></tr>
+      </table>
+    </div>
+  </div>
+  <p style="color:var(--muted);font-size:.85rem;margin-top:-12px;margin-bottom:24px;"><strong>OPC UA:</strong> No timing data available.</p>
+</div>
+
+<!-- ========== PER-VARIABLE BY GROUP ========== -->
+<div class="comp-section">
+  <h2>Per-Variable Comparison by Speed Group</h2>
+  <p style="color:var(--muted);font-size:.85rem;margin-bottom:14px;">
+    Matching variables across both protocols. Rate = changes/s. Ratio = Protobuf&nbsp;/&nbsp;OPC&nbsp;UA.
+  </p>
+
+  <!-- FAST GROUP -->
+  <h3 style="margin:18px 0 8px;color:#e53935;font-size:.95rem;">&#9889; Fast Variables (~156 Hz target)</h3>
+  <div class="var-table-wrap" style="max-height:320px;">
+    <table>
+      <thead>
+        <tr><th>Variable</th><th>Type (Proto)</th><th class="num">Proto Rate</th><th class="num">OPCUA Rate</th><th class="num">Ratio</th></tr>
+      </thead>
+      <tbody>
+        <tr class="group-fast"><td>CosineWave</td><td>REAL</td><td class="num">156.1</td><td class="num">19.7</td><td class="num ratio-good">7.9&times;</td></tr>
+        <tr class="group-fast"><td>Counter1</td><td>UDINT</td><td class="num">156.1</td><td class="num">19.7</td><td class="num ratio-good">7.9&times;</td></tr>
+        <tr class="group-fast"><td>Counter2</td><td>DINT</td><td class="num">156.1</td><td class="num">19.7</td><td class="num ratio-good">7.9&times;</td></tr>
+        <tr class="group-fast"><td>FastRamp</td><td>REAL</td><td class="num">156.1</td><td class="num">19.7</td><td class="num ratio-good">7.9&times;</td></tr>
+        <tr class="group-fast"><td>Noise</td><td>REAL</td><td class="num">156.1</td><td class="num">19.7</td><td class="num ratio-good">7.9&times;</td></tr>
+        <tr class="group-fast"><td>PhaseAngle</td><td>LREAL</td><td class="num">156.1</td><td class="num">19.7</td><td class="num ratio-good">7.9&times;</td></tr>
+        <tr class="group-fast"><td>SineWave</td><td>REAL</td><td class="num">156.1</td><td class="num">19.7</td><td class="num ratio-good">7.9&times;</td></tr>
+        <tr class="group-fast"><td>SpeedRPM</td><td>REAL</td><td class="num">156.1</td><td class="num">19.7</td><td class="num ratio-good">7.9&times;</td></tr>
+        <tr class="group-fast"><td>TriangleWave</td><td>REAL</td><td class="num">153.0</td><td class="num">19.6</td><td class="num ratio-good">7.8&times;</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- MEDIUM GROUP -->
+  <h3 style="margin:18px 0 8px;color:#fdd835;font-size:.95rem;">&#128336; Medium Variables (~78 Hz target)</h3>
+  <div class="var-table-wrap" style="max-height:420px;">
+    <table>
+      <thead>
+        <tr><th>Variable</th><th>Type (Proto)</th><th class="num">Proto Rate</th><th class="num">OPCUA Rate</th><th class="num">Ratio</th></tr>
+      </thead>
+      <tbody>
+        <tr class="group-medium"><td>CosineX2</td><td>REAL</td><td class="num">78.0</td><td class="num">19.7</td><td class="num ratio-good">4.0&times;</td></tr>
+        <tr class="group-medium"><td>Counter3</td><td>UDINT</td><td class="num">78.0</td><td class="num">19.7</td><td class="num ratio-good">4.0&times;</td></tr>
+        <tr class="group-medium"><td>Counter4</td><td>INT</td><td class="num">78.0</td><td class="num">19.7</td><td class="num ratio-good">4.0&times;</td></tr>
+        <tr class="group-medium"><td>Counter5</td><td>UINT</td><td class="num">78.0</td><td class="num">19.7</td><td class="num ratio-good">4.0&times;</td></tr>
+        <tr class="group-medium"><td>Current1</td><td>REAL</td><td class="num">78.0</td><td class="num">19.8</td><td class="num ratio-good">3.9&times;</td></tr>
+        <tr class="group-medium"><td>Current2</td><td>REAL</td><td class="num">78.0</td><td class="num">19.8</td><td class="num ratio-good">3.9&times;</td></tr>
+        <tr class="group-medium"><td>DutyCycle</td><td>REAL</td><td class="num">78.0</td><td class="num">19.8</td><td class="num ratio-good">3.9&times;</td></tr>
+        <tr class="group-medium"><td>ErrorCode</td><td>UDINT</td><td class="num">78.0</td><td class="num">19.8</td><td class="num ratio-good">3.9&times;</td></tr>
+        <tr class="group-medium"><td>Flow1</td><td>REAL</td><td class="num">78.0</td><td class="num">19.8</td><td class="num ratio-good">3.9&times;</td></tr>
+        <tr class="group-medium"><td>Flow2</td><td>REAL</td><td class="num">78.0</td><td class="num">19.8</td><td class="num ratio-good">3.9&times;</td></tr>
+        <tr class="group-medium"><td>Humidity</td><td>REAL</td><td class="num">78.0</td><td class="num">19.8</td><td class="num ratio-good">3.9&times;</td></tr>
+        <tr class="group-medium"><td>Level</td><td>REAL</td><td class="num">78.0</td><td class="num">19.8</td><td class="num ratio-good">3.9&times;</td></tr>
+        <tr class="group-medium"><td>NegRamp</td><td>REAL</td><td class="num">78.0</td><td class="num">19.8</td><td class="num ratio-good">3.9&times;</td></tr>
+        <tr class="group-medium"><td>Position</td><td>LREAL</td><td class="num">78.0</td><td class="num">19.8</td><td class="num ratio-good">3.9&times;</td></tr>
+        <tr class="group-medium"><td>Power</td><td>REAL</td><td class="num">78.0</td><td class="num">19.8</td><td class="num ratio-good">3.9&times;</td></tr>
+        <tr class="group-medium"><td>Pressure1</td><td>REAL</td><td class="num">78.0</td><td class="num">19.8</td><td class="num ratio-good">3.9&times;</td></tr>
+        <tr class="group-medium"><td>Pressure2</td><td>REAL</td><td class="num">78.0</td><td class="num">19.8</td><td class="num ratio-good">3.9&times;</td></tr>
+        <tr class="group-medium"><td>Sawtooth1</td><td>REAL</td><td class="num">78.0</td><td class="num">19.8</td><td class="num ratio-good">3.9&times;</td></tr>
+        <tr class="group-medium"><td>Sawtooth2</td><td>REAL</td><td class="num">78.0</td><td class="num">19.8</td><td class="num ratio-good">3.9&times;</td></tr>
+        <tr class="group-medium"><td>SineX2</td><td>REAL</td><td class="num">78.0</td><td class="num">19.8</td><td class="num ratio-good">3.9&times;</td></tr>
+        <tr class="group-medium"><td>SineX3</td><td>REAL</td><td class="num">78.0</td><td class="num">19.8</td><td class="num ratio-good">3.9&times;</td></tr>
+        <tr class="group-medium"><td>StatusWord</td><td>UINT</td><td class="num">78.0</td><td class="num">19.8</td><td class="num ratio-good">3.9&times;</td></tr>
+        <tr class="group-medium"><td>Temperature1</td><td>REAL</td><td class="num">78.0</td><td class="num">19.8</td><td class="num ratio-good">3.9&times;</td></tr>
+        <tr class="group-medium"><td>Temperature2</td><td>REAL</td><td class="num">78.0</td><td class="num">19.7</td><td class="num ratio-good">4.0&times;</td></tr>
+        <tr class="group-medium"><td>Temperature3</td><td>REAL</td><td class="num">78.0</td><td class="num">19.7</td><td class="num ratio-good">4.0&times;</td></tr>
+        <tr class="group-medium"><td>Torque</td><td>REAL</td><td class="num">78.0</td><td class="num">19.7</td><td class="num ratio-good">4.0&times;</td></tr>
+        <tr class="group-medium"><td>Vibration</td><td>REAL</td><td class="num">78.0</td><td class="num">19.7</td><td class="num ratio-good">4.0&times;</td></tr>
+        <tr class="group-medium"><td>Voltage1</td><td>REAL</td><td class="num">78.0</td><td class="num">19.7</td><td class="num ratio-good">4.0&times;</td></tr>
+        <tr class="group-medium"><td>Voltage2</td><td>REAL</td><td class="num">78.0</td><td class="num">19.7</td><td class="num ratio-good">4.0&times;</td></tr>
+        <tr class="group-medium"><td>Square50ms</td><td>BOOL</td><td class="num">9.8</td><td class="num">9.7</td><td class="num">1.0&times;</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SLOW GROUP -->
+  <h3 style="margin:18px 0 8px;color:#66bb6a;font-size:.95rem;">&#128034; Slow Variables (~10 Hz target)</h3>
+  <div class="var-table-wrap" style="max-height:500px;">
+    <table>
+      <thead>
+        <tr><th>Variable</th><th>Type (Proto)</th><th class="num">Proto Rate</th><th class="num">OPCUA Rate</th><th class="num">Ratio</th></tr>
+      </thead>
+      <tbody>
+        <tr class="group-slow"><td>Actual1</td><td>REAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>Actual2</td><td>REAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>Actual3</td><td>REAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>Actual4</td><td>REAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>Actual5</td><td>REAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>AlarmWord1</td><td>UINT</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>Availability</td><td>REAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>BatchCount</td><td>UDINT</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>CyclesLeft</td><td>UDINT</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>Deviation1</td><td>REAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>Deviation2</td><td>REAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>Deviation3</td><td>REAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>Dose</td><td>LREAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>Efficiency</td><td>REAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>EnergyTotal</td><td>LREAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>Integral</td><td>LREAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>LotDone</td><td>UDINT</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>LotRemain</td><td>UDINT</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>OEE</td><td>REAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>Param1–10</td><td>REAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>Performance</td><td>REAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>PhaseID</td><td>USINT</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>Quality1–3</td><td>REAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>QualityRate</td><td>REAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>Runtime</td><td>UDINT</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>Setpoint1–5</td><td>REAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>SlowCosine</td><td>REAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>SlowCounter1</td><td>UDINT</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>SlowCounter2</td><td>DINT</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>SlowSine</td><td>REAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>StatBool1</td><td>BOOL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>StepNumber</td><td>UINT</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>WearFactor</td><td>REAL</td><td class="num">10.4</td><td class="num">10.3</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>PulseCount</td><td>UDINT</td><td class="num">8.6</td><td class="num">8.5</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>AlarmWord2</td><td>UINT</td><td class="num">5.2</td><td class="num">5.1</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>StatBool2</td><td>BOOL</td><td class="num">5.2</td><td class="num">5.1</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>AlarmWord3</td><td>UINT</td><td class="num">3.5</td><td class="num">3.4</td><td class="num">1.0&times;</td></tr>
+        <tr class="group-slow"><td>StatBool3</td><td>BOOL</td><td class="num">2.0</td><td class="num">1.9</td><td class="num">1.1&times;</td></tr>
+        <tr class="group-slow"><td>StatBool4</td><td>BOOL</td><td class="num">2.0</td><td class="num">1.8</td><td class="num">1.1&times;</td></tr>
+        <tr class="group-slow"><td>RecipeNum</td><td>USINT</td><td class="num">0.1</td><td class="num">&mdash;</td><td class="num">&mdash;</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- STATUS GROUP -->
+  <h3 style="margin:18px 0 8px;color:#ab47bc;font-size:.95rem;">&#128200; Status / Other</h3>
+  <div class="var-table-wrap" style="max-height:150px;">
+    <table>
+      <thead>
+        <tr><th>Variable</th><th>Type (Proto)</th><th class="num">Proto Rate</th><th class="num">OPCUA Rate</th><th class="num">Ratio</th></tr>
+      </thead>
+      <tbody>
+        <tr class="group-status"><td>CycleCount</td><td>UDINT</td><td class="num">156.1</td><td class="num">19.7</td><td class="num ratio-good">7.9&times;</td></tr>
+        <tr class="group-status"><td>TickBool (OPCUA only)</td><td>&mdash;</td><td class="num">&mdash;</td><td class="num">4.3</td><td class="num">&mdash;</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ========== KEY INSIGHTS ========== -->
+<div class="comp-section">
+  <h2>Key Insights</h2>
+  <table>
+    <thead><tr><th style="width:30%">Finding</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Fast variables: Protobuf dominates</strong></td>
+        <td>For the fast group (~156 Hz PLC rate), Protobuf captures changes at the full PLC cycle rate (156 /s), while OPC UA is throttled to ~20 /s — a <strong>~8&times; gap</strong>. This means OPC UA drops ~87% of fast-changing data.</td>
+      </tr>
+      <tr>
+        <td><strong>Medium variables: 4&times; advantage</strong></td>
+        <td>Medium-rate variables (~78 Hz) are fully captured by Protobuf but OPC UA only delivers ~20 /s — a <strong>~4&times; gap</strong>. OPC UA appears to have a ~50 ms subscription ceiling regardless of variable rate.</td>
+      </tr>
+      <tr>
+        <td><strong>Slow variables: near parity</strong></td>
+        <td>For slow variables (~10 Hz), both protocols deliver virtually identical change rates (10.3–10.4 /s). At low frequencies, OPC UA is not a bottleneck.</td>
+      </tr>
+      <tr>
+        <td><strong>OPC UA subscription ceiling</strong></td>
+        <td>OPC UA appears capped at ~20 changes/s per variable, suggesting a minimum subscription interval of ~50 ms. All fast and medium variables cluster around 19.7–19.8 /s regardless of their actual PLC update rate.</td>
+      </tr>
+      <tr>
+        <td><strong>Packet-level data</strong></td>
+        <td>Protobuf provides discrete packet-level telemetry (1,563 packets, full timing histograms). OPC UA reports 0 packets — the subscription model doesn't expose packet-level granularity, making jitter analysis impossible.</td>
+      </tr>
+      <tr>
+        <td><strong>Type information</strong></td>
+        <td>Protobuf preserves full PLC types (REAL, UDINT, DINT, LREAL, BOOL, etc.). OPC UA reports all types as "?" — type metadata is not available through the subscription interface.</td>
+      </tr>
+      <tr>
+        <td><strong>Scalability</strong></td>
+        <td>Protobuf estimates capacity for ~24,048 variables at the current update rate. OPC UA could not provide a safe-variable estimate, suggesting scalability limits are harder to predict.</td>
+      </tr>
+      <tr>
+        <td><strong>Integrity</strong></td>
+        <td>Both protocols achieved <strong>Perfect</strong> integrity — zero dropped packets/updates. Reliability is not a differentiator.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ========== RECOMMENDATION ========== -->
+<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:32px;border-left:4px solid var(--accent-proto);">
+  <h2 style="margin-bottom:10px;font-size:1.1rem;">Recommendation</h2>
+  <ul style="color:var(--muted);font-size:.9rem;padding-left:20px;">
+    <li><strong>Use Protobuf</strong> for high-frequency monitoring (&gt;20 Hz), real-time diagnostics, and scenarios requiring packet-level timing data or full type fidelity.</li>
+    <li><strong>OPC UA is acceptable</strong> for slow-rate supervisory monitoring (&le;10 Hz) where industry-standard interoperability is required and per-variable rates below 20 Hz are sufficient.</li>
+    <li>For mixed workloads, consider a <strong>hybrid approach</strong>: Protobuf for fast/medium variables, OPC UA for slow/configuration variables where interoperability matters.</li>
+  </ul>
+</div>
+
+<div class="footer">
+  Benchmark conducted on April 28, 2026 &mdash; 108 subscribed variables &mdash; ~10 s test window per protocol
+</div>
+
+</body>
+</html>

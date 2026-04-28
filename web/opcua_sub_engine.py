@@ -171,20 +171,29 @@ class OpcuaSubEngine:
         return result
 
     async def _browse_leaves(self, node, prefix: str, out: list):
-        """Recursively find leaf variables."""
+        """Recursively find leaf variables (handles struct variables with children)."""
         children = await node.get_children()
         for child in children:
             name = (await child.read_browse_name()).Name
             cls = await child.read_node_class()
             full_name = f"{prefix}.{name}"
             if cls == asyncua.ua.NodeClass.Variable:
-                nid = child.nodeid.to_string()
-                try:
-                    val = await child.read_value()
-                    dt = type(val).__name__
-                except Exception:
-                    dt = "?"
-                out.append({"name": full_name, "node_id": nid, "data_type": dt})
+                # Check if this variable has sub-fields (struct type)
+                sub_children = await child.get_children()
+                var_children = [c for c in sub_children
+                                if await c.read_node_class() == asyncua.ua.NodeClass.Variable]
+                if var_children:
+                    # Struct variable — recurse into its fields
+                    await self._browse_leaves(child, full_name, out)
+                else:
+                    # Leaf variable
+                    nid = child.nodeid.to_string()
+                    try:
+                        val = await child.read_value()
+                        dt = type(val).__name__
+                    except Exception:
+                        dt = "?"
+                    out.append({"name": full_name, "node_id": nid, "data_type": dt})
             else:
                 await self._browse_leaves(child, full_name, out)
 
@@ -526,6 +535,13 @@ class OpcuaSubEngine:
             })
 
         n_subs = len(self.subscribed)
+
+        # Estimate max safe vars (same logic as PLC benchmark)
+        avg_bytes_per_var = 9  # ~4 id + 1 type + 4 value avg
+        max_pkt_size = 1400  # practical payload
+        max_vars_per_pkt = (max_pkt_size - 12) // avg_bytes_per_var
+        safe_vars_at_rate = int(max_vars_per_pkt * batch_rate) if batch_rate > 0 else 0
+
         self._bench_result = {
             "elapsed_s": round(elapsed, 2),
             "packets": batches,   # batches = packet equivalent
@@ -535,11 +551,12 @@ class OpcuaSubEngine:
             "var_changes": self._bench_var_changes,
             "var_change_rate": round(self._bench_var_changes / elapsed, 1) if elapsed > 0 else 0,
             "dropped_packets": self._bench_drops,
-            "drop_pct": 0,
+            "drop_pct": round(100 * self._bench_drops / max(1, batches + self._bench_drops), 2),
             "subscribed_count": n_subs,
             "inter_packet_ms": ibt_stats,
             "plc_interval_ms": {},
             "per_variable": per_var,
+            "max_vars_estimate": safe_vars_at_rate,
             "grade": self._compute_grade(batch_rate, self._bench_drops, ibt_stats),
         }
         self._bench_done = True

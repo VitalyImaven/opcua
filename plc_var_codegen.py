@@ -1,8 +1,9 @@
 """
 Generate VarMon registry init files from plc_var_registry.json.
 
-Splits output into one ACTION file per subsystem to keep individual files small.
-The dispatcher VarMon_RegInit.st just calls each subsystem action in sequence.
+Uses VarMonLib library: generates VM_RegVar() function calls instead of
+direct struct assignments. Each subsystem is a separate ACTION file.
+The dispatcher VarMon_RegInit.st calls each subsystem action in sequence.
 
 Usage:
     python plc_var_codegen.py [options]
@@ -43,7 +44,7 @@ TYPE_MAP = {
 }
 
 # Prefixes that are low-level hardware or internal — skip by default
-DEFAULT_SKIP = {"Hardware", "MAIN"}
+DEFAULT_SKIP = {"MAIN"}
 
 SUBSYSTEM_HEADER = """\
 (********************************************************************
@@ -54,9 +55,7 @@ SUBSYSTEM_HEADER = """\
 ACTION VarMon_RegInit_{subsystem}:
 """
 
-ENTRY_TEMPLATE = "    vmRegistry[{idx}].pAddress := ADR({name});\n" \
-                 "    vmRegistry[{idx}].typeCode := {type_code};  (* {type_name} *)\n" \
-                 "    vmRegistry[{idx}].dataSize := {data_size};\n"
+ENTRY_TEMPLATE = "    VM_RegVarByName(ADR(vmRegistry), {idx}, '{name}', {type_code}, {data_size});  (* {type_name} *)\n"
 
 SUBSYSTEM_FOOTER = "END_ACTION\n"
 
@@ -82,18 +81,35 @@ def safe_name(prefix: str) -> str:
     return s[0].upper() + s[1:] if s else s
 
 
-def generate(registry_path: str, outdir: str, max_vars: int, per_sub: int,
+def generate(registry_path: str, outdir: str, max_vars: int,
              skip_set: set, include_list: list):
 
     with open(registry_path, "r") as f:
-        registry = json.load(f)  # dict: {var_name: type_string}
+        registry = json.load(f)
 
-    # Group by top-level prefix
+    # Support two formats:
+    # New: { "var_id": {"name": "...", "type": "..."}, ... }  (pre-assigned IDs)
+    # Old: { "var_name": "type_string", ... }                 (sequential IDs)
     by_prefix = defaultdict(list)
-    for name, plc_type in registry.items():
-        prefix = name.split(".")[0]
-        if plc_type.upper() in TYPE_MAP:
-            by_prefix[prefix].append((name, plc_type.upper()))
+    first_val = next(iter(registry.values()), None)
+    if isinstance(first_val, dict):
+        # New format — use pre-assigned var_id as index
+        for idx_str, info in registry.items():
+            idx = int(idx_str)
+            name = info["name"]
+            plc_type = info["type"].upper()
+            prefix = name.split(".")[0]
+            if plc_type in TYPE_MAP:
+                by_prefix[prefix].append((idx, name, plc_type))
+    else:
+        # Old format — assign sequential IDs
+        seq_idx = 0
+        for name, plc_type_raw in registry.items():
+            plc_type = plc_type_raw.upper()
+            prefix = name.split(".")[0]
+            if plc_type in TYPE_MAP:
+                by_prefix[prefix].append((seq_idx, name, plc_type))
+                seq_idx += 1
 
     # Determine which subsystems to include
     if include_list:
@@ -106,34 +122,42 @@ def generate(registry_path: str, outdir: str, max_vars: int, per_sub: int,
     out = Path(outdir)
     out.mkdir(parents=True, exist_ok=True)
 
+    # Clean up old generated files to avoid stale duplicates
+    for old_file in out.glob("VarMon_RegInit_*.st"):
+        old_file.unlink()
+
     subsystem_files = []   # list of (subsystem_safe_name, var_count)
     global_idx = 0
+    max_var_id = 0
 
     for prefix in ordered:
         if global_idx >= max_vars:
             break
 
-        entries = by_prefix[prefix][:per_sub]
-        # Further cap by remaining budget
+        entries = by_prefix[prefix]
+        # Cap by remaining budget
         remaining = max_vars - global_idx
         entries = entries[:remaining]
         if not entries:
             continue
 
         safe = safe_name(prefix)
+        start_idx = entries[0][0]
         lines = [SUBSYSTEM_HEADER.format(
-            subsystem=safe, count=len(entries), start_idx=global_idx)]
+            subsystem=safe, count=len(entries), start_idx=start_idx)]
 
-        for entry_name, plc_type in entries:
+        for var_idx, entry_name, plc_type in entries:
             type_code, data_size = TYPE_MAP[plc_type]
             lines.append(ENTRY_TEMPLATE.format(
-                idx=global_idx,
+                idx=var_idx,
                 name=entry_name,
                 type_code=type_code,
                 type_name=plc_type,
                 data_size=data_size,
             ))
             global_idx += 1
+            if var_idx > max_var_id:
+                max_var_id = var_idx
 
         lines.append(SUBSYSTEM_FOOTER)
 
@@ -143,11 +167,12 @@ def generate(registry_path: str, outdir: str, max_vars: int, per_sub: int,
         print(f"  {fname.name}: {len(entries)} vars")
 
     # Dispatcher file
+    registry_size = max_var_id + 1
     dispatcher_lines = [DISPATCHER_HEADER.format(
         total=global_idx, num_subs=len(subsystem_files))]
     for safe, _ in subsystem_files:
         dispatcher_lines.append(f"    VarMon_RegInit_{safe};\n")
-    dispatcher_lines.append(DISPATCHER_FOOTER.format(total=global_idx))
+    dispatcher_lines.append(DISPATCHER_FOOTER.format(total=registry_size))
 
     dispatcher = out / "VarMon_RegInit.st"
     dispatcher.write_text("".join(dispatcher_lines), encoding="utf-8")
@@ -161,6 +186,26 @@ def generate(registry_path: str, outdir: str, max_vars: int, per_sub: int,
     # Also update IEC.prg automatically
     update_iec_prg(out, subsystem_files)
 
+    # Auto-update ProtoBufCom.var array size
+    update_var_file(out, max_var_id)
+
+
+def update_var_file(outdir: Path, max_var_id: int):
+    """Update vmRegistry array size in ProtoBufCom.var."""
+    var_file = outdir / "ProtoBufCom.var"
+    if not var_file.exists():
+        return
+    import re
+    content = var_file.read_text(encoding="utf-8")
+    new_content = re.sub(
+        r'vmRegistry\s*:\s*ARRAY\[0\.\.\d+\]\s*OF\s*VM_VarEntry_typ',
+        f'vmRegistry : ARRAY[0..{max_var_id}] OF VM_VarEntry_typ',
+        content
+    )
+    if new_content != content:
+        var_file.write_text(new_content, encoding="utf-8")
+        print(f"Updated {var_file} → ARRAY[0..{max_var_id}]")
+
 
 def update_iec_prg(outdir: Path, subsystem_files: list):
     """Add generated subsystem files to IEC.prg."""
@@ -170,9 +215,9 @@ def update_iec_prg(outdir: Path, subsystem_files: list):
 
     content = prg.read_text(encoding="utf-8")
 
-    # Remove any previously generated subsystem lines
+    # Remove any previously generated subsystem lines (with or without Description attr)
     import re
-    content = re.sub(r'\s*<File>VarMon_RegInit_\w+\.st</File>\n?', '', content)
+    content = re.sub(r'\s*<File[^>]*>VarMon_RegInit_\w+\.st</File>\n?', '', content)
 
     # Build new lines
     new_lines = "".join(
@@ -190,9 +235,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate VarMon registry init files")
     parser.add_argument("--registry", default="plc_var_registry.json")
     parser.add_argument("--outdir", default="plc_code/VarMonitor",
-                        help="Output directory (also updates IEC.prg there)")
-    parser.add_argument("--max", type=int, default=80000, help="Max total variables")
-    parser.add_argument("--per-sub", type=int, default=300, help="Max vars per subsystem file")
+                        help="Output directory for generated .st files (also updates IEC.prg)")
+    parser.add_argument("--max", type=int, default=100000, help="Max total variables")
     parser.add_argument("--skip", default=",".join(DEFAULT_SKIP),
                         help="Comma-separated prefixes to skip")
     parser.add_argument("--include", default="",
@@ -202,5 +246,5 @@ if __name__ == "__main__":
     skip_set = set(args.skip.split(",")) if args.skip else set()
     include_list = [x for x in args.include.split(",") if x] if args.include else []
 
-    generate(args.registry, args.outdir, args.max, args.per_sub, skip_set, include_list)
+    generate(args.registry, args.outdir, args.max, skip_set, include_list)
 

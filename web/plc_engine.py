@@ -55,6 +55,10 @@ class PlcMonitorEngine:
         self.name_to_id: dict[str, int] = {}
         # Current values cache: var_id → value
         self.values: dict[int, any] = {}
+        # Per-variable change timestamps: var_id → {plc_ts, py_ts}
+        # plc_ts = PLC timestamp in ms (from packet header)
+        # py_ts  = Python wall-clock time (time.time()) when change detected
+        self.last_changed: dict[int, dict] = {}
         # Active subscription set: set of var_id
         self.subscribed: set[int] = set()
         # Callback for value updates
@@ -533,13 +537,18 @@ class PlcMonitorEngine:
                 if info:
                     updates[info["name"]] = value
 
-        # Track per-variable changes
+        # Track per-variable changes and record change timestamps
+        wall_time = time.time()
         with self._stats_lock:
             self._total_var_updates += len(raw_updates)
             for vid, val in raw_updates.items():
                 prev = self._per_var_prev.get(vid)
                 if prev is not None and prev != val:
                     self._per_var_changes[vid] = self._per_var_changes.get(vid, 0) + 1
+                    self.last_changed[vid] = {"plc_ts": timestamp, "py_ts": wall_time}
+                elif prev is None:
+                    # First time seeing this variable — record initial timestamp
+                    self.last_changed[vid] = {"plc_ts": timestamp, "py_ts": wall_time}
                 self._per_var_prev[vid] = val
 
         # Benchmark recording
@@ -556,21 +565,32 @@ class PlcMonitorEngine:
 
     # ── Read current values ──────────────────────────────────────
     def read_values(self, names: list[str]) -> dict:
-        """Read current cached values for given variable names."""
+        """Read current cached values for given variable names.
+        Returns {name: {value, last_changed_plc_ts, last_changed_py_ts}}."""
         result = {}
         for name in names:
             var_id = self.name_to_id.get(name)
             if var_id is not None:
-                result[name] = self.values.get(var_id, None)
+                entry = {"value": self.values.get(var_id, None)}
+                changed = self.last_changed.get(var_id)
+                if changed:
+                    entry["last_changed_plc_ts"] = changed["plc_ts"]
+                    entry["last_changed_py_ts"] = changed["py_ts"]
+                result[name] = entry
         return result
 
     def get_all_values(self) -> dict:
-        """Get all currently cached values."""
+        """Get all currently cached values with change timestamps."""
         result = {}
         for var_id, value in self.values.items():
             info = self.registry.get(var_id)
             if info:
-                result[info["name"]] = value
+                entry = {"value": value}
+                changed = self.last_changed.get(var_id)
+                if changed:
+                    entry["last_changed_plc_ts"] = changed["plc_ts"]
+                    entry["last_changed_py_ts"] = changed["py_ts"]
+                result[info["name"]] = entry
         return result
 
     # ── Search ───────────────────────────────────────────────────

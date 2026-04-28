@@ -108,7 +108,7 @@ input:focus, select:focus { border-color: var(--accent); outline: none; }
   <button class="danger" onclick="doDisconnect()">Disconnect</button>
   <div class="spacer"></div>
   <span class="badge" id="sub-count">Subscribed: 0</span>
-  <span class="badge warn" id="notif-rate">0 notif/s</span>
+  <span class="badge warn" id="notif-rate">0 pkt/s</span>
 </div>
 
 <div id="main">
@@ -370,14 +370,14 @@ function renderDetailedStats(ds) {
   // Summary cards
   const grid = document.getElementById('stats-grid');
   const cards = [
-    {label:'Batches (Publish Cycles)', val: ds.packets_received||0},
-    {label:'Batch Rate (/s)', val: ds.packet_rate||0},
-    {label:'Notifications', val: ds.total_var_updates||0},
-    {label:'Notification Rate (/s)', val: ds.var_update_rate||0},
+    {label:'Packets', val: ds.packets_received||0},
+    {label:'Packet Rate (pkt/s)', val: ds.packet_rate||0},
+    {label:'Var Updates', val: ds.total_var_updates||0},
+    {label:'Var Update Rate (/s)', val: ds.var_update_rate||0},
     {label:'Var Changes', val: ds.total_var_changes||0},
     {label:'Var Change Rate (/s)', val: ds.var_change_rate||0},
     {label:'Dropped', val: ds.dropped_packets||0, cls: (ds.dropped_packets>0?'warn':'')},
-    {label:'Subscribed Vars', val: ds.subscribed_count||0},
+    {label:'Subscribed', val: ds.subscribed_count||0},
     {label:'Elapsed', val: (ds.elapsed_s||0)+'s'},
   ];
   grid.innerHTML = cards.map(c =>
@@ -385,7 +385,7 @@ function renderDetailedStats(ds) {
   ).join('');
 
   // Update header badge
-  document.getElementById('notif-rate').textContent = `${ds.var_update_rate||0} notif/s`;
+  document.getElementById('notif-rate').textContent = `${ds.packet_rate||0} pkt/s`;
 
   // Grades
   if (ds.grade) {
@@ -433,6 +433,15 @@ function renderPerVarTable(tableId, vars) {
     }).join('');
 }
 
+function renderBenchPerVarTable(tableId, vars) {
+  const t = document.getElementById(tableId);
+  t.innerHTML = `<tr><th>#</th><th>Variable</th><th>Type</th><th>Changes</th><th>Rate (/s)</th></tr>` +
+    vars.map((v, i) => {
+      const short = (v.name||'').replace('gProtoTest.','');
+      return `<tr><td>${i+1}</td><td style="font-size:11px">${short}</td><td><span class="type-tag">${v.plc_type||''}</span></td><td>${v.changes}</td><td>${(v.rate||0).toFixed(1)}</td></tr>`;
+    }).join('');
+}
+
 // ── Benchmark ──
 async function startBenchmark() {
   const dur = parseFloat(document.getElementById('bench-dur').value) || 10;
@@ -476,14 +485,16 @@ function renderBenchmarkResult(r) {
   const grid = document.getElementById('bench-stats-grid');
   const cards = [
     {label:'Duration', val: r.elapsed_s+'s'},
-    {label:'Batches (Publish Cycles)', val: r.packets},
-    {label:'Batch Rate (/s)', val: r.packet_rate},
-    {label:'Notifications', val: r.var_updates},
-    {label:'Notification Rate (/s)', val: r.var_update_rate},
+    {label:'Packets', val: r.packets},
+    {label:'Packet Rate (pkt/s)', val: r.packet_rate},
+    {label:'Var Updates', val: r.var_updates},
+    {label:'Var Update Rate (/s)', val: r.var_update_rate},
     {label:'Var Changes', val: r.var_changes},
     {label:'Var Change Rate (/s)', val: r.var_change_rate},
-    {label:'Dropped', val: r.dropped_packets},
+    {label:'Dropped', val: r.dropped_packets, cls: (r.dropped_packets>0?'warn':'')},
+    {label:'Drop %', val: (r.drop_pct||0)+'%', cls: (r.drop_pct>0?'warn':'')},
     {label:'Subscribed', val: r.subscribed_count},
+    {label:'Max Safe Vars (est)', val: r.max_vars_estimate||'—'},
   ];
   grid.innerHTML = cards.map(c =>
     `<div class="stat-card"><div class="val">${c.val}</div><div class="label">${c.label}</div></div>`
@@ -491,7 +502,7 @@ function renderBenchmarkResult(r) {
 
   renderTimingTable('bench-ibt-table', r.inter_packet_ms);
   if (r.per_variable && r.per_variable.length) {
-    renderPerVarTable('bench-pervar-table', r.per_variable);
+    renderBenchPerVarTable('bench-pervar-table', r.per_variable);
   }
 
   // Save to localStorage for comparison with PLC

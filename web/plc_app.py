@@ -1,6 +1,7 @@
 """FastAPI backend — PLC Variable Monitor (binary protocol over TCP/UDP)."""
 import asyncio
 import json
+import os
 import threading
 import time
 from pathlib import Path
@@ -46,8 +47,10 @@ async def broadcast(msg: dict):
 
 
 # ── models ───────────────────────────────────────────────────────
+DEFAULT_PLC_IP = os.environ.get("PLC_IP", "127.0.0.1")
+
 class ConnectRequest(BaseModel):
-    ip: str = "192.168.101.10"
+    ip: str = DEFAULT_PLC_IP
 
 class SubscribeRequest(BaseModel):
     var_names: list[str] = []

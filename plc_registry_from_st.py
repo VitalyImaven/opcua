@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 # ── Configuration ────────────────────────────────────────────────────────────
-ST_DIR = Path(r"C:\Work\Indigo\As45\SimulatorMainBranch\PLC-plc\Logical\Simulation\VarMonitor")
+ST_DIR = Path(r"C:\Work\Indigo\As45\SimulatorMainBranch\PLC-plc\Logical\GlobalOps\ProtoBufCom")
 OUTPUT  = Path(__file__).parent / "plc_var_registry.json"
 
 # B&R typeCode → human-readable name (matches plc_engine.py constants)
@@ -30,12 +30,20 @@ TYPE_NAMES = {
     9: "SINT",
 }
 
-# Regexes
+# Regexes — supports both old style (vmRegistry[x].pAddress) and new (VM_RegVar)
 RE_ADDR = re.compile(
     r'vmRegistry\[(\d+)\]\.pAddress\s*:=\s*ADR\(([^)]+)\)\s*;'
 )
 RE_TYPE = re.compile(
     r'vmRegistry\[(\d+)\]\.typeCode\s*:=\s*(\d+)\s*;'
+)
+# VM_RegVar(ADR(vmRegistry), <idx>, ADR(<name>), <typeCode>, <dataSize>);
+RE_REGVAR = re.compile(
+    r'VM_RegVar\(ADR\(vmRegistry\),\s*(\d+),\s*ADR\(([^)]+)\),\s*(\d+),\s*\d+\)'
+)
+# VM_RegVarByName(ADR(vmRegistry), <idx>, '<name>', <typeCode>, <dataSize>);
+RE_REGVAR_BYNAME = re.compile(
+    r"VM_RegVarByName\(ADR\(vmRegistry\),\s*(\d+),\s*'([^']+)',\s*(\d+),\s*\d+\)"
 )
 
 def main():
@@ -50,13 +58,26 @@ def main():
     for st_file in st_files:
         text = st_file.read_text(encoding="utf-8", errors="replace")
 
-        # Build a map: index → var_name from pAddress lines
+        # New style: VM_RegVar() calls
+        for m in RE_REGVAR.finditer(text):
+            idx       = int(m.group(1))
+            name      = m.group(2).strip()
+            type_code = int(m.group(3))
+            entries[idx] = {"name": name, "typeCode": type_code}
+
+        # Option C style: VM_RegVarByName() calls with string names
+        for m in RE_REGVAR_BYNAME.finditer(text):
+            idx       = int(m.group(1))
+            name      = m.group(2).strip()
+            type_code = int(m.group(3))
+            entries[idx] = {"name": name, "typeCode": type_code}
+
+        # Old style: vmRegistry[x].pAddress / .typeCode
         for m in RE_ADDR.finditer(text):
             idx  = int(m.group(1))
             name = m.group(2).strip()
             entries.setdefault(idx, {})["name"] = name
 
-        # Fill in typeCode
         for m in RE_TYPE.finditer(text):
             idx       = int(m.group(1))
             type_code = int(m.group(2))

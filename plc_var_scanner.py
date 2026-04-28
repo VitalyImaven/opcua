@@ -12,6 +12,7 @@ Outputs:
 import re
 import os
 import json
+import argparse
 from pathlib import Path
 from collections import defaultdict
 
@@ -90,6 +91,67 @@ def is_primitive(type_name: str) -> bool:
 def is_enum(type_name: str, enums: set) -> bool:
     """Check if type is a known enum."""
     return type_name in enums
+
+
+def parse_config_packages(plc_root: Path, config_name: str) -> set[Path]:
+    """
+    Parse Physical/<config>/PLC1/Cpu.sw to extract which Logical packages are
+    included in this build configuration. Returns a set of absolute folder paths
+    under Logical/ that are included.
+    
+    Only includes the EXACT program folders assigned as tasks, plus their
+    immediate parent packages (for shared globals). Does NOT include sibling
+    programs that aren't assigned.
+    """
+    cpu_sw = plc_root / "Physical" / config_name / "PLC1" / "Cpu.sw"
+    if not cpu_sw.exists():
+        # Try without PLC1 subfolder
+        candidates = list((plc_root / "Physical" / config_name).rglob("Cpu.sw"))
+        if not candidates:
+            print(f"WARNING: Config '{config_name}' not found, scanning all globals")
+            return set()
+        cpu_sw = candidates[0]
+    
+    logical_dir = plc_root / "Logical"
+    content = cpu_sw.read_text(encoding='utf-8', errors='replace')
+    
+    # Extract Source="Package.SubPkg.Program.prg" from Task entries
+    sources = re.findall(r'Source="([^"]+)"', content)
+    
+    included_paths = set()
+    for source in sources:
+        # Source format: "TopPkg.SubPkg.SubSub.Program.prg"
+        # Maps to Logical/TopPkg/SubPkg/SubSub/Program/
+        parts = source.replace('.prg', '').split('.')
+        # Add the full program path
+        folder = logical_dir / Path(*parts)
+        if folder.exists():
+            included_paths.add(folder)
+        # Add each ancestor package path (for package-level globals)
+        # but NOT siblings
+        for i in range(1, len(parts)):
+            ancestor = logical_dir / Path(*parts[:i])
+            if ancestor.exists():
+                included_paths.add(ancestor)
+    
+    # Always include top-level Logical/ itself (Global.var etc.)
+    included_paths.add(logical_dir)
+    
+    print(f"Config '{config_name}': {len(sources)} task sources → {len(included_paths)} included paths")
+    return included_paths
+
+
+def is_path_under_config(var_file: Path, included_paths: set[Path]) -> bool:
+    """
+    Check if a .var file is in an included folder.
+    The file's PARENT must be one of the included paths (exact match),
+    not just any ancestor. This prevents including globals from sibling
+    programs that aren't in the config.
+    """
+    if not included_paths:
+        return True  # No config filter — allow all
+    # The var file's directory must be directly in the included set
+    return var_file.parent in included_paths
 
 
 def _typ_file_depth(typ_file: Path, logical_dir: Path) -> int:
@@ -213,11 +275,12 @@ def is_private_var_file(var_file: Path) -> bool:
     return False
 
 
-def parse_var_files(logical_dir: Path) -> list[tuple[str, str, str]]:
+def parse_var_files(logical_dir: Path, included_paths: set[Path] = None) -> list[tuple[str, str, str]]:
     """
     Parse all .var files under Logical/ to find global struct-typed variables.
     Only picks up variables whose type ends with _typ or _type.
     Skips .var files marked Private="true" in their Package.pkg.
+    If included_paths is provided, only scans files under those paths.
     
     Returns: [ (var_name, type_name, source_file), ... ]
     """
@@ -246,6 +309,9 @@ def parse_var_files(logical_dir: Path) -> list[tuple[str, str, str]]:
             # Skip var files marked Private="true" in their Package.pkg
             if is_private_var_file(vf):
                 private_skipped += 1
+                continue
+            # Skip if not under an included config path
+            if included_paths and not is_path_under_config(vf, included_paths):
                 continue
             global_var_files.append(vf)
     
@@ -349,10 +415,20 @@ def flatten_struct(var_path: str, type_name: str, structs: dict, enums: set,
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Scan PLC global variables")
+    parser.add_argument("--config", default="HILA_MR",
+                        help="B&R configuration name (e.g. HILA_MR, Barak_MR). "
+                             "Only vars from packages in this config will be included.")
+    args = parser.parse_args()
+
     print("=" * 70)
     print("PLC Global Struct Variable Scanner")
     print("=" * 70)
-    print(f"\nScanning: {LOGICAL_DIR}\n")
+    print(f"\nScanning: {LOGICAL_DIR}")
+    print(f"Configuration: {args.config}\n")
+    
+    # Parse config to know which packages are included
+    included_paths = parse_config_packages(PLC_ROOT, args.config)
     
     # Step 1: Parse all type definitions
     print("─── Step 1: Parsing .typ files ───")
@@ -362,7 +438,7 @@ def main():
     
     # Step 2: Find all global struct variables
     print("─── Step 2: Finding global struct variables ───")
-    global_vars = parse_var_files(LOGICAL_DIR)
+    global_vars = parse_var_files(LOGICAL_DIR, included_paths)
     print(f"  Found {len(global_vars)} struct-typed global variables\n")
     
     # Step 3: Flatten all structs to leaf fields
@@ -434,15 +510,35 @@ def main():
         print(f"  {t:<20} {c:>6}")
     
     # ─── Save full registry ──────────────────────────────────────────
+    # Wire-supported types only (matches VarMonLib type codes)
+    WIRE_TYPES = {"BOOL", "INT", "UINT", "DINT", "UDINT", "REAL", "LREAL", "STRING", "USINT", "SINT"}
+    
+    wire_leaves = [(p, t) for p, t in all_leaves if t.upper() in WIRE_TYPES]
+    
+    # Deduplicate: same variable name declared in multiple .var files
+    seen = {}
+    unique_leaves = []
+    for path, typ in wire_leaves:
+        if path not in seen:
+            seen[path] = typ
+            unique_leaves.append((path, typ))
+    wire_leaves = unique_leaves
+    
+    # Assign sequential var_ids grouped by prefix (for contiguous subsystem blocks)
+    # Sort by name for stable ordering
+    wire_leaves.sort(key=lambda x: x[0])
+    
     registry = {}
-    for path, typ in all_leaves:
-        registry[path] = typ
+    for idx, (path, typ) in enumerate(wire_leaves):
+        registry[str(idx)] = {"name": path, "type": typ.upper()}
     
     output_file = Path(__file__).parent / "plc_var_registry.json"
     with open(output_file, 'w') as f:
-        json.dump(registry, f, indent=2, sort_keys=True)
+        json.dump(registry, f)
     
-    print(f"\nFull registry saved to: {output_file}")
+    print(f"\nWire-compatible registry saved to: {output_file}")
+    print(f"  Wire-compatible entries: {len(registry)} (of {total_leaves} total leaves)")
+    print(f"  Excluded: {total_leaves - len(registry)} (ENUMs, arrays, unsupported types)")
     print(f"Total entries: {len(registry)}")
     
     # Also save summary
