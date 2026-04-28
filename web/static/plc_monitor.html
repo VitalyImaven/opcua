@@ -7,137 +7,217 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
 :root {
-  --bg: #0d1117; --bg2: #161b22; --bg3: #1c2333;
-  --border: #30363d; --text: #e6edf3; --dim: #8b949e;
-  --accent: #58a6ff; --accent2: #3fb950; --red: #f85149;
-  --orange: #d29922; --purple: #bc8cff; --radius: 8px;
+  --bg: #0f1419; --bg2: #1a1f2e; --bg3: #232a3b; --bg4: #2d3548;
+  --border: #2e3a4d; --border-light: #3d4b63;
+  --text: #e8edf5; --dim: #7f8fa6; --muted: #5c6b82;
+  --accent: #6c9fff; --accent-glow: rgba(108,159,255,.15);
+  --green: #4ade80; --green-dim: rgba(74,222,128,.12);
+  --red: #f87171; --red-dim: rgba(248,113,113,.12);
+  --orange: #fbbf24; --orange-dim: rgba(251,191,36,.12);
+  --purple: #c084fc; --purple-dim: rgba(192,132,252,.12);
+  --cyan: #22d3ee; --cyan-dim: rgba(34,211,238,.12);
+  --radius: 10px; --radius-sm: 6px;
+  --shadow: 0 4px 24px rgba(0,0,0,.3);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,.2);
 }
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+body { font-family: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
   background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 button { background: var(--bg3); color: var(--text); border: 1px solid var(--border);
-  padding: 6px 14px; border-radius: var(--radius); cursor: pointer; font-size: 13px; transition: all .15s; }
-button:hover { background: var(--accent); color: #000; border-color: var(--accent); }
-button.danger:hover { background: var(--red); border-color: var(--red); }
-button.primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+  padding: 7px 16px; border-radius: var(--radius-sm); cursor: pointer; font-size: 12px;
+  font-weight: 500; transition: all .2s ease; letter-spacing: .3px; }
+button:hover { background: var(--bg4); border-color: var(--border-light); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+button.danger { border-color: rgba(248,113,113,.3); }
+button.danger:hover { background: var(--red-dim); border-color: var(--red); color: var(--red); }
+button.primary { background: linear-gradient(135deg, var(--accent), #5b8ae6); color: #fff; border: none; font-weight: 600; }
+button.primary:hover { box-shadow: 0 4px 16px rgba(108,159,255,.3); transform: translateY(-1px); }
+button.success { background: linear-gradient(135deg, var(--green), #36b571); color: #000; border: none; font-weight: 600; }
+button.success:hover { box-shadow: 0 4px 16px rgba(74,222,128,.3); }
 input, select { background: var(--bg); color: var(--text); border: 1px solid var(--border);
-  padding: 5px 10px; border-radius: var(--radius); font-size: 13px; }
-input:focus { border-color: var(--accent); outline: none; }
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: var(--bg2); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  padding: 6px 12px; border-radius: var(--radius-sm); font-size: 12px; transition: border .2s; }
+input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-glow); }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
 
-#header { display:flex; align-items:center; gap:12px; padding:8px 16px;
-  background:var(--bg2); border-bottom:1px solid var(--border); height:48px; flex-shrink:0; }
-#header h1 { font-size:16px; font-weight:600; white-space:nowrap; }
-.status { width:10px; height:10px; border-radius:50%; background:var(--red); flex-shrink:0; }
-.status.on { background:var(--accent2); }
+/* --- HEADER --- */
+#header { display:flex; align-items:center; gap:14px; padding:10px 20px;
+  background: linear-gradient(180deg, var(--bg2) 0%, var(--bg3) 100%);
+  border-bottom:1px solid var(--border); height:56px; flex-shrink:0; }
+#header .logo { display:flex; align-items:center; gap:10px; }
+#header .logo-icon { width:28px; height:28px; background: linear-gradient(135deg, var(--accent), var(--purple));
+  border-radius: 7px; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#fff; }
+#header h1 { font-size:15px; font-weight:600; white-space:nowrap; letter-spacing:-.3px; }
+#header .subtitle { color:var(--muted); font-size:11px; font-weight:400; }
+.conn-group { display:flex; align-items:center; gap:8px; background:var(--bg); border:1px solid var(--border);
+  border-radius: var(--radius); padding:4px 4px 4px 12px; }
+.conn-group input { border:none; background:transparent; padding:4px 0; width:120px; }
+.conn-group input:focus { box-shadow:none; }
+.status-dot { width:8px; height:8px; border-radius:50%; background:var(--red); flex-shrink:0;
+  box-shadow: 0 0 6px var(--red); transition: all .3s; }
+.status-dot.on { background:var(--green); box-shadow: 0 0 8px var(--green); }
 .spacer { flex:1; }
-.badge { background:var(--accent); color:#000; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; }
-.badge.warn { background:var(--orange); }
+.badge { padding:3px 10px; border-radius:12px; font-size:10px; font-weight:600; letter-spacing:.4px; text-transform:uppercase; }
+.badge-info { background:var(--accent-glow); color:var(--accent); border:1px solid rgba(108,159,255,.2); }
+.badge-success { background:var(--green-dim); color:var(--green); border:1px solid rgba(74,222,128,.2); }
+.badge-warn { background:var(--orange-dim); color:var(--orange); border:1px solid rgba(251,191,36,.2); }
+.badge-live { background:var(--purple-dim); color:var(--purple); border:1px solid rgba(192,132,252,.2); animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.7} }
 
 #main { display:flex; flex:1; overflow:hidden; }
 
-/* sidebar */
-#sidebar { width:360px; min-width:280px; background:var(--bg2);
+/* --- SIDEBAR --- */
+#sidebar { width:380px; min-width:300px; background:var(--bg2);
   border-right:1px solid var(--border); display:flex; flex-direction:column; flex-shrink:0; }
-#sidebar .search { padding:8px; border-bottom:1px solid var(--border); display:flex; gap:6px; }
-#sidebar .search input { flex:1; }
-#tree-wrap { flex:1; overflow:auto; padding:4px 0; }
+#sidebar-header { padding:12px 14px; border-bottom:1px solid var(--border); }
+#sidebar-header h2 { font-size:12px; font-weight:600; color:var(--dim); text-transform:uppercase; letter-spacing:.8px; margin-bottom:8px; }
+#sidebar .search { display:flex; gap:6px; }
+#sidebar .search input { flex:1; background:var(--bg); }
+#tree-wrap { flex:1; overflow:auto; padding:6px 0; }
+#sidebar-footer { padding:10px 14px; border-top:1px solid var(--border);
+  background:var(--bg3); display:flex; gap:8px; flex-wrap:wrap; }
 
 .tree-node { user-select:none; }
-.tree-row { display:flex; align-items:center; padding:2px 8px; cursor:pointer;
-  gap:4px; font-size:13px; white-space:nowrap; }
-.tree-row:hover { background: rgba(88,166,255,.08); }
-.tree-row .arrow { width:16px; text-align:center; color:var(--dim); font-size:10px; flex-shrink:0; }
+.tree-row { display:flex; align-items:center; padding:4px 12px; cursor:pointer;
+  gap:6px; font-size:12px; white-space:nowrap; border-radius:4px; margin:1px 6px; transition:background .15s; }
+.tree-row:hover { background: var(--accent-glow); }
+.tree-row .arrow { width:16px; text-align:center; color:var(--muted); font-size:9px; flex-shrink:0; transition:transform .2s; }
 .tree-row .arrow.empty { visibility:hidden; }
-.tree-row .name { flex:1; overflow:hidden; text-overflow:ellipsis; }
-.tree-row .val { color:var(--dim); font-size:12px; margin-left:8px; max-width:100px; overflow:hidden; text-overflow:ellipsis; }
-.tree-row .type-tag { color:var(--purple); font-size:10px; margin-left:4px; }
-.tree-row input[type=checkbox] { accent-color:var(--accent); flex-shrink:0; }
-.tree-children { margin-left:16px; }
+.tree-row .name { flex:1; overflow:hidden; text-overflow:ellipsis; font-weight:450; }
+.tree-row .val { color:var(--dim); font-size:11px; margin-left:8px; max-width:100px; overflow:hidden; text-overflow:ellipsis;
+  font-family:'JetBrains Mono','Cascadia Code',monospace; }
+.tree-row .type-tag { font-size:9px; padding:1px 5px; border-radius:3px; font-weight:600; letter-spacing:.3px; }
+.tree-row input[type=checkbox] { accent-color:var(--accent); flex-shrink:0; width:14px; height:14px; }
+.tree-children { margin-left:16px; border-left:1px solid var(--border); }
 .tree-children.collapsed { display:none; }
 .tree-row.folder .name { color: var(--orange); }
-.tree-row.variable .name { color: var(--accent); }
+.tree-row.folder .type-tag { background:var(--orange-dim); color:var(--orange); }
+.tree-row.variable .name { color: var(--text); }
+.tree-row.variable .type-tag { background:var(--purple-dim); color:var(--purple); }
 
-/* right panel */
-#content { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+/* --- RIGHT PANEL --- */
+#content { flex:1; display:flex; flex-direction:column; overflow:hidden; background:var(--bg); }
 #tabs { display:flex; background:var(--bg2); border-bottom:1px solid var(--border);
-  padding:0 8px; gap:2px; flex-shrink:0; }
-.tab { padding:8px 16px; font-size:13px; cursor:pointer; border-bottom:2px solid transparent;
-  color:var(--dim); white-space:nowrap; transition: all .15s; }
+  padding:0 16px; gap:4px; flex-shrink:0; align-items:flex-end; }
+.tab { padding:10px 18px; font-size:12px; cursor:pointer; border-bottom:2px solid transparent;
+  color:var(--muted); white-space:nowrap; transition: all .2s; font-weight:500; letter-spacing:.3px; }
 .tab:hover { color:var(--text); }
 .tab.active { color:var(--accent); border-bottom-color:var(--accent); }
-.tab-panel { display:none; padding:16px; height:100%; overflow:auto; }
+.tab-panel { display:none; padding:20px; height:100%; overflow:auto; }
 .tab-panel.active { display:flex; flex-direction:column; }
 
-/* monitor panel */
-.monitor-table { width:100%; border-collapse:collapse; font-size:13px; }
-.monitor-table th { background:var(--bg3); color:var(--accent); text-align:left;
-  padding:8px 10px; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:1; }
-.monitor-table td { padding:5px 10px; border-bottom:1px solid var(--border); font-family:'Cascadia Code','Fira Code',monospace; font-size:12px; }
-.monitor-table tr:hover td { background:rgba(88,166,255,.04); }
-.val-changed { animation: flash .3s ease; }
-@keyframes flash { 0%{background:rgba(63,185,80,.3)} 100%{background:transparent} }
+/* --- MONITOR --- */
+.monitor-toolbar { display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap;
+  padding:10px 14px; background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); }
+.monitor-table { width:100%; border-collapse:separate; border-spacing:0; font-size:12px; }
+.monitor-table thead { position:sticky; top:0; z-index:1; }
+.monitor-table th { background:var(--bg3); color:var(--dim); text-align:left;
+  padding:10px 12px; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.6px;
+  border-bottom:1px solid var(--border); }
+.monitor-table th:first-child { border-radius:var(--radius-sm) 0 0 0; }
+.monitor-table th:last-child { border-radius:0 var(--radius-sm) 0 0; }
+.monitor-table td { padding:8px 12px; border-bottom:1px solid rgba(46,58,77,.5);
+  font-family:'JetBrains Mono','Cascadia Code','Fira Code',monospace; font-size:11px; }
+.monitor-table tr:hover td { background:var(--accent-glow); }
+.monitor-table .var-name { color:var(--accent); font-weight:500; font-family:inherit; font-size:12px; }
+.val-cell { color:var(--green); font-weight:600; }
+.val-changed { animation: flash .4s ease; }
+@keyframes flash { 0%{background:rgba(74,222,128,.2); box-shadow:inset 0 0 12px rgba(74,222,128,.1)} 100%{background:transparent;box-shadow:none} }
 
-/* trace */
-.trace-controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+/* --- TRACES --- */
+.trace-controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px;
+  padding:10px 14px; background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); }
 .trace-chart-wrap { background:var(--bg2); border:1px solid var(--border);
-  border-radius:var(--radius); padding:12px; height:280px; position:relative; margin-bottom:12px; }
+  border-radius:var(--radius); padding:16px; height:300px; position:relative; margin-bottom:14px;
+  box-shadow: var(--shadow-sm); }
 .trace-chart-wrap canvas { width:100%!important; height:100%!important; }
 
-/* stats */
-.stats-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px; margin-bottom:16px; }
-.stat-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:16px; text-align:center; }
-.stat-card .val { font-size:24px; font-weight:700; color:var(--accent2); }
-.stat-card .label { font-size:11px; color:var(--dim); margin-top:4px; }
+/* --- STATS --- */
+.stats-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px; margin-bottom:18px; }
+.stat-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
+  padding:16px 12px; text-align:center; transition:all .2s; position:relative; overflow:hidden; }
+.stat-card:hover { border-color:var(--border-light); transform:translateY(-2px); box-shadow:var(--shadow-sm); }
+.stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px;
+  background:linear-gradient(90deg, var(--accent), var(--purple)); opacity:.5; }
+.stat-card .val { font-size:22px; font-weight:700; color:var(--green);
+  font-family:'JetBrains Mono','Cascadia Code',monospace; }
+.stat-card .label { font-size:10px; color:var(--muted); margin-top:6px; text-transform:uppercase; letter-spacing:.5px; font-weight:500; }
 .stat-card .val.warn { color: var(--orange); }
 .stat-card .val.bad { color: var(--red); }
 
-.grade-badge { display:inline-block; padding:3px 10px; border-radius:12px; font-size:12px; font-weight:700; margin:2px 4px; }
-.grade-EXCELLENT, .grade-PERFECT { background:#238636; color:#fff; }
-.grade-GOOD { background:#1f6feb; color:#fff; }
-.grade-FAIR { background:#9e6a03; color:#fff; }
-.grade-POOR { background:#da3633; color:#fff; }
+.grade-badge { display:inline-block; padding:4px 12px; border-radius:14px; font-size:11px;
+  font-weight:700; margin:3px 4px; letter-spacing:.4px; }
+.grade-EXCELLENT, .grade-PERFECT { background:linear-gradient(135deg,#059669,#10b981); color:#fff; }
+.grade-GOOD { background:linear-gradient(135deg,#2563eb,#3b82f6); color:#fff; }
+.grade-FAIR { background:linear-gradient(135deg,#d97706,#f59e0b); color:#fff; }
+.grade-POOR { background:linear-gradient(135deg,#dc2626,#ef4444); color:#fff; }
 
-.stats-section { margin-bottom:20px; }
-.stats-section h3 { font-size:14px; color:var(--accent); margin-bottom:8px; border-bottom:1px solid var(--border); padding-bottom:4px; }
-.timing-table { width:100%; border-collapse:collapse; font-size:12px; margin-bottom:12px; }
-.timing-table th { background:var(--bg3); color:var(--accent); text-align:left; padding:6px 8px; border-bottom:1px solid var(--border); }
-.timing-table td { padding:4px 8px; border-bottom:1px solid var(--border); font-family:'Cascadia Code','Fira Code',monospace; }
-.timing-table tr:hover td { background:rgba(88,166,255,.04); }
+.stats-section { margin-bottom:24px; }
+.stats-section h3 { font-size:12px; color:var(--dim); margin-bottom:10px; padding-bottom:6px;
+  border-bottom:1px solid var(--border); text-transform:uppercase; letter-spacing:.8px; font-weight:600; }
+.timing-table { width:100%; border-collapse:separate; border-spacing:0; font-size:11px; }
+.timing-table th { background:var(--bg3); color:var(--dim); text-align:left; padding:8px 10px;
+  font-size:10px; text-transform:uppercase; letter-spacing:.5px; font-weight:600; border-bottom:1px solid var(--border); }
+.timing-table td { padding:6px 10px; border-bottom:1px solid rgba(46,58,77,.4);
+  font-family:'JetBrains Mono','Cascadia Code',monospace; }
+.timing-table tr:hover td { background:var(--accent-glow); }
 
-.bench-controls { display:flex; gap:10px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
-.bench-progress { height:6px; background:var(--bg3); border-radius:3px; flex:1; min-width:200px; overflow:hidden; }
-.bench-progress-bar { height:100%; background:var(--accent); border-radius:3px; transition:width .3s; }
+.bench-controls { display:flex; gap:10px; align-items:center; margin-bottom:18px; flex-wrap:wrap;
+  padding:12px 14px; background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); }
+.bench-progress { height:4px; background:var(--bg); border-radius:2px; flex:1; min-width:200px; overflow:hidden; }
+.bench-progress-bar { height:100%; background:linear-gradient(90deg, var(--accent), var(--purple));
+  border-radius:2px; transition:width .3s; }
+
+/* --- DISCOVERY OVERLAY --- */
+.discovery-overlay { padding:32px; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; height:100%; text-align:center; }
+.discovery-overlay .spinner { width:32px; height:32px; border:3px solid var(--border);
+  border-top-color:var(--accent); border-radius:50%; animation:spin 1s linear infinite; margin-bottom:16px; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.discovery-overlay .title { font-size:14px; font-weight:600; margin-bottom:6px; }
+.discovery-overlay .desc { font-size:12px; color:var(--dim); }
+.discovery-overlay .progress-text { font-size:11px; color:var(--accent); margin-top:12px; font-family:'JetBrains Mono',monospace; }
+
+@keyframes slideIn { from{transform:translateX(20px);opacity:0} to{transform:translateX(0);opacity:1} }
 </style>
 </head>
 <body>
 
 <div id="header">
-  <h1>PLC Variable Monitor</h1>
-  <span style="color:var(--dim);font-size:12px;">Binary Protocol</span>
-  <div class="status" id="status-led"></div>
-  <input id="plc-ip" type="text" value="127.0.0.1" placeholder="PLC IP" style="width:160px">
-  <button class="primary" onclick="doConnect()">Connect</button>
-  <button class="danger" onclick="doDisconnect()">Disconnect</button>
+  <div class="logo">
+    <div class="logo-icon">V</div>
+    <div>
+      <h1>VarMonitor</h1>
+      <span class="subtitle">PLC Binary Protocol</span>
+    </div>
+  </div>
+  <div class="conn-group">
+    <div class="status-dot" id="status-led"></div>
+    <input id="plc-ip" type="text" value="127.0.0.1" placeholder="PLC IP">
+    <button class="primary" onclick="doConnect()">Connect</button>
+    <button class="danger" onclick="doDisconnect()">Disconnect</button>
+  </div>
   <div class="spacer"></div>
-  <span class="badge" id="reg-count">Registry: 0</span>
-  <span class="badge" id="avail-count" style="display:none">Available: 0</span>
-  <span class="badge" id="sub-count">Subscribed: 0</span>
-  <span class="badge warn" id="pkt-rate">0 pkt/s</span>
+  <span class="badge badge-info" id="reg-count">REGISTRY: 0</span>
+  <span class="badge badge-success" id="avail-count" style="display:none">AVAILABLE: 0</span>
+  <span class="badge badge-info" id="sub-count">SUBSCRIBED: 0</span>
+  <span class="badge badge-live" id="pkt-rate">0 UPD/S</span>
 </div>
 
 <div id="main">
   <div id="sidebar">
-    <div class="search">
-      <input id="search-input" type="text" placeholder="Search variables..." oninput="doSearch()">
+    <div id="sidebar-header">
+      <h2>Variable Browser</h2>
+      <div class="search">
+        <input id="search-input" type="text" placeholder="Search variables..." oninput="doSearch()">
+      </div>
     </div>
     <div id="tree-wrap"></div>
-    <div style="padding:8px; border-top:1px solid var(--border); display:flex; gap:6px; flex-wrap:wrap;">
-      <button onclick="subscribeSelected()" class="primary" style="flex:1">Subscribe Selected</button>
+    <div id="sidebar-footer">
+      <button onclick="subscribeSelected()" class="success" style="flex:1">Subscribe Selected</button>
       <button onclick="clearSelection()" style="flex:1">Clear</button>
-      <button onclick="discoverVariables()" title="Re-discover available variables">Discover</button>
+      <button onclick="discoverVariables()" title="Re-discover available variables" style="font-size:11px">Rescan</button>
     </div>
   </div>
 
@@ -145,21 +225,22 @@ input:focus { border-color: var(--accent); outline: none; }
     <div id="tabs">
       <div class="tab active" onclick="switchTab('monitor')">Monitor</div>
       <div class="tab" onclick="switchTab('traces')">Traces</div>
-      <div class="tab" onclick="switchTab('stats')">Stats</div>
+      <div class="tab" onclick="switchTab('stats')">Statistics</div>
     </div>
 
     <!-- MONITOR TAB -->
     <div class="tab-panel active" id="panel-monitor">
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
-        <label style="font-size:13px;color:var(--dim)">Interval (ms):</label>
-        <input id="interval-ms" type="number" value="10" min="1" max="10000" style="width:80px">
-        <button onclick="setInterval_()">Set</button>
+      <div class="monitor-toolbar">
+        <label style="font-size:11px;color:var(--dim);font-weight:500;text-transform:uppercase;letter-spacing:.5px">Interval</label>
+        <input id="interval-ms" type="number" value="10" min="1" max="10000" style="width:70px">
+        <span style="font-size:11px;color:var(--muted)">ms</span>
+        <button onclick="setInterval_()">Apply</button>
         <div class="spacer"></div>
-        <span style="font-size:12px;color:var(--dim)" id="update-rate">—</span>
+        <span style="font-size:11px;color:var(--dim);font-family:'JetBrains Mono',monospace" id="update-rate">--</span>
       </div>
-      <div style="flex:1;overflow:auto;">
+      <div style="flex:1;overflow:auto;border-radius:var(--radius);border:1px solid var(--border);">
         <table class="monitor-table">
-          <thead><tr><th style="width:40px">#</th><th>Variable</th><th>Type</th><th style="width:200px">Value</th><th style="width:60px">Age</th></tr></thead>
+          <thead><tr><th style="width:36px">#</th><th>Variable</th><th>Type</th><th style="width:180px">Value</th><th style="width:60px">Age</th></tr></thead>
           <tbody id="monitor-body"></tbody>
         </table>
       </div>
@@ -169,10 +250,10 @@ input:focus { border-color: var(--accent); outline: none; }
     <div class="tab-panel" id="panel-traces">
       <div class="trace-controls">
         <button class="primary" onclick="startTrace()">Start Trace</button>
-        <button class="danger" onclick="stopTrace()">Stop Trace</button>
-        <button onclick="clearTraces()">Clear</button>
+        <button class="danger" onclick="stopTrace()">Stop</button>
+        <button onclick="clearTraces()">Clear Charts</button>
         <div class="spacer"></div>
-        <span style="color:var(--dim);font-size:12px" id="trace-status">Stopped</span>
+        <span class="badge badge-live" id="trace-status" style="animation:none;opacity:.6">STOPPED</span>
       </div>
       <div id="trace-charts"></div>
     </div>
@@ -180,19 +261,20 @@ input:focus { border-color: var(--accent); outline: none; }
     <!-- STATS TAB -->
     <div class="tab-panel" id="panel-stats">
       <div class="bench-controls">
-        <label style="font-size:13px;color:var(--dim)">Benchmark duration (s):</label>
-        <input id="bench-dur" type="number" value="10" min="1" max="60" style="width:70px">
-        <button class="primary" onclick="startBenchmark()">Run Benchmark</button>
-        <button onclick="resetLiveStats()">Reset Live Stats</button>
+        <label style="font-size:11px;color:var(--dim);font-weight:500;text-transform:uppercase;letter-spacing:.5px">Benchmark</label>
+        <input id="bench-dur" type="number" value="10" min="1" max="60" style="width:60px">
+        <span style="font-size:11px;color:var(--muted)">sec</span>
+        <button class="primary" onclick="startBenchmark()">Run</button>
+        <button onclick="resetLiveStats()">Reset Stats</button>
         <div class="bench-progress" id="bench-progress-wrap" style="display:none">
           <div class="bench-progress-bar" id="bench-bar" style="width:0%"></div>
         </div>
-        <span style="font-size:12px;color:var(--dim)" id="bench-status-text"></span>
+        <span style="font-size:11px;color:var(--dim);font-family:'JetBrains Mono',monospace" id="bench-status-text"></span>
       </div>
 
       <!-- Overall Grade -->
       <div class="stats-section" id="grade-section" style="display:none">
-        <h3>Overall Grade</h3>
+        <h3>Performance Grade</h3>
         <div id="grade-badges"></div>
       </div>
 
@@ -207,11 +289,11 @@ input:focus { border-color: var(--accent); outline: none; }
         <h3>Timing Analysis</h3>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
           <div>
-            <h4 style="font-size:12px;color:var(--dim);margin-bottom:6px;">Inter-Packet (Python-side, ms)</h4>
+            <h4 style="font-size:10px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Inter-Packet (Python-side)</h4>
             <table class="timing-table" id="ipt-table"></table>
           </div>
           <div>
-            <h4 style="font-size:12px;color:var(--dim);margin-bottom:6px;">PLC Send Interval (ms)</h4>
+            <h4 style="font-size:10px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">PLC Send Interval</h4>
             <table class="timing-table" id="plc-table"></table>
           </div>
         </div>
@@ -226,17 +308,20 @@ input:focus { border-color: var(--accent); outline: none; }
       <!-- Benchmark Result -->
       <div class="stats-section" id="bench-result-section" style="display:none">
         <h3>Benchmark Result</h3>
-        <div id="bench-grade-badges" style="margin-bottom:12px;"></div>
+        <div id="bench-grade-badges" style="margin-bottom:14px;"></div>
         <div class="stats-grid" id="bench-stats-grid"></div>
-        <div style="margin-top:12px;">
-          <h4 style="font-size:12px;color:var(--dim);margin-bottom:6px;">Benchmark Timing</h4>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div>
+            <h4 style="font-size:10px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Benchmark Inter-Packet</h4>
             <table class="timing-table" id="bench-ipt-table"></table>
+          </div>
+          <div>
+            <h4 style="font-size:10px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Benchmark PLC Interval</h4>
             <table class="timing-table" id="bench-plc-table"></table>
           </div>
         </div>
-        <div style="margin-top:12px;">
-          <h4 style="font-size:12px;color:var(--dim);margin-bottom:6px;">Per-Variable (Benchmark)</h4>
+        <div style="margin-top:14px;">
+          <h4 style="font-size:10px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Per-Variable (Benchmark)</h4>
           <table class="timing-table" id="bench-pervar-table"></table>
         </div>
       </div>
@@ -245,19 +330,19 @@ input:focus { border-color: var(--accent); outline: none; }
 </div>
 
 <script>
-// ═══ STATE ═══
+// === STATE ===
 let ws = null;
 let connected = false;
-let selectedVars = new Map();   // name → {id, plc_type}
-let monitorVars = new Map();    // name → {id, plc_type, value, lastUpdate}
+let selectedVars = new Map();
+let monitorVars = new Map();
 let traceCharts = [];
 let traceRunning = false;
 const MAX_TRACE_PTS = 500;
-const COLORS = ['#58a6ff','#3fb950','#f85149','#d29922','#bc8cff','#f0883e','#a5d6ff','#7ee787'];
+const COLORS = ['#6c9fff','#4ade80','#f87171','#fbbf24','#c084fc','#fb923c','#67e8f9','#a78bfa'];
 let lastPktCount = 0;
 let updateCount = 0;
 
-// ═══ INIT ═══
+// === INIT ===
 document.addEventListener('DOMContentLoaded', () => { connectWS(); startStatsRefresh(); });
 
 function connectWS() {
@@ -282,7 +367,7 @@ function handleWS(msg) {
   }
 }
 
-// ═══ CONNECTION ═══
+// === CONNECTION ===
 async function doConnect() {
   const ip = document.getElementById('plc-ip').value;
   const res = await api('/api/plc/connect', {ip});
@@ -290,28 +375,37 @@ async function doConnect() {
     connected = true;
     document.getElementById('status-led').classList.add('on');
     refreshStatus();
-    // Start variable discovery
     await discoverVariables();
   } else {
-    alert('Connect failed: ' + (res.error||'unknown'));
+    showNotification('Connect failed: ' + (res.error||'unknown'), 'error');
   }
 }
 
 async function discoverVariables() {
   const treeWrap = document.getElementById('tree-wrap');
-  treeWrap.innerHTML = '<div style="padding:16px;color:var(--dim);font-size:13px;">Discovering available variables...<br><small>Probing PLC in batches (~30s for full scan)</small></div>';
+  treeWrap.innerHTML = `
+    <div class="discovery-overlay">
+      <div class="spinner"></div>
+      <div class="title">Discovering Variables</div>
+      <div class="desc">Scanning PLC for available process variables...</div>
+      <div class="progress-text" id="discover-progress">Initializing...</div>
+    </div>`;
   document.getElementById('avail-count').style.display = '';
-  document.getElementById('avail-count').textContent = 'Discovering...';
+  document.getElementById('avail-count').textContent = 'SCANNING...';
 
   const res = await api('/api/plc/discover', {batch_size: 500, batch_wait_s: 0.15});
   if (res.ok) {
-    document.getElementById('avail-count').textContent = `Available: ${res.available_count}`;
+    document.getElementById('avail-count').textContent = `AVAILABLE: ${res.available_count}`;
     loadTree();
-    // Auto-select default preset vars (if any are available)
     await autoSelectDefaults();
+    showNotification(`Found ${res.available_count} variables on PLC`, 'success');
   } else {
-    treeWrap.innerHTML = `<div style="padding:16px;color:var(--red);font-size:13px;">Discovery failed: ${res.error||'unknown'}</div>`;
-    document.getElementById('avail-count').textContent = 'Discovery failed';
+    treeWrap.innerHTML = `
+      <div class="discovery-overlay">
+        <div class="title" style="color:var(--red)">Discovery Failed</div>
+        <div class="desc">${res.error||'Unknown error'}</div>
+      </div>`;
+    document.getElementById('avail-count').textContent = 'FAILED';
   }
 }
 
@@ -321,7 +415,7 @@ async function doDisconnect() {
   document.getElementById('status-led').classList.remove('on');
 }
 
-// ═══ TREE BROWSING ═══
+// === TREE BROWSING ===
 async function loadTree(nodeId=null, container=null) {
   const url = nodeId ? `/api/plc/browse?node_id=${encodeURIComponent(nodeId)}` : '/api/plc/browse';
   const items = await apiGet(url);
@@ -335,7 +429,7 @@ async function loadTree(nodeId=null, container=null) {
 
     const arrow = document.createElement('span');
     arrow.className = 'arrow' + (item.is_variable ? ' empty' : '');
-    arrow.textContent = item.has_children ? '▶' : '';
+    arrow.textContent = item.has_children ? '\u25B6' : '';
     row.appendChild(arrow);
 
     if (item.is_variable) {
@@ -357,7 +451,7 @@ async function loadTree(nodeId=null, container=null) {
       tag.textContent = item.plc_type;
       row.appendChild(tag);
     }
-    if (item.value && item.value !== '—') {
+    if (item.value && item.value !== '\u2014') {
       const val = document.createElement('span');
       val.className = 'val';
       val.textContent = item.value;
@@ -374,10 +468,10 @@ async function loadTree(nodeId=null, container=null) {
       row.onclick = () => {
         const collapsed = children.classList.contains('collapsed');
         children.classList.toggle('collapsed');
-        arrow.textContent = collapsed ? '▼' : '▶';
+        arrow.textContent = collapsed ? '\u25BC' : '\u25B6';
         if (collapsed && children.dataset.loaded === 'false') {
           children.dataset.loaded = 'true';
-          children.innerHTML = '<div style="padding:4px 8px;color:var(--dim);font-size:12px;">Loading...</div>';
+          children.innerHTML = '<div style="padding:8px 12px;color:var(--muted);font-size:11px">Loading...</div>';
           loadTree(item.id, children);
         }
       };
@@ -395,7 +489,6 @@ async function doSearch() {
   items.forEach(item => {
     const row = document.createElement('div');
     row.className = 'tree-row variable';
-    row.style.padding = '3px 8px';
 
     const cb = document.createElement('input');
     cb.type = 'checkbox';
@@ -406,7 +499,7 @@ async function doSearch() {
     const nameEl = document.createElement('span');
     nameEl.className = 'name';
     nameEl.textContent = item.name;
-    nameEl.style.fontSize = '12px';
+    nameEl.style.fontSize = '11px';
     row.appendChild(nameEl);
 
     const tag = document.createElement('span');
@@ -422,33 +515,32 @@ function toggleVar(item, checked) {
   const name = item.full_name || item.name;
   if (checked) selectedVars.set(name, {id: item.id, plc_type: item.plc_type});
   else selectedVars.delete(name);
-  document.getElementById('sub-count').textContent = `Selected: ${selectedVars.size}`;
+  document.getElementById('sub-count').textContent = `SELECTED: ${selectedVars.size}`;
 }
 
 function clearSelection() {
   selectedVars.clear();
   document.querySelectorAll('#tree-wrap input[type=checkbox]').forEach(cb => cb.checked = false);
-  document.getElementById('sub-count').textContent = 'Selected: 0';
+  document.getElementById('sub-count').textContent = 'SELECTED: 0';
 }
 
-// ═══ SUBSCRIBE ═══
+// === SUBSCRIBE ===
 async function subscribeSelected() {
-  if (selectedVars.size === 0) { alert('No variables selected'); return; }
+  if (selectedVars.size === 0) { showNotification('No variables selected', 'warn'); return; }
   const names = [...selectedVars.keys()];
   const res = await api('/api/plc/subscribe', {var_names: names});
   if (res.ok) {
     monitorVars.clear();
     names.forEach(name => {
       const info = selectedVars.get(name);
-      monitorVars.set(name, {id: info.id, plc_type: info.plc_type, value: '—', lastUpdate: 0});
+      monitorVars.set(name, {id: info.id, plc_type: info.plc_type, value: '\u2014', lastUpdate: 0});
     });
     renderMonitorTable();
-    // also set interval
     const ms = parseInt(document.getElementById('interval-ms').value) || 10;
     await api('/api/plc/interval', {interval_ms: ms});
-    // start trace to get live updates
     await api('/api/plc/trace/start', {var_names: names, interval_ms: ms});
-    document.getElementById('sub-count').textContent = `Subscribed: ${res.subscribed}`;
+    document.getElementById('sub-count').textContent = `SUBSCRIBED: ${res.subscribed}`;
+    showNotification(`Subscribed to ${res.subscribed} variables`, 'success');
     if (res.not_found?.length) {
       console.warn('Not found:', res.not_found);
     }
@@ -460,7 +552,7 @@ async function setInterval_() {
   await api('/api/plc/interval', {interval_ms: ms});
 }
 
-// ═══ MONITOR TABLE ═══
+// === MONITOR TABLE ===
 function renderMonitorTable() {
   const tbody = document.getElementById('monitor-body');
   tbody.innerHTML = '';
@@ -468,7 +560,7 @@ function renderMonitorTable() {
   for (const [name, info] of monitorVars) {
     const tr = document.createElement('tr');
     tr.id = `mon-${name.replace(/[^a-zA-Z0-9]/g,'_')}`;
-    tr.innerHTML = `<td>${idx++}</td><td style="font-size:12px">${name}</td><td><span class="type-tag">${info.plc_type||''}</span></td><td class="val-cell">—</td><td class="age-cell">—</td>`;
+    tr.innerHTML = `<td style="color:var(--muted)">${idx++}</td><td class="var-name">${name}</td><td><span class="type-tag" style="background:var(--purple-dim);color:var(--purple)">${info.plc_type||''}</span></td><td class="val-cell">\u2014</td><td class="age-cell" style="color:var(--muted)">\u2014</td>`;
     tbody.appendChild(tr);
   }
 }
@@ -488,14 +580,16 @@ function updateMonitorCell(name, value) {
   }
 }
 
-// ═══ TRACES ═══
+// === TRACES ===
 async function startTrace() {
-  if (monitorVars.size === 0) { alert('Subscribe to variables first'); return; }
+  if (monitorVars.size === 0) { showNotification('Subscribe to variables first', 'warn'); return; }
   traceRunning = true;
-  document.getElementById('trace-status').textContent = 'Running';
+  const ts = document.getElementById('trace-status');
+  ts.textContent = 'LIVE';
+  ts.style.animation = 'pulse 2s infinite';
+  ts.style.opacity = '1';
 
   if (traceCharts.length === 0) {
-    // Create one chart with all numeric vars
     const numericVars = [...monitorVars.entries()]
       .filter(([,v]) => !v.plc_type?.includes('STRING') && v.plc_type !== 'BOOL')
       .map(([name]) => name).slice(0, 8);
@@ -511,7 +605,10 @@ async function startTrace() {
 async function stopTrace() {
   traceRunning = false;
   await api('/api/plc/trace/stop');
-  document.getElementById('trace-status').textContent = 'Stopped';
+  const ts = document.getElementById('trace-status');
+  ts.textContent = 'STOPPED';
+  ts.style.animation = 'none';
+  ts.style.opacity = '.6';
 }
 
 function clearTraces() {
@@ -533,7 +630,8 @@ function addChart(varNames) {
     borderColor: COLORS[i % COLORS.length],
     borderWidth: 1.5,
     pointRadius: 0,
-    tension: 0.1,
+    tension: 0.2,
+    fill: false,
   }));
 
   const chart = new Chart(canvas, {
@@ -542,11 +640,18 @@ function addChart(varNames) {
     options: {
       responsive: true, maintainAspectRatio: false,
       animation: false,
+      interaction: { intersect: false, mode: 'index' },
       scales: {
-        x: { display: true, ticks: { maxTicksLimit: 8, color: '#8b949e', font:{size:10} }, grid:{color:'#30363d'} },
-        y: { ticks: { color:'#8b949e', font:{size:10} }, grid:{color:'#30363d'} },
+        x: { display: true, ticks: { maxTicksLimit: 8, color: '#5c6b82', font:{size:9} },
+             grid:{color:'rgba(46,58,77,.5)', lineWidth:.5} },
+        y: { ticks: { color:'#5c6b82', font:{size:9} },
+             grid:{color:'rgba(46,58,77,.5)', lineWidth:.5} },
       },
-      plugins: { legend: { labels: { color:'#e6edf3', font:{size:11} } } },
+      plugins: {
+        legend: { labels: { color:'#e8edf5', font:{size:10}, boxWidth:12, padding:16 } },
+        tooltip: { backgroundColor:'#1a1f2e', borderColor:'#2e3a4d', borderWidth:1,
+                   titleFont:{size:11}, bodyFont:{size:11, family:"'JetBrains Mono',monospace"} }
+      },
     },
   });
 
@@ -572,44 +677,41 @@ function updateTraceCharts(ts, values) {
   });
 }
 
-// ═══ STATS ═══
+// === STATS ===
 let benchPollTimer = null;
 
 async function refreshStatus() {
   if (!connected) return;
   const s = await apiGet('/api/plc/status');
-  document.getElementById('reg-count').textContent = `Registry: ${s.registry_size||0}`;
+  document.getElementById('reg-count').textContent = `REGISTRY: ${s.registry_size||0}`;
   if (s.discovery_done) {
     document.getElementById('avail-count').style.display = '';
-    document.getElementById('avail-count').textContent = `Available: ${s.available_count||0}`;
+    document.getElementById('avail-count').textContent = `AVAILABLE: ${s.available_count||0}`;
   }
 
-  // Also fetch detailed stats
   const ds = await apiGet('/api/plc/detailed_stats');
   renderDetailedStats(ds);
 }
 
 function renderDetailedStats(ds) {
-  // Summary cards
   const grid = document.getElementById('stats-grid');
   const cards = [
     {label:'Packets Received', val: ds.packets_received||0, cls:''},
     {label:'Packet Rate (pkt/s)', val: ds.packet_rate||0, cls:''},
     {label:'Var Updates', val: ds.total_var_updates||0, cls:''},
-    {label:'Var Update Rate (/s)', val: ds.var_update_rate||0, cls:''},
+    {label:'Update Rate (/s)', val: ds.var_update_rate||0, cls:''},
     {label:'Var Changes', val: ds.total_var_changes||0, cls:''},
-    {label:'Var Change Rate (/s)', val: ds.var_change_rate||0, cls:''},
-    {label:'Dropped Packets', val: ds.dropped_packets||0, cls: (ds.dropped_packets>0?'warn':'')},
+    {label:'Change Rate (/s)', val: ds.var_change_rate||0, cls:''},
+    {label:'Dropped', val: ds.dropped_packets||0, cls: (ds.dropped_packets>0?'warn':'')},
     {label:'Drop %', val: (ds.drop_pct||0)+'%', cls: (ds.drop_pct>1?'bad':'')},
-    {label:'Bytes Received', val: formatBytes(ds.bytes_received||0), cls:''},
-    {label:'Subscribed Vars', val: ds.subscribed_count||0, cls:''},
+    {label:'Data Received', val: formatBytes(ds.bytes_received||0), cls:''},
+    {label:'Subscribed', val: ds.subscribed_count||0, cls:''},
     {label:'Elapsed', val: (ds.elapsed_s||0)+'s', cls:''},
   ];
   grid.innerHTML = cards.map(c =>
     `<div class="stat-card"><div class="val ${c.cls}">${c.val}</div><div class="label">${c.label}</div></div>`
   ).join('');
 
-  // Grades
   if (ds.grade) {
     document.getElementById('grade-section').style.display = '';
     const gb = document.getElementById('grade-badges');
@@ -618,14 +720,12 @@ function renderDetailedStats(ds) {
     ).join('');
   }
 
-  // Timing tables
   if (ds.inter_packet_ms && ds.inter_packet_ms.count) {
     document.getElementById('timing-section').style.display = '';
     renderTimingTable('ipt-table', ds.inter_packet_ms);
     renderTimingTable('plc-table', ds.plc_interval_ms || {});
   }
 
-  // Per-variable
   if (ds.per_variable && ds.per_variable.length) {
     document.getElementById('pervar-section').style.display = '';
     renderPerVarTable('pervar-table', ds.per_variable);
@@ -634,7 +734,7 @@ function renderDetailedStats(ds) {
 
 function renderTimingTable(tableId, stats) {
   const t = document.getElementById(tableId);
-  if (!stats || !stats.count) { t.innerHTML = '<tr><td style="color:var(--dim)">No data</td></tr>'; return; }
+  if (!stats || !stats.count) { t.innerHTML = '<tr><td style="color:var(--muted)">No data</td></tr>'; return; }
   t.innerHTML = `
     <tr><th>Metric</th><th>Value</th></tr>
     <tr><td>Count</td><td>${stats.count}</td></tr>
@@ -652,22 +752,21 @@ function renderPerVarTable(tableId, vars) {
   const t = document.getElementById(tableId);
   t.innerHTML = `<tr><th>#</th><th>Variable</th><th>Type</th><th>Changes</th><th>Rate (/s)</th></tr>` +
     vars.map((v, i) =>
-      `<tr><td>${i+1}</td><td style="font-size:11px">${v.name}</td><td><span class="type-tag">${v.plc_type}</span></td><td>${v.changes}</td><td>${v.rate.toFixed(1)}</td></tr>`
+      `<tr><td style="color:var(--muted)">${i+1}</td><td style="font-size:11px;color:var(--accent)">${v.name}</td><td><span class="type-tag" style="background:var(--purple-dim);color:var(--purple)">${v.plc_type}</span></td><td>${v.changes}</td><td>${v.rate.toFixed(1)}</td></tr>`
     ).join('');
 }
 
-// ── Benchmark ──
+// -- Benchmark --
 async function startBenchmark() {
   const dur = parseFloat(document.getElementById('bench-dur').value) || 10;
   const res = await api('/api/plc/benchmark/start', {duration_s: dur});
-  if (!res.ok) { alert(res.error || 'Benchmark failed'); return; }
+  if (!res.ok) { showNotification(res.error || 'Benchmark failed', 'error'); return; }
 
   document.getElementById('bench-status-text').textContent = 'Running...';
   document.getElementById('bench-progress-wrap').style.display = '';
   document.getElementById('bench-bar').style.width = '0%';
   document.getElementById('bench-result-section').style.display = 'none';
 
-  // Poll for completion
   if (benchPollTimer) clearInterval(benchPollTimer);
   benchPollTimer = setInterval(async () => {
     const st = await apiGet('/api/plc/benchmark/status');
@@ -675,13 +774,14 @@ async function startBenchmark() {
       const pct = Math.min(100, (st.elapsed_s / dur) * 100);
       document.getElementById('bench-bar').style.width = pct.toFixed(0) + '%';
       document.getElementById('bench-status-text').textContent =
-        `Running... ${st.elapsed_s.toFixed(1)}s / ${dur}s  (${st.packets_so_far} pkts)`;
+        `${st.elapsed_s.toFixed(1)}s / ${dur}s  (${st.packets_so_far} pkts)`;
     } else if (st.status === 'done') {
       clearInterval(benchPollTimer);
       benchPollTimer = null;
       document.getElementById('bench-progress-wrap').style.display = 'none';
-      document.getElementById('bench-status-text').textContent = 'Done!';
+      document.getElementById('bench-status-text').textContent = '';
       renderBenchmarkResult(st.result);
+      showNotification('Benchmark complete', 'success');
     }
   }, 500);
 }
@@ -689,7 +789,6 @@ async function startBenchmark() {
 function renderBenchmarkResult(r) {
   document.getElementById('bench-result-section').style.display = '';
 
-  // Grade badges
   if (r.grade) {
     const gb = document.getElementById('bench-grade-badges');
     gb.innerHTML = Object.entries(r.grade).map(([k,v]) =>
@@ -697,30 +796,26 @@ function renderBenchmarkResult(r) {
     ).join('');
   }
 
-  // Summary cards
   const grid = document.getElementById('bench-stats-grid');
   const cards = [
     {label:'Duration', val: r.elapsed_s+'s'},
     {label:'Packets', val: r.packets},
-    {label:'Packet Rate (pkt/s)', val: r.packet_rate},
+    {label:'Packet Rate', val: r.packet_rate+'/s'},
     {label:'Var Updates', val: r.var_updates},
-    {label:'Var Update Rate (/s)', val: r.var_update_rate},
+    {label:'Update Rate', val: r.var_update_rate+'/s'},
     {label:'Var Changes', val: r.var_changes},
-    {label:'Var Change Rate (/s)', val: r.var_change_rate},
+    {label:'Change Rate', val: r.var_change_rate+'/s'},
     {label:'Dropped', val: r.dropped_packets},
     {label:'Drop %', val: r.drop_pct+'%'},
     {label:'Subscribed', val: r.subscribed_count},
-    {label:'Max Safe Vars (est)', val: r.max_vars_estimate},
+    {label:'Max Safe Vars', val: r.max_vars_estimate},
   ];
   grid.innerHTML = cards.map(c =>
     `<div class="stat-card"><div class="val">${c.val}</div><div class="label">${c.label}</div></div>`
   ).join('');
 
-  // Timing
   renderTimingTable('bench-ipt-table', r.inter_packet_ms);
   renderTimingTable('bench-plc-table', r.plc_interval_ms);
-
-  // Per-variable
   if (r.per_variable && r.per_variable.length) {
     renderPerVarTable('bench-pervar-table', r.per_variable);
   }
@@ -734,15 +829,14 @@ async function resetLiveStats() {
 function startStatsRefresh() {
   setInterval(() => {
     if (connected) refreshStatus();
-    // packet rate
     const rate = updateCount;
     updateCount = 0;
-    document.getElementById('pkt-rate').textContent = `${rate} upd/s`;
+    document.getElementById('pkt-rate').textContent = `${rate} UPD/S`;
     document.getElementById('update-rate').textContent = `${rate} updates/s`;
   }, 1000);
 }
 
-// ═══ UI HELPERS ═══
+// === UI HELPERS ===
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.textContent.toLowerCase().includes(name)));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id===`panel-${name}`));
@@ -763,13 +857,25 @@ async function apiGet(url) {
   return res.json();
 }
 
-// ═══ AUTO-SELECT DEFAULT VARS ═══
+// === NOTIFICATIONS ===
+function showNotification(msg, type='info') {
+  const colors = {success:'var(--green)', error:'var(--red)', warn:'var(--orange)', info:'var(--accent)'};
+  const bgs = {success:'var(--green-dim)', error:'var(--red-dim)', warn:'var(--orange-dim)', info:'var(--accent-glow)'};
+  const el = document.createElement('div');
+  el.style.cssText = `position:fixed;top:70px;right:20px;padding:10px 18px;border-radius:8px;font-size:12px;font-weight:500;
+    color:${colors[type]};background:${bgs[type]};border:1px solid ${colors[type]};z-index:9999;
+    box-shadow:0 4px 16px rgba(0,0,0,.3);animation:slideIn .3s ease;pointer-events:none;`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .3s'; setTimeout(() => el.remove(), 300); }, 3000);
+}
+
+// === AUTO-SELECT DEFAULT VARS ===
 async function autoSelectDefaults() {
   const vars = await apiGet('/api/plc/defaults?prefix=gProtoTest');
   selectedVars.clear();
   vars.forEach(v => selectedVars.set(v.name, {id: v.id, plc_type: v.plc_type}));
-  document.getElementById('sub-count').textContent = `Selected: ${selectedVars.size}`;
-  // Update checkboxes in tree if already loaded
+  document.getElementById('sub-count').textContent = `SELECTED: ${selectedVars.size}`;
   document.querySelectorAll('#tree-wrap input[type=checkbox]').forEach(cb => {
     const row = cb.closest('.tree-row');
     const name = row?.querySelector('.name')?.textContent;
