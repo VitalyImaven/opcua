@@ -51,6 +51,7 @@ DEFAULT_PLC_IP = os.environ.get("PLC_IP", "127.0.0.1")
 
 class ConnectRequest(BaseModel):
     ip: str = DEFAULT_PLC_IP
+    transport: str = "tcp"  # "tcp" (default, firewall-friendly) or "udp"
 
 class SubscribeRequest(BaseModel):
     var_names: list[str] = []
@@ -69,7 +70,7 @@ class TraceConfig(BaseModel):
 async def connect(req: ConnectRequest):
     try:
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, engine.connect, req.ip)
+        return await loop.run_in_executor(None, engine.connect, req.ip, req.transport)
     except Exception as e:
         return {"ok": False, "error": str(e)}
 
@@ -104,6 +105,7 @@ async def status():
     return {
         "connected": engine.connected,
         "ip": engine.plc_ip,
+        "transport": "TCP" if engine.transport_mode == 0 else "UDP",
         "registry_size": len(engine.registry),
         "available_count": len(engine.available_vars),
         "discovery_done": engine._discovery_done,

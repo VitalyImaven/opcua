@@ -54,6 +54,7 @@ input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px 
   border-radius: var(--radius); padding:4px 4px 4px 12px; }
 .conn-group input { border:none; background:transparent; padding:4px 0; width:120px; }
 .conn-group input:focus { box-shadow:none; }
+.conn-group select { border:none; background:var(--bg); color:inherit; padding:4px 2px; font-size:12px; cursor:pointer; border-left:1px solid var(--border); }
 .status-dot { width:8px; height:8px; border-radius:50%; background:var(--red); flex-shrink:0;
   box-shadow: 0 0 6px var(--red); transition: all .3s; }
 .status-dot.on { background:var(--green); box-shadow: 0 0 8px var(--green); }
@@ -195,6 +196,10 @@ input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px 
   <div class="conn-group">
     <div class="status-dot" id="status-led"></div>
     <input id="plc-ip" type="text" value="127.0.0.1" placeholder="PLC IP">
+    <select id="transport-mode" title="Transport for variable updates">
+      <option value="tcp" selected>TCP</option>
+      <option value="udp">UDP</option>
+    </select>
     <button class="primary" onclick="doConnect()">Connect</button>
     <button class="danger" onclick="doDisconnect()">Disconnect</button>
   </div>
@@ -370,10 +375,12 @@ function handleWS(msg) {
 // === CONNECTION ===
 async function doConnect() {
   const ip = document.getElementById('plc-ip').value;
-  const res = await api('/api/plc/connect', {ip});
+  const transport = document.getElementById('transport-mode').value;
+  const res = await api('/api/plc/connect', {ip, transport});
   if (res.ok) {
     connected = true;
     document.getElementById('status-led').classList.add('on');
+    showNotification(`Connected via ${res.transport || transport.toUpperCase()}`, 'success');
     refreshStatus();
     await discoverVariables();
   } else {
@@ -684,6 +691,7 @@ async function refreshStatus() {
   if (!connected) return;
   const s = await apiGet('/api/plc/status');
   document.getElementById('reg-count').textContent = `REGISTRY: ${s.registry_size||0}`;
+  document.getElementById('sub-count').textContent = `SUBSCRIBED: ${s.subscribed||0} [${s.transport||'?'}]`;
   if (s.discovery_done) {
     document.getElementById('avail-count').style.display = '';
     document.getElementById('avail-count').textContent = `AVAILABLE: ${s.available_count||0}`;

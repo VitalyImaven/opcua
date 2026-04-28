@@ -55,20 +55,40 @@ message VarRegistryResponse {
   repeated VarRegistryEntry entries = 1;
 }
 
+// ── Transport mode ──────────────────────────────────────────────
+enum TransportMode {
+  TRANSPORT_TCP = 0;            // Variable updates sent over TCP (default)
+  TRANSPORT_UDP = 1;            // Variable updates sent over UDP
+}
+
+// ── Python → PLC: configuration command ─────────────────────────
+message ConfigCommand {
+  TransportMode transport = 1;  // Requested transport for variable updates
+}
+
+// ── PLC → Python: configuration response ────────────────────────
+message ConfigResponse {
+  TransportMode transport = 1;  // Confirmed transport mode
+}
+
 // ── Wrapper for TCP framing ─────────────────────────────────────
 message PlcMessage {
   enum MsgType {
-    VAR_UPDATE       = 0;
-    SUBSCRIBE_CMD    = 1;
-    REGISTRY_REQUEST = 2;
+    VAR_UPDATE        = 0;
+    SUBSCRIBE_CMD     = 1;
+    REGISTRY_REQUEST  = 2;
     REGISTRY_RESPONSE = 3;
-    HEARTBEAT        = 4;
+    HEARTBEAT         = 4;
+    CONFIG_CMD        = 5;
+    CONFIG_RESPONSE   = 6;
   }
   MsgType type = 1;
   oneof payload {
-    VarUpdatePacket     update   = 2;
-    SubscribeCommand    subscribe = 3;
-    RegistryRequest     reg_req  = 4;
-    VarRegistryResponse reg_resp = 5;
+    VarUpdatePacket     update     = 2;
+    SubscribeCommand    subscribe  = 3;
+    RegistryRequest     reg_req    = 4;
+    VarRegistryResponse reg_resp   = 5;
+    ConfigCommand       config_cmd  = 6;
+    ConfigResponse      config_resp = 7;
   }
 }

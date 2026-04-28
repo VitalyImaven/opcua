@@ -31,11 +31,17 @@ MSGTYPE_SUBSCRIBE_CMD    = 1
 MSGTYPE_REGISTRY_REQUEST = 2
 MSGTYPE_REGISTRY_RESP    = 3
 MSGTYPE_HEARTBEAT        = 4
+MSGTYPE_CONFIG_CMD       = 5
+MSGTYPE_CONFIG_RESPONSE  = 6
 
 # SubscribeCommand.Action enum values
 ACTION_SET    = 0
 ACTION_ADD    = 1
 ACTION_REMOVE = 2
+
+# TransportMode enum values
+TRANSPORT_TCP = 0
+TRANSPORT_UDP = 1
 
 TCP_PORT = 55000
 UDP_PORT = 55001
@@ -53,6 +59,7 @@ class PlcMonitorEngine:
         self._udp_thread: threading.Thread | None = None
         self._running = False
         self._lock = threading.Lock()
+        self.transport_mode = TRANSPORT_TCP
 
         # Variable registry: var_id → {name, plc_type}
         self.registry: dict[int, dict] = {}
@@ -271,14 +278,22 @@ class PlcMonitorEngine:
         return list(children.values())
 
     # ── Connection ───────────────────────────────────────────────
-    def connect(self, plc_ip: str) -> dict:
-        """Connect to PLC via TCP (commands + data stream)."""
+    def connect(self, plc_ip: str, transport: str = "tcp") -> dict:
+        """Connect to PLC via TCP (commands + data stream).
+        
+        Args:
+            plc_ip: PLC IP address.
+            transport: Preferred transport for variable updates — "tcp" (default) or "udp".
+                       TCP is recommended when UDP is blocked by firewall.
+                       UDP listener is always opened as fallback for PLC compatibility.
+        """
         with self._lock:
             # Always tear down any existing connection first
             if self.connected or self._tcp_sock is not None:
                 self.disconnect()
 
             self.plc_ip = plc_ip
+            self.transport_mode = TRANSPORT_TCP if transport.lower() == "tcp" else TRANSPORT_UDP
 
             # TCP connection for subscription commands and data stream
             try:
@@ -293,13 +308,17 @@ class PlcMonitorEngine:
             self.connected = True
             self._running = True
 
-            # Start TCP receiver thread (for ACKs/responses from PLC)
+            # Start TCP receiver thread (handles commands, ACKs, and variable data in TCP mode)
             self._rx_thread = threading.Thread(
                 target=self._tcp_receive_loop, daemon=True
             )
             self._rx_thread.start()
 
-            # Open UDP socket for receiving variable data from PLC
+            # Tell the PLC which transport to use for variable updates
+            self._send_config_command(self.transport_mode)
+
+            # Always open UDP listener as fallback — the PLC may not support
+            # CONFIG_CMD yet and still sends variable data over UDP.
             try:
                 self._udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 self._udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -307,7 +326,6 @@ class PlcMonitorEngine:
                 self._udp_sock.settimeout(1.0)
             except Exception as e:
                 print(f"[UDP] Failed to bind port {UDP_PORT}: {e}")
-                # Non-fatal — TCP data path may still work
                 self._udp_sock = None
 
             if self._udp_sock:
@@ -316,7 +334,10 @@ class PlcMonitorEngine:
                 )
                 self._udp_thread.start()
 
-            return {"ok": True, "url": f"{plc_ip}:{TCP_PORT}"}
+            mode_name = "TCP" if self.transport_mode == TRANSPORT_TCP else "UDP"
+            print(f"[CONNECT] Preferred transport: {mode_name} "
+                  f"(UDP fallback {'active' if self._udp_sock else 'failed'})")
+            return {"ok": True, "url": f"{plc_ip}:{TCP_PORT}", "transport": mode_name}
 
     def discover_available(self, batch_size: int = 500,
                            batch_wait_s: float = 0.15) -> dict:
@@ -491,11 +512,31 @@ class PlcMonitorEngine:
                 pass
             self._tcp_sock = None
 
+    def _send_config_command(self, transport_mode: int):
+        """Send a CONFIG_CMD to the PLC to set the transport mode for variable updates."""
+        if not self._tcp_sock:
+            return
+
+        msg = pb.PlcMessage()
+        msg.type = MSGTYPE_CONFIG_CMD
+        msg.config_cmd.transport = transport_mode
+
+        pb_bytes = msg.SerializeToString()
+        frame = struct.pack("<I", len(pb_bytes)) + pb_bytes
+
+        mode_name = "TCP" if transport_mode == TRANSPORT_TCP else "UDP"
+        try:
+            self._tcp_sock.sendall(frame)
+            print(f"[TCP TX] CONFIG_CMD: transport={mode_name} frame={len(frame)}B")
+        except Exception as e:
+            print(f"[TCP TX ERROR] Config command failed: {e}")
+
     # ── TCP Receiver ─────────────────────────────────────────────
     def _tcp_receive_loop(self):
         """Background thread: receive length-delimited protobuf messages from PLC over TCP."""
         print(f"[TCP RX] Receiver started")
         buf = b""
+        _rx_count = 0
         while self._running:
             try:
                 chunk = self._tcp_sock.recv(4096)
@@ -504,11 +545,15 @@ class PlcMonitorEngine:
                     self.connected = False
                     break
                 buf += chunk
+                _rx_count += 1
+                if _rx_count <= 5:
+                    print(f"[TCP RX] chunk #{_rx_count}: {len(chunk)}B, buf={len(buf)}B")
                 # Process all complete length-delimited messages
                 buf = self._process_tcp_buffer(buf)
             except socket.timeout:
                 continue
-            except OSError:
+            except OSError as e:
+                print(f"[TCP RX] OSError: {e}")
                 break
         print("[TCP RX] Thread stopped")
 
@@ -555,10 +600,15 @@ class PlcMonitorEngine:
                 msg.ParseFromString(pb_bytes)
                 
                 if msg.type == MSGTYPE_VAR_UPDATE and msg.HasField('update'):
-                    # Variable update packet received over TCP
-                    self._decode_protobuf_update(msg.update)
+                    if len(msg.update.values) > 0:
+                        self._decode_protobuf_update(msg.update, len(pb_bytes))
+                    else:
+                        # PLC sends flat VarValues (no submessage wrappers)
+                        n = self._decode_flat_update(pb_bytes, len(pb_bytes))
+                        if n and not getattr(self, '_flat_logged', False):
+                            print(f"[TCP RX] Flat decoder: {n} vars from {len(pb_bytes)}B")
+                            self._flat_logged = True
                 elif msg.type == MSGTYPE_SUBSCRIBE_CMD:
-                    # ACK from subscribe command
                     if msg.HasField('subscribe'):
                         print(f"[TCP RX] Subscribe ACK: action={msg.subscribe.action} "
                               f"count={msg.subscribe.interval_ms}")
@@ -566,12 +616,246 @@ class PlcMonitorEngine:
                     if msg.HasField('update'):
                         print(f"[TCP RX] Heartbeat: subs={msg.update.sequence} "
                               f"registry={msg.update.timestamp}")
+                elif msg.type == MSGTYPE_CONFIG_RESPONSE:
+                    if msg.HasField('config_resp'):
+                        self.transport_mode = msg.config_resp.transport
+                        mode_name = "TCP" if self.transport_mode == TRANSPORT_TCP else "UDP"
+                        print(f"[TCP RX] Config response: transport={mode_name}")
                 else:
                     print(f"[TCP RX] Message type={msg.type}")
             except Exception as e:
-                print(f"[TCP RX] Protobuf decode error: {e}")
+                # PlcMessage parse failed — try fallback flat decoder
+                try:
+                    n = self._decode_flat_update(pb_bytes, len(pb_bytes))
+                    if n and not getattr(self, '_flat_logged', False):
+                        print(f"[TCP RX] Flat decoder (fallback): {n} vars from {len(pb_bytes)}B")
+                        self._flat_logged = True
+                except Exception as e2:
+                    hex_preview = pb_bytes[:32].hex(' ')
+                    print(f"[TCP RX] Decode error: {e} | len={msg_len} first32={hex_preview}")
 
         return buf
+
+    @staticmethod
+    def _read_varint(data: bytes, pos: int) -> tuple:
+        """Read a varint from data at pos. Returns (value, new_pos)."""
+        value = 0
+        shift = 0
+        while pos < len(data):
+            b = data[pos]
+            value |= (b & 0x7F) << shift
+            shift += 7
+            pos += 1
+            if (b & 0x80) == 0:
+                break
+        return value, pos
+
+    def _decode_flat_update(self, pb_bytes: bytes, pkt_bytes: int) -> int:
+        """Decode VarUpdatePacket where VarValue fields are flat (no submsg wrappers).
+        Returns number of variables decoded, or 0 on failure."""
+        # Extract inner VarUpdatePacket from PlcMessage envelope
+        pos = 0
+        data = pb_bytes
+        inner = None
+        
+        while pos < len(data):
+            tag_byte = data[pos]
+            field_num = tag_byte >> 3
+            wire_type = tag_byte & 0x07
+            pos += 1
+            
+            if wire_type == 0:  # varint
+                while pos < len(data) and (data[pos] & 0x80):
+                    pos += 1
+                pos += 1
+            elif wire_type == 2:  # length-delimited
+                length, pos = self._read_varint(data, pos)
+                if field_num == 2:  # PlcMessage.update
+                    inner = data[pos:pos + length]
+                    break
+                pos += length
+            elif wire_type == 5:
+                pos += 4
+            elif wire_type == 1:
+                pos += 8
+            else:
+                break
+        
+        if inner is None:
+            return 0
+        
+        # Parse the flat VarUpdatePacket
+        pos = 0
+        data = inner
+        seq = 0
+        timestamp = 0
+        var_updates = {}
+        current_var_id = None
+        first_seq = True
+        first_ts = True
+        
+        while pos < len(data):
+            tag_byte = data[pos]
+            field_num = tag_byte >> 3
+            wire_type = tag_byte & 0x07
+            pos += 1
+            
+            if wire_type == 0:  # varint
+                value, pos = self._read_varint(data, pos)
+                
+                if field_num == 1:
+                    if first_seq:
+                        seq = value
+                        first_seq = False
+                    else:
+                        current_var_id = value
+                elif field_num == 2:
+                    if first_ts:
+                        timestamp = value
+                        first_ts = False
+                    elif current_var_id is not None:
+                        var_updates[current_var_id] = bool(value)
+                        current_var_id = None
+                elif field_num == 3:
+                    if current_var_id is not None:
+                        if value > 0x7FFFFFFF:
+                            value = value - 0x100000000
+                        var_updates[current_var_id] = value
+                        current_var_id = None
+                elif field_num == 4:
+                    if current_var_id is not None:
+                        var_updates[current_var_id] = value
+                        current_var_id = None
+                elif field_num == 5:
+                    if current_var_id is not None:
+                        if value > 0x7FFFFFFF:
+                            value = value - 0x100000000
+                        var_updates[current_var_id] = value
+                        current_var_id = None
+                        
+            elif wire_type == 5:  # 32-bit fixed
+                if current_var_id is not None and pos + 4 <= len(data):
+                    val = struct.unpack_from("<f", data, pos)[0]
+                    var_updates[current_var_id] = round(val, 6)
+                    current_var_id = None
+                pos += 4
+                    
+            elif wire_type == 1:  # 64-bit fixed
+                if current_var_id is not None and pos + 8 <= len(data):
+                    val = struct.unpack_from("<d", data, pos)[0]
+                    var_updates[current_var_id] = round(val, 9)
+                    current_var_id = None
+                pos += 8
+                    
+            elif wire_type == 2:  # length-delimited
+                length, pos = self._read_varint(data, pos)
+                if field_num == 3:
+                    # Properly wrapped VarValue submessage — parse it
+                    sub = data[pos:pos + length]
+                    vid, val = self._parse_varvalue_sub(sub)
+                    if vid is not None:
+                        var_updates[vid] = val
+                elif current_var_id is not None and field_num == 8:
+                    var_updates[current_var_id] = data[pos:pos+length].decode('utf-8', errors='replace')
+                    current_var_id = None
+                pos += length
+            else:
+                break
+        
+        if not var_updates:
+            return 0
+        
+        # Update stats and values (same as _decode_protobuf_update)
+        py_now = time.perf_counter()
+        with self._stats_lock:
+            if self.stats["packets_received"] == 0:
+                self._stats_start_time = py_now
+            self.stats["last_seq"] = seq
+            self.stats["last_timestamp"] = timestamp
+            self.stats["packets_received"] += 1
+            self.stats["bytes_received"] += pkt_bytes
+            if self._last_packet_py_time > 0:
+                dt_ms = (py_now - self._last_packet_py_time) * 1000
+                self._inter_packet_times.append(dt_ms)
+            self._last_packet_py_time = py_now
+            self._plc_timestamps.append(timestamp)
+        
+        updates = {}
+        for vid, val in var_updates.items():
+            self.values[vid] = val
+            info = self.registry.get(vid)
+            if info:
+                updates[info["name"]] = val
+        
+        wall_time = time.time()
+        with self._stats_lock:
+            self._total_var_updates += len(var_updates)
+            for vid, val in var_updates.items():
+                prev = self._per_var_prev.get(vid)
+                if prev is not None and prev != val:
+                    self._per_var_changes[vid] = self._per_var_changes.get(vid, 0) + 1
+                    self.last_changed[vid] = {"plc_ts": timestamp, "py_ts": wall_time}
+                elif prev is None:
+                    self.last_changed[vid] = {"plc_ts": timestamp, "py_ts": wall_time}
+                self._per_var_prev[vid] = val
+        
+        if self._bench_running:
+            self._record_benchmark(seq, timestamp, var_updates, py_now, pkt_bytes)
+        
+        if updates and self._on_update:
+            self._on_update(timestamp, updates)
+        
+        return len(var_updates)
+
+    @staticmethod
+    def _parse_varvalue_sub(data: bytes) -> tuple:
+        """Parse a properly wrapped VarValue submessage. Returns (var_id, value)."""
+        pos = 0
+        var_id = None
+        value = None
+        while pos < len(data):
+            tag = data[pos]
+            field = tag >> 3
+            wt = tag & 0x07
+            pos += 1
+            if wt == 0:
+                val = 0
+                shift = 0
+                while pos < len(data):
+                    b = data[pos]
+                    val |= (b & 0x7F) << shift
+                    shift += 7
+                    pos += 1
+                    if (b & 0x80) == 0:
+                        break
+                if field == 1: var_id = val
+                elif field == 2: value = bool(val)
+                elif field == 3: value = val if val <= 0x7FFFFFFF else val - 0x100000000
+                elif field == 4: value = val
+                elif field == 5: value = val if val <= 0x7FFFFFFF else val - 0x100000000
+            elif wt == 5 and pos + 4 <= len(data):
+                val = struct.unpack_from("<f", data, pos)[0]
+                pos += 4
+                if field == 6: value = round(val, 6)
+            elif wt == 1 and pos + 8 <= len(data):
+                val = struct.unpack_from("<d", data, pos)[0]
+                pos += 8
+                if field == 7: value = round(val, 9)
+            elif wt == 2:
+                length = 0
+                shift = 0
+                while pos < len(data):
+                    b = data[pos]
+                    length |= (b & 0x7F) << shift
+                    shift += 7
+                    pos += 1
+                    if (b & 0x80) == 0:
+                        break
+                if field == 8: value = data[pos:pos+length].decode('utf-8', errors='replace')
+                pos += length
+            else:
+                break
+        return var_id, value
 
     def _decode_packet(self, data: bytes):
         """Decode a protobuf VarUpdatePacket from UDP."""
