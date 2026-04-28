@@ -338,8 +338,8 @@ class PlcMonitorEngine:
             self._discovering = False
             return {"ok": False, "error": "Registry is empty"}
 
-        # Set a fast interval for discovery
-        self._send_tcp_command(0x04, [], count_override=10)
+        # Set a fast interval for discovery (include empty SET to not disturb subscription)
+        self._send_tcp_command(0x01, [], count_override=10)
         time.sleep(0.05)
 
         # Process in batches — subscribe each batch with SET, wait, collect
@@ -440,7 +440,8 @@ class PlcMonitorEngine:
     def set_interval(self, interval_ms: int) -> dict:
         """Set PLC send interval."""
         interval_ms = max(1, min(10000, interval_ms))
-        self._send_tcp_command(0x04, [], count_override=interval_ms)
+        # Send current subscription along with interval to avoid clearing it
+        self._send_tcp_command(0x01, list(self.subscribed), count_override=interval_ms)
         return {"ok": True, "interval_ms": interval_ms}
 
     def _send_tcp_command(self, cmd: int, var_ids: list[int],
@@ -462,18 +463,13 @@ class PlcMonitorEngine:
         if cmd == 0xFF:
             # Heartbeat
             msg.type = MSGTYPE_HEARTBEAT
-        elif cmd == 0x04:
-            # Set interval
-            msg.type = MSGTYPE_SUBSCRIBE_CMD
-            msg.subscribe.action = ACTION_SET
-            msg.subscribe.interval_ms = count_override if count_override else 0
         else:
             # Subscribe command (SET=0x01, ADD=0x02, REMOVE=0x03)
             msg.type = MSGTYPE_SUBSCRIBE_CMD
             action_map = {0x01: ACTION_SET, 0x02: ACTION_ADD, 0x03: ACTION_REMOVE}
             msg.subscribe.action = action_map.get(cmd, ACTION_SET)
             msg.subscribe.var_ids.extend(var_ids)
-            if count_override is not None and cmd == 0x04:
+            if count_override is not None:
                 msg.subscribe.interval_ms = count_override
 
         # Serialize to protobuf bytes
@@ -686,7 +682,7 @@ class PlcMonitorEngine:
 
         # Benchmark recording
         if self._bench_running:
-            self._record_benchmark(seq, timestamp, raw_updates, py_now, len(data))
+            self._record_benchmark(seq, timestamp, raw_updates, py_now, pkt_bytes)
 
         # Notify callback
         if updates and self._on_update:
