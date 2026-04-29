@@ -360,7 +360,7 @@ class PlcMonitorEngine:
             return {"ok": False, "error": "Registry is empty"}
 
         # Set a fast interval for discovery (include empty SET to not disturb subscription)
-        self._send_tcp_command(0x01, [], count_override=10)
+        self._send_tcp_command(0x01, [], count_override=4)
         time.sleep(0.05)
 
         # Process in batches — subscribe each batch with SET, wait, collect
