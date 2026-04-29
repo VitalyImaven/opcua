@@ -74,11 +74,25 @@ DISPATCHER_FOOTER = "    vmRegCount := {total};\nEND_ACTION\n"
 
 def safe_name(prefix: str) -> str:
     """Make prefix safe as an ST action name suffix, preserving original case."""
-    # Replace non-alphanumeric with underscore, then title-case first char only
-    # to avoid case-collision between e.g. 'csDriveStatus' and 'CSDriveStatus'
     s = re.sub(r'[^A-Za-z0-9]', '_', prefix)
-    # Normalize: uppercase first letter only (avoids CS vs cs collision)
     return s[0].upper() + s[1:] if s else s
+
+
+def _merge_case_collisions(by_prefix: dict) -> dict:
+    """Merge prefixes that differ only by case (B&R / Windows are case-insensitive)."""
+    # Group by lowercase safe_name
+    groups = defaultdict(list)
+    for prefix in by_prefix:
+        key = safe_name(prefix).lower()
+        groups[key].append(prefix)
+    
+    merged = defaultdict(list)
+    for key, prefixes in groups.items():
+        # Use the first prefix as canonical name
+        canonical = prefixes[0]
+        for p in prefixes:
+            merged[canonical].extend(by_prefix[p])
+    return merged
 
 
 def generate(registry_path: str, outdir: str, max_vars: int,
@@ -112,6 +126,7 @@ def generate(registry_path: str, outdir: str, max_vars: int,
                 seq_idx += 1
 
     # Determine which subsystems to include
+    by_prefix = _merge_case_collisions(by_prefix)
     if include_list:
         ordered = [p for p in include_list if p in by_prefix]
     else:

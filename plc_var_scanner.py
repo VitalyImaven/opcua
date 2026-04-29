@@ -17,7 +17,9 @@ from pathlib import Path
 from collections import defaultdict
 
 # ─── Configuration ───────────────────────────────────────────────────────
-PLC_ROOT = Path(r"C:\Work\Indigo\As45\SimulatorMainBranch\PLC-plc")
+# Default PLC root (overridable via --plc-root argument)
+DEFAULT_PLC_ROOT = Path(r"C:\Work\Indigo\As45\SimulatorMainBranch\PLC-plc")
+PLC_ROOT = DEFAULT_PLC_ROOT
 LOGICAL_DIR = PLC_ROOT / "Logical"
 
 # B&R primitive types (not structs, not enums with _typ suffix)
@@ -145,13 +147,17 @@ def is_path_under_config(var_file: Path, included_paths: set[Path]) -> bool:
     """
     Check if a .var file is in an included folder.
     The file's PARENT must be one of the included paths (exact match),
-    not just any ancestor. This prevents including globals from sibling
-    programs that aren't in the config.
+    The file must be under (descendant of) any included path.
     """
     if not included_paths:
         return True  # No config filter — allow all
-    # The var file's directory must be directly in the included set
-    return var_file.parent in included_paths
+    for ip in included_paths:
+        try:
+            var_file.parent.relative_to(ip)
+            return True
+        except ValueError:
+            continue
+    return False
 
 
 def _typ_file_depth(typ_file: Path, logical_dir: Path) -> int:
@@ -291,35 +297,25 @@ def parse_var_files(logical_dir: Path, included_paths: set[Path] = None) -> list
     var_files = list(logical_dir.rglob("*.var"))
     print(f"Found {len(var_files)} .var files total")
     
-    # Filter to global-scope files
-    global_var_files = []
+    # Include all .var files in the config, skip private ones
+    selected_files = []
     private_skipped = 0
+    config_skipped = 0
     for vf in var_files:
-        name = vf.name.lower()
-        # Include: Global.var, GIOGlobal.var, *Global*.var, *_Globals.var, *Interface*.var
-        # Also include top-level package var files
-        rel = vf.relative_to(logical_dir)
-        parts = str(rel).lower()
-        
-        if ('global' in name or 
-            name in ('global.var', 'gioglobal.var', 'global_whs.var', 'version.var') or
-            'interface' in name or
-            # Top-level Logical/*.var
-            vf.parent == logical_dir):
-            # Skip var files marked Private="true" in their Package.pkg
-            if is_private_var_file(vf):
-                private_skipped += 1
-                continue
-            # Skip if not under an included config path
-            if included_paths and not is_path_under_config(vf, included_paths):
-                continue
-            global_var_files.append(vf)
+        if is_private_var_file(vf):
+            private_skipped += 1
+            continue
+        if included_paths and not is_path_under_config(vf, included_paths):
+            config_skipped += 1
+            continue
+        # Skip program-local .var files (folder contains IEC.prg)
+        if (vf.parent / 'IEC.prg').exists():
+            continue
+        selected_files.append(vf)
     
-    print(f"Skipped {private_skipped} private var files")
+    print(f"Selected {len(selected_files)} .var files (skipped {private_skipped} private, {config_skipped} outside config)")
     
-    print(f"Filtered to {len(global_var_files)} global-scope .var files (excluding {private_skipped} private)")
-    
-    for var_file in global_var_files:
+    for var_file in selected_files:
         try:
             content = var_file.read_text(encoding='utf-8', errors='replace')
         except Exception:
@@ -415,16 +411,27 @@ def flatten_struct(var_path: str, type_name: str, structs: dict, enums: set,
 
 
 def main():
+    global PLC_ROOT, LOGICAL_DIR
     parser = argparse.ArgumentParser(description="Scan PLC global variables")
+    parser.add_argument("--plc-root", type=Path, default=DEFAULT_PLC_ROOT,
+                        help="Path to PLC project root (folder containing Logical/ and Physical/)")
     parser.add_argument("--config", default="HILA_MR",
                         help="B&R configuration name (e.g. HILA_MR, Barak_MR). "
                              "Only vars from packages in this config will be included.")
     args = parser.parse_args()
 
+    PLC_ROOT = args.plc_root.resolve()
+    LOGICAL_DIR = PLC_ROOT / "Logical"
+
+    if not LOGICAL_DIR.exists():
+        print(f"ERROR: Logical directory not found: {LOGICAL_DIR}")
+        return
+
     print("=" * 70)
     print("PLC Global Struct Variable Scanner")
     print("=" * 70)
-    print(f"\nScanning: {LOGICAL_DIR}")
+    print(f"\nPLC root: {PLC_ROOT}")
+    print(f"Scanning: {LOGICAL_DIR}")
     print(f"Configuration: {args.config}\n")
     
     # Parse config to know which packages are included

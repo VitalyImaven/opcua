@@ -1,6 +1,6 @@
 {
-  "total_struct_variables": 497,
-  "total_leaf_fields": 92205,
+  "total_struct_variables": 512,
+  "total_leaf_fields": 93878,
   "variables": [
     {
       "variable": "Hardware",
@@ -231,6 +231,27 @@
       "type": "Extended_RW_NipAxis_typ",
       "source": "PUW_RW\\RW_Ctrl\\RW_Ctrl_Global_Motion.var",
       "leaf_count": 459,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gEngageRearCtrl",
+      "type": "EngageCtrl_typ",
+      "source": "ScndTrans\\EngageRear\\EngageRear_Ctrl\\EngageRear_Ctrl.var",
+      "leaf_count": 453,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gEngageFrontCtrl",
+      "type": "EngageCtrl_typ",
+      "source": "ScndTrans\\EngageFront\\EngageFront_Ctrl\\EngageFront_Ctrl.var",
+      "leaf_count": 453,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gSpmCtrl",
+      "type": "SpmCtrl_typ",
+      "source": "SpmCtrl\\SpmCtrl.var",
+      "leaf_count": 451,
       "unresolved_count": 0
     },
     {
@@ -773,6 +794,13 @@
       "unresolved_count": 3
     },
     {
+      "variable": "gProtoTest",
+      "type": "gProtoTest_typ",
+      "source": "gProtoTest.var",
+      "leaf_count": 209,
+      "unresolved_count": 0
+    },
+    {
       "variable": "gFR_Axis",
       "type": "FR_Axis_Interface_typ",
       "source": "WHS\\WHS_Ctrl_Global_Motion.var",
@@ -1123,13 +1151,6 @@
       "unresolved_count": 0
     },
     {
-      "variable": "gProtoTest",
-      "type": "gProtoTest_typ",
-      "source": "gProtoTest.var",
-      "leaf_count": 108,
-      "unresolved_count": 0
-    },
-    {
       "variable": "gSpmZ",
       "type": "SPM_Z_typ",
       "source": "Exit\\SPM_XZ\\SpmZDrive\\SpmZDriveGlobal.var",
@@ -1204,6 +1225,13 @@
       "type": "Clnr_Axis_Interface_typ",
       "source": "ARAVA_ILP\\ilpPH\\ClnrNip\\ClnrNipCtrl\\ClnrNipCtrlGlobal.var",
       "leaf_count": 90,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gIO",
+      "type": "InputOutput_typ",
+      "source": "Stacker\\Stacker.var",
+      "leaf_count": 89,
       "unresolved_count": 0
     },
     {
@@ -1480,6 +1508,13 @@
       "unresolved_count": 0
     },
     {
+      "variable": "gNegInputParameters_0",
+      "type": "InputParameters_typ",
+      "source": "NegevUW_ILP_RW\\TresuPressSim\\Parameters_handling\\Param_handling.var",
+      "leaf_count": 41,
+      "unresolved_count": 0
+    },
+    {
       "variable": "gAxBCUInv",
       "type": "ACPiModuleP74_type",
       "source": "NegevUW_ILP_RW\\BCU\\BCU_Ctrl_Global.var",
@@ -1540,6 +1575,13 @@
       "type": "gAhlbrandt_type",
       "source": "PUW_RW\\Corona_Ctrl\\Corona_Ctrl_Globals.var",
       "leaf_count": 27,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gMachine",
+      "type": "gMachine_typ",
+      "source": "Global.var",
+      "leaf_count": 26,
       "unresolved_count": 0
     },
     {
@@ -2103,13 +2145,6 @@
       "unresolved_count": 0
     },
     {
-      "variable": "OldPowerlinkInfo",
-      "type": "PowerLinkInfo_typ",
-      "source": "GlobalOps\\GlobalOps\\GlobalOps.var",
-      "leaf_count": 18,
-      "unresolved_count": 0
-    },
-    {
       "variable": "GripSysSeqReportMsg",
       "type": "SeqReportQ_typ",
       "source": "Drums\\Drums_Ctrl\\GripperCtrl\\GripperCtrlGlobal.var",
@@ -2152,6 +2187,20 @@
       "unresolved_count": 0
     },
     {
+      "variable": "gPsTest",
+      "type": "PsTest_typ",
+      "source": "PowerSupplyTest\\PowerSupplyTest.var",
+      "leaf_count": 14,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "VisuMediaData",
+      "type": "SheetData_MediaType_typ",
+      "source": "Stacker\\StackerPermanent.var",
+      "leaf_count": 14,
+      "unresolved_count": 0
+    },
+    {
       "variable": "gNullWithUpdate",
       "type": "NullWithUpdate_typ",
       "source": "WHS\\WHS_Ctrl_Global.var",
@@ -2169,6 +2218,13 @@
       "variable": "CalcEngageAngle",
       "type": "CalcEngageAngle_typ",
       "source": "WHS\\WHS_Ctrl_Global.var",
+      "leaf_count": 13,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gBcsVisCtrl",
+      "type": "BcsVisCtrl_typ",
+      "source": "Bcs\\BcsHmi\\BcsVisCtrl\\BcsVisCtrl.var",
       "leaf_count": 13,
       "unresolved_count": 0
     },
@@ -2285,6 +2341,13 @@
       "unresolved_count": 0
     },
     {
+      "variable": "Visu",
+      "type": "Visu_typ",
+      "source": "Stacker\\Stacker.var",
+      "leaf_count": 9,
+      "unresolved_count": 0
+    },
+    {
       "variable": "gAccUnit_ErrorInfo",
       "type": "ERR_TASK_INFO_typ",
       "source": "ARAVA_ILP\\ILP_Global.var",
@@ -2323,6 +2386,13 @@
       "variable": "gBRG_FIB_ErrorInfo",
       "type": "ERR_TASK_INFO_typ",
       "source": "Input\\InputCtrlGlobal.var",
+      "leaf_count": 8,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "LogConfig",
+      "type": "LogConfig_typ",
+      "source": "Stacker\\Stacker.var",
       "leaf_count": 8,
       "unresolved_count": 0
     },
@@ -2411,6 +2481,13 @@
       "unresolved_count": 0
     },
     {
+      "variable": "StackerIrsVersion",
+      "type": "IrsVersion_typ",
+      "source": "Stacker\\Stacker.var",
+      "leaf_count": 6,
+      "unresolved_count": 0
+    },
+    {
       "variable": "gFBISetupCompleteMsg",
       "type": "SetupComplete_typ",
       "source": "WHS\\FBI\\FBI_Ctrl_Global.var",
@@ -2472,6 +2549,13 @@
       "source": "LPH\\Lph_Eng_Ctrl_Global.var",
       "leaf_count": 5,
       "unresolved_count": 1
+    },
+    {
+      "variable": "DestConfig",
+      "type": "DestinationConfiguration_typ",
+      "source": "Stacker\\Stacker.var",
+      "leaf_count": 5,
+      "unresolved_count": 0
     },
     {
       "variable": "gIPD_Axis",
@@ -2866,6 +2950,13 @@
       "unresolved_count": 0
     },
     {
+      "variable": "AntiSoapStatus",
+      "type": "AntiSoapStatus_typ",
+      "source": "ScndTrans\\AntiSoap\\AntiSoap.var",
+      "leaf_count": 3,
+      "unresolved_count": 0
+    },
+    {
       "variable": "gScndTransSysSensorRequest",
       "type": "MsgSensorStateRequest_typ",
       "source": "ScndTrans\\ScndTransCtrl\\ScndTransCtrl_Globals.var",
@@ -2911,6 +3002,13 @@
       "variable": "EBUSensorReportReq",
       "type": "MsgSensorStateRequest_typ",
       "source": "NegevUW_ILP_RW\\NGV_EBU\\EBU_Ctrl_Global.var",
+      "leaf_count": 3,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gMessage",
+      "type": "IrsMsg_typ",
+      "source": "HPLibraries\\ServiceMsg\\ServiceMsg.var",
       "leaf_count": 3,
       "unresolved_count": 0
     },
@@ -3086,6 +3184,13 @@
       "variable": "GenralILPQBufferRead",
       "type": "MsgQ_typ",
       "source": "Safety\\SafetyGlobal.var",
+      "leaf_count": 2,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "SpmBufferRead",
+      "type": "MsgQ_typ",
+      "source": "SpmCtrl\\SpmCtrl.var",
       "leaf_count": 2,
       "unresolved_count": 0
     },
