@@ -310,6 +310,35 @@ input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px 
         <table class="timing-table" id="pervar-table"></table>
       </div>
 
+      <!-- CPU Profiler -->
+      <div class="stats-section" id="profiler-section" style="display:none">
+        <h3>PLC CPU Profiler</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px;">
+          <div>
+            <h4 style="font-size:10px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">System-Wide</h4>
+            <div id="prof-sys" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+              <div class="stat-card" style="flex:1;min-width:100px"><div class="val" id="prof-busy">--</div><div class="label">CPU Busy %</div></div>
+              <div class="stat-card" style="flex:1;min-width:100px"><div class="val" id="prof-idle">--</div><div class="label">CPU Idle %</div></div>
+            </div>
+            <div style="background:var(--bg);border-radius:var(--radius-sm);overflow:hidden;height:24px;border:1px solid var(--border);position:relative;" id="prof-bar-wrap">
+              <div id="prof-busy-bar" style="height:100%;background:linear-gradient(90deg,var(--green),var(--orange));transition:width .5s;width:0%;"></div>
+              <span id="prof-bar-label" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:10px;font-weight:600;color:var(--text);text-shadow:0 1px 3px rgba(0,0,0,.5);"></span>
+            </div>
+          </div>
+          <div>
+            <h4 style="font-size:10px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Monitored Task (Cyclic#<span id="prof-tc">?</span>)</h4>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <div class="stat-card" style="flex:1;min-width:80px"><div class="val" id="prof-load">--</div><div class="label">Load %</div></div>
+              <div class="stat-card" style="flex:1;min-width:80px"><div class="val" id="prof-exec">--</div><div class="label">Exec (us)</div></div>
+              <div class="stat-card" style="flex:1;min-width:80px"><div class="val" id="prof-peak">--</div><div class="label">Peak %</div></div>
+              <div class="stat-card" style="flex:1;min-width:80px"><div class="val" id="prof-overruns">--</div><div class="label">Overruns</div></div>
+            </div>
+          </div>
+        </div>
+        <h4 style="font-size:10px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Task Class Cycle Times</h4>
+        <table class="timing-table" id="prof-cycles-table"></table>
+      </div>
+
       <!-- Benchmark Result -->
       <div class="stats-section" id="bench-result-section" style="display:none">
         <h3>Benchmark Result</h3>
@@ -699,6 +728,12 @@ async function refreshStatus() {
 
   const ds = await apiGet('/api/plc/detailed_stats');
   renderDetailedStats(ds);
+
+  // Fetch profiler data
+  try {
+    const prof = await apiGet('/api/plc/profiler');
+    renderProfiler(prof);
+  } catch(e) {}
 }
 
 function renderDetailedStats(ds) {
@@ -762,6 +797,53 @@ function renderPerVarTable(tableId, vars) {
     vars.map((v, i) =>
       `<tr><td style="color:var(--muted)">${i+1}</td><td style="font-size:11px;color:var(--accent)">${v.name}</td><td><span class="type-tag" style="background:var(--purple-dim);color:var(--purple)">${v.plc_type}</span></td><td>${v.changes}</td><td>${v.rate.toFixed(1)}</td></tr>`
     ).join('');
+}
+
+function renderProfiler(p) {
+  if (p.sys_idle_rate === null && p.load_pct === null) return;
+  document.getElementById('profiler-section').style.display = '';
+
+  // System-wide
+  const busy = p.sys_busy_pct;
+  const idle = p.sys_idle_rate;
+  if (busy !== null) {
+    document.getElementById('prof-busy').textContent = busy.toFixed(1) + '%';
+    document.getElementById('prof-idle').textContent = (idle||0) + '%';
+    const bar = document.getElementById('prof-busy-bar');
+    bar.style.width = Math.min(100, busy) + '%';
+    // Color: green < 50%, orange < 80%, red >= 80%
+    if (busy < 50) bar.style.background = 'linear-gradient(90deg,var(--green),#4ade80)';
+    else if (busy < 80) bar.style.background = 'linear-gradient(90deg,var(--green),var(--orange))';
+    else bar.style.background = 'linear-gradient(90deg,var(--orange),var(--red))';
+    document.getElementById('prof-bar-label').textContent = busy.toFixed(1) + '% busy';
+  }
+
+  // Task-level
+  if (p.task_class !== null) document.getElementById('prof-tc').textContent = p.task_class;
+  if (p.load_pct !== null) {
+    const lp = typeof p.load_pct === 'number' ? p.load_pct.toFixed(1) : p.load_pct;
+    document.getElementById('prof-load').textContent = lp + '%';
+  }
+  if (p.exec_time_us !== null) document.getElementById('prof-exec').textContent = p.exec_time_us;
+  if (p.load_peak !== null) {
+    const pk = typeof p.load_peak === 'number' ? p.load_peak.toFixed(1) : p.load_peak;
+    document.getElementById('prof-peak').textContent = pk + '%';
+  }
+  if (p.overruns !== null) {
+    const el = document.getElementById('prof-overruns');
+    el.textContent = p.overruns;
+    el.className = 'val' + (p.overruns > 0 ? ' warn' : '');
+  }
+
+  // Cycle times table
+  const ct = p.cycle_times_us;
+  if (ct) {
+    const t = document.getElementById('prof-cycles-table');
+    const rows = Object.entries(ct).filter(([k,v]) => v !== null).map(([name, us]) =>
+      `<tr><td>${name}</td><td>${us} us</td><td>${(us/1000).toFixed(1)} ms</td></tr>`
+    ).join('');
+    t.innerHTML = `<tr><th>Task Class</th><th>Cycle Time</th><th>ms</th></tr>` + rows;
+  }
 }
 
 // -- Benchmark --
@@ -880,7 +962,7 @@ function showNotification(msg, type='info') {
 
 // === AUTO-SELECT DEFAULT VARS ===
 async function autoSelectDefaults() {
-  const vars = await apiGet('/api/plc/defaults?prefix=gProtoTest');
+  const vars = await apiGet('/api/plc/defaults?prefix=gProtoTest,prof');
   selectedVars.clear();
   vars.forEach(v => selectedVars.set(v.name, {id: v.id, plc_type: v.plc_type}));
   document.getElementById('sub-count').textContent = `SELECTED: ${selectedVars.size}`;

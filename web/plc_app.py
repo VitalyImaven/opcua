@@ -126,7 +126,11 @@ async def search(q: str = "", limit: int = 100):
 
 @app.get("/api/plc/defaults")
 async def get_defaults(prefix: str = "gProtoTest"):
-    return engine.get_default_vars(prefix)
+    prefixes = [p.strip() for p in prefix.split(",") if p.strip()]
+    result = []
+    for p in prefixes:
+        result.extend(engine.get_default_vars(p))
+    return result
 
 
 @app.post("/api/plc/subscribe")
@@ -151,6 +155,11 @@ async def get_values():
 @app.get("/api/plc/detailed_stats")
 async def detailed_stats():
     return engine.get_detailed_stats()
+
+
+@app.get("/api/plc/profiler")
+async def profiler():
+    return engine.get_profiler_data()
 
 
 @app.post("/api/plc/stats/reset")

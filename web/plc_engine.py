@@ -151,7 +151,10 @@ class PlcMonitorEngine:
         """Return all leaf variables under a prefix (for auto-selection)."""
         result = []
         for var_id, info in self._iter_visible_vars():
-            if info["name"].startswith(prefix + ".") or info["name"] == prefix:
+            name = info["name"]
+            if name.startswith(prefix + ".") or name == prefix or (
+                "." not in name and name.startswith(prefix)
+            ):
                 result.append({
                     "id": str(var_id),
                     "name": info["name"],
@@ -464,6 +467,42 @@ class PlcMonitorEngine:
         # Send current subscription along with interval to avoid clearing it
         self._send_tcp_command(0x01, list(self.subscribed), count_override=interval_ms)
         return {"ok": True, "interval_ms": interval_ms}
+
+    def get_profiler_data(self) -> dict:
+        """Read PLC CPU profiler variables from the values cache."""
+        prof = {}
+        for vid, info in self.registry.items():
+            name = info.get("name", "")
+            if name.startswith("prof"):
+                val = self.values.get(vid)
+                if val is not None:
+                    prof[name] = val
+        # Structure the output
+        return {
+            # System-wide idle (from LogIdleShow)
+            "sys_idle_rate": prof.get("profSysIdleRate", None),
+            "sys_busy_pct": prof.get("profSysBusyPct", None),
+            "sys_idle_time_us": prof.get("profSysIdleTimeUs", None),
+            "sys_total_time_us": prof.get("profSysTotalTimeUs", None),
+            # This task's profiling
+            "task_class": prof.get("profTaskClass", None),
+            "cycle_time_us": prof.get("profCycleTimeUs", None),
+            "exec_time_us": prof.get("profExecTimeUs", None),
+            "idle_time_us": prof.get("profIdleTimeUs", None),
+            "load_pct": prof.get("profLoadPct", None),
+            "load_avg": prof.get("profLoadAvg", None),
+            "load_peak": prof.get("profLoadPeak", None),
+            "exec_min_us": prof.get("profExecMin", None),
+            "exec_max_us": prof.get("profExecMax", None),
+            "exec_avg_us": prof.get("profExecAvgUs", None),
+            "total_cycles": prof.get("profTotalCycles", None),
+            "overruns": prof.get("profOverruns", None),
+            # Configured task class cycle times
+            "cycle_times_us": {
+                f"Cyclic#{i}": prof.get(f"profCycle{i}Us", None)
+                for i in range(1, 9)
+            },
+        }
 
     def _send_tcp_command(self, cmd: int, var_ids: list[int],
                           count_override: int | None = None):
