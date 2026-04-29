@@ -71,6 +71,18 @@ message ConfigResponse {
   TransportMode transport = 1;  // Confirmed transport mode
 }
 
+// ── Python → PLC: write a single variable value ─────────────────
+message WriteVarCommand {
+  uint32 var_id = 1;            // Index in the variable registry
+  bytes  value  = 2;            // Raw value bytes (little-endian)
+}
+
+// ── PLC → Python: write acknowledgment ──────────────────────────
+message WriteVarResponse {
+  bool   ok     = 1;            // True if write succeeded
+  uint32 var_id = 2;            // Echo of the var_id written
+}
+
 // ── Wrapper for TCP framing ─────────────────────────────────────
 message PlcMessage {
   enum MsgType {
@@ -81,14 +93,18 @@ message PlcMessage {
     HEARTBEAT         = 4;
     CONFIG_CMD        = 5;
     CONFIG_RESPONSE   = 6;
+    WRITE_VAR         = 7;
+    WRITE_VAR_RESP    = 8;
   }
   MsgType type = 1;
   oneof payload {
-    VarUpdatePacket     update     = 2;
-    SubscribeCommand    subscribe  = 3;
-    RegistryRequest     reg_req    = 4;
-    VarRegistryResponse reg_resp   = 5;
+    VarUpdatePacket     update      = 2;
+    SubscribeCommand    subscribe   = 3;
+    RegistryRequest     reg_req     = 4;
+    VarRegistryResponse reg_resp    = 5;
     ConfigCommand       config_cmd  = 6;
     ConfigResponse      config_resp = 7;
+    WriteVarCommand     write_var   = 8;
+    WriteVarResponse    write_resp  = 9;
   }
 }

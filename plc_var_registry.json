@@ -349334,5 +349334,9 @@
   "87333": {
     "name": "gProtoTest.Output.Slow.WearFactorB",
     "type": "REAL"
+  },
+  "87334": {
+    "name": "gProtoTest.Input.Commands.BenchAllFast",
+    "type": "BOOL"
   }
 }

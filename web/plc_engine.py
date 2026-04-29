@@ -33,6 +33,8 @@ MSGTYPE_REGISTRY_RESP    = 3
 MSGTYPE_HEARTBEAT        = 4
 MSGTYPE_CONFIG_CMD       = 5
 MSGTYPE_CONFIG_RESPONSE  = 6
+MSGTYPE_WRITE_VAR        = 7
+MSGTYPE_WRITE_VAR_RESP   = 8
 
 # SubscribeCommand.Action enum values
 ACTION_SET    = 0
@@ -569,6 +571,60 @@ class PlcMonitorEngine:
             print(f"[TCP TX] CONFIG_CMD: transport={mode_name} frame={len(frame)}B")
         except Exception as e:
             print(f"[TCP TX ERROR] Config command failed: {e}")
+
+    def write_var(self, var_name: str, value) -> dict:
+        """Write a value to a PLC variable via WRITE_VAR command.
+        
+        Looks up the var by name, encodes the value as raw LE bytes
+        based on the type, and sends a WriteVarCommand message.
+        """
+        if not self._tcp_sock:
+            return {"ok": False, "error": "Not connected"}
+        
+        if var_name not in self.name_to_id:
+            return {"ok": False, "error": f"Unknown variable: {var_name}"}
+        
+        var_id = self.name_to_id[var_name]
+        info = self.registry.get(var_id, {})
+        plc_type = info.get("plc_type", "").upper()
+        
+        # Encode value to little-endian bytes based on PLC type
+        if plc_type == "BOOL":
+            val_bytes = struct.pack("<B", 1 if value else 0)
+        elif plc_type in ("USINT",):
+            val_bytes = struct.pack("<B", int(value) & 0xFF)
+        elif plc_type in ("SINT",):
+            val_bytes = struct.pack("<b", int(value))
+        elif plc_type in ("INT",):
+            val_bytes = struct.pack("<h", int(value))
+        elif plc_type in ("UINT",):
+            val_bytes = struct.pack("<H", int(value) & 0xFFFF)
+        elif plc_type in ("DINT",):
+            val_bytes = struct.pack("<i", int(value))
+        elif plc_type in ("UDINT",):
+            val_bytes = struct.pack("<I", int(value) & 0xFFFFFFFF)
+        elif plc_type in ("REAL",):
+            val_bytes = struct.pack("<f", float(value))
+        elif plc_type in ("LREAL",):
+            val_bytes = struct.pack("<d", float(value))
+        else:
+            return {"ok": False, "error": f"Unsupported type for write: {plc_type}"}
+        
+        msg = pb.PlcMessage()
+        msg.type = MSGTYPE_WRITE_VAR
+        msg.write_var.var_id = var_id
+        msg.write_var.value = val_bytes
+        
+        pb_bytes = msg.SerializeToString()
+        frame = struct.pack("<I", len(pb_bytes)) + pb_bytes
+        
+        try:
+            self._tcp_sock.sendall(frame)
+            print(f"[TCP TX] WRITE_VAR: {var_name} (id={var_id}) = {value} ({len(val_bytes)}B)")
+            return {"ok": True, "var_name": var_name, "var_id": var_id}
+        except Exception as e:
+            print(f"[TCP TX ERROR] Write var failed: {e}")
+            return {"ok": False, "error": str(e)}
 
     # ── TCP Receiver ─────────────────────────────────────────────
     def _tcp_receive_loop(self):

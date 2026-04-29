@@ -24,15 +24,15 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10plcmonitor.proto\x12\nplcmonitor\"\xb1\x01\n\x08VarValue\x12\x0e\n\x06var_id\x18\x01 \x01(\r\x12\x12\n\x08\x62ool_val\x18\x02 \x01(\x08H\x00\x12\x11\n\x07int_val\x18\x03 \x01(\x05H\x00\x12\x12\n\x08uint_val\x18\x04 \x01(\rH\x00\x12\x12\n\x08\x64int_val\x18\x05 \x01(\x03H\x00\x12\x12\n\x08real_val\x18\x06 \x01(\x02H\x00\x12\x13\n\tlreal_val\x18\x07 \x01(\x01H\x00\x12\x14\n\nstring_val\x18\x08 \x01(\tH\x00\x42\x07\n\x05value\"\\\n\x0fVarUpdatePacket\x12\x10\n\x08sequence\x18\x01 \x01(\r\x12\x11\n\ttimestamp\x18\x02 \x01(\x04\x12$\n\x06values\x18\x03 \x03(\x0b\x32\x14.plcmonitor.VarValue\"\x95\x01\n\x10SubscribeCommand\x12\x33\n\x06\x61\x63tion\x18\x01 \x01(\x0e\x32#.plcmonitor.SubscribeCommand.Action\x12\x0f\n\x07var_ids\x18\x02 \x03(\r\x12\x13\n\x0binterval_ms\x18\x03 \x01(\r\"&\n\x06\x41\x63tion\x12\x07\n\x03SET\x10\x00\x12\x07\n\x03\x41\x44\x44\x10\x01\x12\n\n\x06REMOVE\x10\x02\"(\n\x0fRegistryRequest\x12\x15\n\rfull_registry\x18\x01 \x01(\x08\"B\n\x10VarRegistryEntry\x12\x0e\n\x06var_id\x18\x01 \x01(\r\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x10\n\x08plc_type\x18\x03 \x01(\t\"D\n\x13VarRegistryResponse\x12-\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x1c.plcmonitor.VarRegistryEntry\"=\n\rConfigCommand\x12,\n\ttransport\x18\x01 \x01(\x0e\x32\x19.plcmonitor.TransportMode\">\n\x0e\x43onfigResponse\x12,\n\ttransport\x18\x01 \x01(\x0e\x32\x19.plcmonitor.TransportMode\"\x80\x04\n\nPlcMessage\x12,\n\x04type\x18\x01 \x01(\x0e\x32\x1e.plcmonitor.PlcMessage.MsgType\x12-\n\x06update\x18\x02 \x01(\x0b\x32\x1b.plcmonitor.VarUpdatePacketH\x00\x12\x31\n\tsubscribe\x18\x03 \x01(\x0b\x32\x1c.plcmonitor.SubscribeCommandH\x00\x12.\n\x07reg_req\x18\x04 \x01(\x0b\x32\x1b.plcmonitor.RegistryRequestH\x00\x12\x33\n\x08reg_resp\x18\x05 \x01(\x0b\x32\x1f.plcmonitor.VarRegistryResponseH\x00\x12/\n\nconfig_cmd\x18\x06 \x01(\x0b\x32\x19.plcmonitor.ConfigCommandH\x00\x12\x31\n\x0b\x63onfig_resp\x18\x07 \x01(\x0b\x32\x1a.plcmonitor.ConfigResponseH\x00\"\x8d\x01\n\x07MsgType\x12\x0e\n\nVAR_UPDATE\x10\x00\x12\x11\n\rSUBSCRIBE_CMD\x10\x01\x12\x14\n\x10REGISTRY_REQUEST\x10\x02\x12\x15\n\x11REGISTRY_RESPONSE\x10\x03\x12\r\n\tHEARTBEAT\x10\x04\x12\x0e\n\nCONFIG_CMD\x10\x05\x12\x13\n\x0f\x43ONFIG_RESPONSE\x10\x06\x42\t\n\x07payload*5\n\rTransportMode\x12\x11\n\rTRANSPORT_TCP\x10\x00\x12\x11\n\rTRANSPORT_UDP\x10\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10plcmonitor.proto\x12\nplcmonitor\"\xb1\x01\n\x08VarValue\x12\x0e\n\x06var_id\x18\x01 \x01(\r\x12\x12\n\x08\x62ool_val\x18\x02 \x01(\x08H\x00\x12\x11\n\x07int_val\x18\x03 \x01(\x05H\x00\x12\x12\n\x08uint_val\x18\x04 \x01(\rH\x00\x12\x12\n\x08\x64int_val\x18\x05 \x01(\x03H\x00\x12\x12\n\x08real_val\x18\x06 \x01(\x02H\x00\x12\x13\n\tlreal_val\x18\x07 \x01(\x01H\x00\x12\x14\n\nstring_val\x18\x08 \x01(\tH\x00\x42\x07\n\x05value\"\\\n\x0fVarUpdatePacket\x12\x10\n\x08sequence\x18\x01 \x01(\r\x12\x11\n\ttimestamp\x18\x02 \x01(\x04\x12$\n\x06values\x18\x03 \x03(\x0b\x32\x14.plcmonitor.VarValue\"\x95\x01\n\x10SubscribeCommand\x12\x33\n\x06\x61\x63tion\x18\x01 \x01(\x0e\x32#.plcmonitor.SubscribeCommand.Action\x12\x0f\n\x07var_ids\x18\x02 \x03(\r\x12\x13\n\x0binterval_ms\x18\x03 \x01(\r\"&\n\x06\x41\x63tion\x12\x07\n\x03SET\x10\x00\x12\x07\n\x03\x41\x44\x44\x10\x01\x12\n\n\x06REMOVE\x10\x02\"(\n\x0fRegistryRequest\x12\x15\n\rfull_registry\x18\x01 \x01(\x08\"B\n\x10VarRegistryEntry\x12\x0e\n\x06var_id\x18\x01 \x01(\r\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x10\n\x08plc_type\x18\x03 \x01(\t\"D\n\x13VarRegistryResponse\x12-\n\x07\x65ntries\x18\x01 \x03(\x0b\x32\x1c.plcmonitor.VarRegistryEntry\"=\n\rConfigCommand\x12,\n\ttransport\x18\x01 \x01(\x0e\x32\x19.plcmonitor.TransportMode\">\n\x0e\x43onfigResponse\x12,\n\ttransport\x18\x01 \x01(\x0e\x32\x19.plcmonitor.TransportMode\"0\n\x0fWriteVarCommand\x12\x0e\n\x06var_id\x18\x01 \x01(\r\x12\r\n\x05value\x18\x02 \x01(\x0c\".\n\x10WriteVarResponse\x12\n\n\x02ok\x18\x01 \x01(\x08\x12\x0e\n\x06var_id\x18\x02 \x01(\r\"\x89\x05\n\nPlcMessage\x12,\n\x04type\x18\x01 \x01(\x0e\x32\x1e.plcmonitor.PlcMessage.MsgType\x12-\n\x06update\x18\x02 \x01(\x0b\x32\x1b.plcmonitor.VarUpdatePacketH\x00\x12\x31\n\tsubscribe\x18\x03 \x01(\x0b\x32\x1c.plcmonitor.SubscribeCommandH\x00\x12.\n\x07reg_req\x18\x04 \x01(\x0b\x32\x1b.plcmonitor.RegistryRequestH\x00\x12\x33\n\x08reg_resp\x18\x05 \x01(\x0b\x32\x1f.plcmonitor.VarRegistryResponseH\x00\x12/\n\nconfig_cmd\x18\x06 \x01(\x0b\x32\x19.plcmonitor.ConfigCommandH\x00\x12\x31\n\x0b\x63onfig_resp\x18\x07 \x01(\x0b\x32\x1a.plcmonitor.ConfigResponseH\x00\x12\x30\n\twrite_var\x18\x08 \x01(\x0b\x32\x1b.plcmonitor.WriteVarCommandH\x00\x12\x32\n\nwrite_resp\x18\t \x01(\x0b\x32\x1c.plcmonitor.WriteVarResponseH\x00\"\xb0\x01\n\x07MsgType\x12\x0e\n\nVAR_UPDATE\x10\x00\x12\x11\n\rSUBSCRIBE_CMD\x10\x01\x12\x14\n\x10REGISTRY_REQUEST\x10\x02\x12\x15\n\x11REGISTRY_RESPONSE\x10\x03\x12\r\n\tHEARTBEAT\x10\x04\x12\x0e\n\nCONFIG_CMD\x10\x05\x12\x13\n\x0f\x43ONFIG_RESPONSE\x10\x06\x12\r\n\tWRITE_VAR\x10\x07\x12\x12\n\x0eWRITE_VAR_RESP\x10\x08\x42\t\n\x07payload*5\n\rTransportMode\x12\x11\n\rTRANSPORT_TCP\x10\x00\x12\x11\n\rTRANSPORT_UDP\x10\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'plcmonitor_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   DESCRIPTOR._loaded_options = None
-  _globals['_TRANSPORTMODE']._serialized_start=1280
-  _globals['_TRANSPORTMODE']._serialized_end=1333
+  _globals['_TRANSPORTMODE']._serialized_start=1515
+  _globals['_TRANSPORTMODE']._serialized_end=1568
   _globals['_VARVALUE']._serialized_start=33
   _globals['_VARVALUE']._serialized_end=210
   _globals['_VARUPDATEPACKET']._serialized_start=212
@@ -51,8 +51,12 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_CONFIGCOMMAND']._serialized_end=699
   _globals['_CONFIGRESPONSE']._serialized_start=701
   _globals['_CONFIGRESPONSE']._serialized_end=763
-  _globals['_PLCMESSAGE']._serialized_start=766
-  _globals['_PLCMESSAGE']._serialized_end=1278
-  _globals['_PLCMESSAGE_MSGTYPE']._serialized_start=1126
-  _globals['_PLCMESSAGE_MSGTYPE']._serialized_end=1267
+  _globals['_WRITEVARCOMMAND']._serialized_start=765
+  _globals['_WRITEVARCOMMAND']._serialized_end=813
+  _globals['_WRITEVARRESPONSE']._serialized_start=815
+  _globals['_WRITEVARRESPONSE']._serialized_end=861
+  _globals['_PLCMESSAGE']._serialized_start=864
+  _globals['_PLCMESSAGE']._serialized_end=1513
+  _globals['_PLCMESSAGE_MSGTYPE']._serialized_start=1326
+  _globals['_PLCMESSAGE_MSGTYPE']._serialized_end=1502
 # @@protoc_insertion_point(module_scope)

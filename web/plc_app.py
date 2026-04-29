@@ -142,6 +142,16 @@ async def subscribe(req: SubscribeRequest):
     return {"ok": False, "error": "Provide var_names or var_ids"}
 
 
+class WriteVarRequest(BaseModel):
+    var_name: str
+    value: float | int | bool | str
+
+
+@app.post("/api/plc/write")
+async def write_var(req: WriteVarRequest):
+    return engine.write_var(req.var_name, req.value)
+
+
 @app.post("/api/plc/interval")
 async def set_interval(req: IntervalRequest):
     return engine.set_interval(req.interval_ms)
@@ -180,6 +190,44 @@ async def benchmark_start(req: BenchmarkRequest):
 @app.get("/api/plc/benchmark/status")
 async def benchmark_status():
     return engine.get_benchmark_status()
+
+
+class Benchmark2Request(BaseModel):
+    duration_s: float = 10.0
+    interval_ms: int = 1
+
+
+@app.post("/api/plc/benchmark2/start")
+async def benchmark2_start(req: Benchmark2Request):
+    """Benchmark 2: subscribe ALL gProtoTest vars at fastest rate, then run benchmark."""
+    # Collect all gProtoTest variable names
+    all_gproto = [info["name"] for info in engine.registry.values()
+                  if info.get("name", "").startswith("gProtoTest.")]
+    if not all_gproto:
+        return {"ok": False, "error": "No gProtoTest variables in registry"}
+
+    # Subscribe to all of them
+    sub_result = engine.subscribe(all_gproto)
+    if not sub_result.get("ok"):
+        return sub_result
+
+    # Set fastest interval
+    engine.set_interval(req.interval_ms)
+
+    # Tell PLC to update ALL tiers every cycle (bypass MOD guards)
+    engine.write_var("gProtoTest.Input.Commands.BenchAllFast", True)
+
+    # Auto-clear BenchAllFast after benchmark duration
+    def _clear_bench_flag():
+        time.sleep(req.duration_s + 0.5)
+        engine.write_var("gProtoTest.Input.Commands.BenchAllFast", False)
+    threading.Thread(target=_clear_bench_flag, daemon=True).start()
+
+    # Start the benchmark
+    bench_result = engine.start_benchmark(req.duration_s)
+    bench_result["subscribed"] = sub_result.get("subscribed", 0)
+    bench_result["interval_ms"] = req.interval_ms
+    return bench_result
 
 
 @app.post("/api/plc/trace/start")

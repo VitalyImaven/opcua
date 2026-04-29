@@ -270,6 +270,7 @@ input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px 
         <input id="bench-dur" type="number" value="10" min="1" max="60" style="width:60px">
         <span style="font-size:11px;color:var(--muted)">sec</span>
         <button class="primary" onclick="startBenchmark()">Run</button>
+        <button class="success" onclick="startBenchmark2()" title="Subscribe ALL gProtoTest vars at 1ms, then benchmark">Run All&nbsp;×200</button>
         <button onclick="resetLiveStats()">Reset Stats</button>
         <div class="bench-progress" id="bench-progress-wrap" style="display:none">
           <div class="bench-progress-bar" id="bench-bar" style="width:0%"></div>
@@ -851,7 +852,18 @@ async function startBenchmark() {
   const dur = parseFloat(document.getElementById('bench-dur').value) || 10;
   const res = await api('/api/plc/benchmark/start', {duration_s: dur});
   if (!res.ok) { showNotification(res.error || 'Benchmark failed', 'error'); return; }
+  _runBenchmarkPoll(dur);
+}
 
+async function startBenchmark2() {
+  const dur = parseFloat(document.getElementById('bench-dur').value) || 10;
+  const res = await api('/api/plc/benchmark2/start', {duration_s: dur, interval_ms: 1});
+  if (!res.ok) { showNotification(res.error || 'Benchmark 2 failed', 'error'); return; }
+  showNotification(`Benchmark 2: subscribed ${res.subscribed} vars @ ${res.interval_ms}ms`, 'success');
+  _runBenchmarkPoll(dur);
+}
+
+function _runBenchmarkPoll(dur) {
   document.getElementById('bench-status-text').textContent = 'Running...';
   document.getElementById('bench-progress-wrap').style.display = '';
   document.getElementById('bench-bar').style.width = '0%';
