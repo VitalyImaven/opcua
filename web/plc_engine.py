@@ -137,6 +137,12 @@ class PlcMonitorEngine:
                 self.registry[idx] = {"name": idx_str, "plc_type": info}
                 self.name_to_id[idx_str] = idx
 
+    def _get_cpu_var_ids(self) -> list[int]:
+        """Return var_ids for gMachine.Out.Monitors.Cpu.* variables (always-on profiler)."""
+        PREFIX = "gMachine.Out.Monitors.Cpu."
+        return [vid for vid, info in self.registry.items()
+                if info["name"].startswith(PREFIX)]
+
     def _iter_visible_vars(self):
         """Iterate over variables visible to the UI.
         If discovery has been done, only yield available vars.
@@ -386,9 +392,14 @@ class PlcMonitorEngine:
                 print(f"[DISCOVERY] Batch {batch_num+1}/{total_batches} "
                       f"— found {len(self.available_vars)} so far")
 
-        # Clear subscription
-        self._send_tcp_command(0x01, [])
-        self.subscribed.clear()
+        # After discovery, auto-subscribe to CPU profiler vars
+        cpu_ids = self._get_cpu_var_ids()
+        if cpu_ids:
+            self._send_tcp_command(0x01, cpu_ids)
+            self.subscribed = set(cpu_ids)
+        else:
+            self._send_tcp_command(0x01, [])
+            self.subscribed.clear()
         self.values.clear()
         self.last_changed.clear()
 
@@ -435,7 +446,8 @@ class PlcMonitorEngine:
 
     # ── Subscription commands ────────────────────────────────────
     def subscribe(self, var_names: list[str]) -> dict:
-        """Subscribe to variables by name. Sends SET command to PLC."""
+        """Subscribe to variables by name. Sends SET command to PLC.
+        Always includes CPU profiler variables."""
         var_ids = []
         not_found = []
         for name in var_names:
@@ -447,8 +459,11 @@ class PlcMonitorEngine:
         if not var_ids:
             return {"ok": False, "error": "No valid variable names", "not_found": not_found}
 
-        self.subscribed = set(var_ids)
-        self._send_subscribe_chunked(var_ids)
+        # Always merge CPU profiler vars
+        cpu_ids = self._get_cpu_var_ids()
+        merged = list(set(var_ids) | set(cpu_ids))
+        self.subscribed = set(merged)
+        self._send_subscribe_chunked(merged)
 
         return {
             "ok": True,
@@ -457,11 +472,14 @@ class PlcMonitorEngine:
         }
 
     def subscribe_by_ids(self, var_ids: list[int]) -> dict:
-        """Subscribe by numeric var_ids."""
+        """Subscribe by numeric var_ids. Always includes CPU profiler variables."""
         valid = [vid for vid in var_ids if vid in self.registry]
-        self.subscribed = set(valid)
-        self._send_subscribe_chunked(valid)
-        return {"ok": True, "subscribed": len(valid)}
+        # Always merge CPU profiler vars
+        cpu_ids = self._get_cpu_var_ids()
+        merged = list(set(valid) | set(cpu_ids))
+        self.subscribed = set(merged)
+        self._send_subscribe_chunked(merged)
+        return {"ok": True, "subscribed": len(merged)}
 
     def _send_subscribe_chunked(self, var_ids: list[int], chunk_size: int = 5000):
         """Send subscribe in chunks of chunk_size. First chunk uses SET, rest use ADD."""
@@ -485,36 +503,38 @@ class PlcMonitorEngine:
 
     def get_profiler_data(self) -> dict:
         """Read PLC CPU profiler variables from the values cache."""
-        prof = {}
+        cpu = {}
+        PREFIX = "gMachine.Out.Monitors.Cpu."
         for vid, info in self.registry.items():
             name = info.get("name", "")
-            if name.startswith("prof"):
+            if name.startswith(PREFIX):
                 val = self.values.get(vid)
                 if val is not None:
-                    prof[name] = val
+                    field = name[len(PREFIX):]
+                    cpu[field] = val
         # Structure the output
         return {
             # System-wide idle (from LogIdleShow)
-            "sys_idle_rate": prof.get("profSysIdleRate", None),
-            "sys_busy_pct": prof.get("profSysBusyPct", None),
-            "sys_idle_time_us": prof.get("profSysIdleTimeUs", None),
-            "sys_total_time_us": prof.get("profSysTotalTimeUs", None),
+            "sys_idle_rate": cpu.get("SysIdleRate", None),
+            "sys_busy_pct": cpu.get("SysBusyPct", None),
+            "sys_idle_time_us": cpu.get("SysIdleTimeUs", None),
+            "sys_total_time_us": cpu.get("SysTotalTimeUs", None),
             # This task's profiling
-            "task_class": prof.get("profTaskClass", None),
-            "cycle_time_us": prof.get("profCycleTimeUs", None),
-            "exec_time_us": prof.get("profExecTimeUs", None),
-            "idle_time_us": prof.get("profIdleTimeUs", None),
-            "load_pct": prof.get("profLoadPct", None),
-            "load_avg": prof.get("profLoadAvg", None),
-            "load_peak": prof.get("profLoadPeak", None),
-            "exec_min_us": prof.get("profExecMin", None),
-            "exec_max_us": prof.get("profExecMax", None),
-            "exec_avg_us": prof.get("profExecAvgUs", None),
-            "total_cycles": prof.get("profTotalCycles", None),
-            "overruns": prof.get("profOverruns", None),
+            "task_class": cpu.get("TaskClass", None),
+            "cycle_time_us": cpu.get("CycleTimeUs", None),
+            "exec_time_us": cpu.get("ExecTimeUs", None),
+            "idle_time_us": cpu.get("IdleTimeUs", None),
+            "load_pct": cpu.get("LoadPct", None),
+            "load_avg": cpu.get("LoadAvg", None),
+            "load_peak": cpu.get("LoadPeak", None),
+            "exec_min_us": cpu.get("ExecMin", None),
+            "exec_max_us": cpu.get("ExecMax", None),
+            "exec_avg_us": cpu.get("ExecAvgUs", None),
+            "total_cycles": cpu.get("TotalCycles", None),
+            "overruns": cpu.get("Overruns", None),
             # Configured task class cycle times
             "cycle_times_us": {
-                f"Cyclic#{i}": prof.get(f"profCycle{i}Us", None)
+                f"Cyclic#{i}": cpu.get(f"Cycle{i}Us", None)
                 for i in range(1, 9)
             },
         }

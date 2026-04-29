@@ -435,6 +435,7 @@ async function doConnect() {
   if (res.ok) {
     connected = true;
     document.getElementById('status-led').classList.add('on');
+    document.getElementById('profiler-section').style.display = '';
     showNotification(`Connected via ${res.transport || transport.toUpperCase()}`, 'success');
     refreshStatus();
     await discoverVariables();
@@ -826,8 +827,7 @@ function renderPerVarTable(tableId, vars) {
 }
 
 function renderProfiler(p) {
-  if (p.sys_idle_rate === null && p.load_pct === null) return;
-  document.getElementById('profiler-section').style.display = '';
+  if (!p || (p.sys_idle_rate === null && p.load_pct === null)) return;
 
   // System-wide
   const busy = p.sys_busy_pct;
@@ -1065,7 +1065,7 @@ function showNotification(msg, type='info') {
 
 // === AUTO-SELECT DEFAULT VARS ===
 async function autoSelectDefaults() {
-  const vars = await apiGet('/api/plc/defaults?prefix=gProtoTest,prof');
+  const vars = await apiGet('/api/plc/defaults?prefix=gProtoTest,gMachine');
   selectedVars.clear();
   vars.forEach(v => selectedVars.set(v.name, {id: v.id, plc_type: v.plc_type}));
   document.getElementById('sub-count').textContent = `SELECTED: ${selectedVars.size}`;
