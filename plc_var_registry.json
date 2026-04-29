@@ -348934,5 +348934,405 @@
   "87233": {
     "name": "profCycle8Us",
     "type": "UDINT"
+  },
+  "87234": {
+    "name": "gProtoTest.Output.Fast.CosineWaveB",
+    "type": "REAL"
+  },
+  "87235": {
+    "name": "gProtoTest.Output.Fast.Counter3",
+    "type": "UDINT"
+  },
+  "87236": {
+    "name": "gProtoTest.Output.Fast.Counter4",
+    "type": "DINT"
+  },
+  "87237": {
+    "name": "gProtoTest.Output.Fast.FastRampB",
+    "type": "REAL"
+  },
+  "87238": {
+    "name": "gProtoTest.Output.Fast.NoiseB",
+    "type": "REAL"
+  },
+  "87239": {
+    "name": "gProtoTest.Output.Fast.SineWaveB",
+    "type": "REAL"
+  },
+  "87240": {
+    "name": "gProtoTest.Output.Fast.SpeedRPM_B",
+    "type": "REAL"
+  },
+  "87241": {
+    "name": "gProtoTest.Output.Fast.TickBoolB",
+    "type": "BOOL"
+  },
+  "87242": {
+    "name": "gProtoTest.Output.Fast.TorqueRPM",
+    "type": "REAL"
+  },
+  "87243": {
+    "name": "gProtoTest.Output.Fast.TriangleB",
+    "type": "REAL"
+  },
+  "87244": {
+    "name": "gProtoTest.Output.Medium.CosineX3",
+    "type": "REAL"
+  },
+  "87245": {
+    "name": "gProtoTest.Output.Medium.Counter6",
+    "type": "UDINT"
+  },
+  "87246": {
+    "name": "gProtoTest.Output.Medium.Counter7",
+    "type": "INT"
+  },
+  "87247": {
+    "name": "gProtoTest.Output.Medium.Counter8",
+    "type": "UINT"
+  },
+  "87248": {
+    "name": "gProtoTest.Output.Medium.Current3",
+    "type": "REAL"
+  },
+  "87249": {
+    "name": "gProtoTest.Output.Medium.Current4",
+    "type": "REAL"
+  },
+  "87250": {
+    "name": "gProtoTest.Output.Medium.DutyCycleB",
+    "type": "REAL"
+  },
+  "87251": {
+    "name": "gProtoTest.Output.Medium.ErrorCodeB",
+    "type": "UDINT"
+  },
+  "87252": {
+    "name": "gProtoTest.Output.Medium.Flow3",
+    "type": "REAL"
+  },
+  "87253": {
+    "name": "gProtoTest.Output.Medium.Flow4",
+    "type": "REAL"
+  },
+  "87254": {
+    "name": "gProtoTest.Output.Medium.HumidityB",
+    "type": "REAL"
+  },
+  "87255": {
+    "name": "gProtoTest.Output.Medium.LevelB",
+    "type": "REAL"
+  },
+  "87256": {
+    "name": "gProtoTest.Output.Medium.NegRampB",
+    "type": "REAL"
+  },
+  "87257": {
+    "name": "gProtoTest.Output.Medium.PositionB",
+    "type": "LREAL"
+  },
+  "87258": {
+    "name": "gProtoTest.Output.Medium.PowerB",
+    "type": "REAL"
+  },
+  "87259": {
+    "name": "gProtoTest.Output.Medium.Pressure3",
+    "type": "REAL"
+  },
+  "87260": {
+    "name": "gProtoTest.Output.Medium.Pressure4",
+    "type": "REAL"
+  },
+  "87261": {
+    "name": "gProtoTest.Output.Medium.ReactorTemp",
+    "type": "REAL"
+  },
+  "87262": {
+    "name": "gProtoTest.Output.Medium.Sawtooth3",
+    "type": "REAL"
+  },
+  "87263": {
+    "name": "gProtoTest.Output.Medium.SineX4",
+    "type": "REAL"
+  },
+  "87264": {
+    "name": "gProtoTest.Output.Medium.SineX5",
+    "type": "REAL"
+  },
+  "87265": {
+    "name": "gProtoTest.Output.Medium.Square100ms",
+    "type": "BOOL"
+  },
+  "87266": {
+    "name": "gProtoTest.Output.Medium.StatusWordB",
+    "type": "UINT"
+  },
+  "87267": {
+    "name": "gProtoTest.Output.Medium.Temperature4",
+    "type": "REAL"
+  },
+  "87268": {
+    "name": "gProtoTest.Output.Medium.Temperature5",
+    "type": "REAL"
+  },
+  "87269": {
+    "name": "gProtoTest.Output.Medium.Temperature6",
+    "type": "REAL"
+  },
+  "87270": {
+    "name": "gProtoTest.Output.Medium.TorqueB",
+    "type": "REAL"
+  },
+  "87271": {
+    "name": "gProtoTest.Output.Medium.VibrationB",
+    "type": "REAL"
+  },
+  "87272": {
+    "name": "gProtoTest.Output.Medium.Voltage3",
+    "type": "REAL"
+  },
+  "87273": {
+    "name": "gProtoTest.Output.Medium.Voltage4",
+    "type": "REAL"
+  },
+  "87274": {
+    "name": "gProtoTest.Output.Slow.Actual10",
+    "type": "REAL"
+  },
+  "87275": {
+    "name": "gProtoTest.Output.Slow.Actual6",
+    "type": "REAL"
+  },
+  "87276": {
+    "name": "gProtoTest.Output.Slow.Actual7",
+    "type": "REAL"
+  },
+  "87277": {
+    "name": "gProtoTest.Output.Slow.Actual8",
+    "type": "REAL"
+  },
+  "87278": {
+    "name": "gProtoTest.Output.Slow.Actual9",
+    "type": "REAL"
+  },
+  "87279": {
+    "name": "gProtoTest.Output.Slow.AlarmWord4",
+    "type": "UINT"
+  },
+  "87280": {
+    "name": "gProtoTest.Output.Slow.AlarmWord5",
+    "type": "UINT"
+  },
+  "87281": {
+    "name": "gProtoTest.Output.Slow.AlarmWord6",
+    "type": "UINT"
+  },
+  "87282": {
+    "name": "gProtoTest.Output.Slow.AvailabilityB",
+    "type": "REAL"
+  },
+  "87283": {
+    "name": "gProtoTest.Output.Slow.AvgValueB",
+    "type": "REAL"
+  },
+  "87284": {
+    "name": "gProtoTest.Output.Slow.BatchCountB",
+    "type": "UDINT"
+  },
+  "87285": {
+    "name": "gProtoTest.Output.Slow.CyclesLeftB",
+    "type": "UDINT"
+  },
+  "87286": {
+    "name": "gProtoTest.Output.Slow.Deviation4",
+    "type": "REAL"
+  },
+  "87287": {
+    "name": "gProtoTest.Output.Slow.Deviation5",
+    "type": "REAL"
+  },
+  "87288": {
+    "name": "gProtoTest.Output.Slow.Deviation6",
+    "type": "REAL"
+  },
+  "87289": {
+    "name": "gProtoTest.Output.Slow.DoseB",
+    "type": "LREAL"
+  },
+  "87290": {
+    "name": "gProtoTest.Output.Slow.EfficiencyB",
+    "type": "REAL"
+  },
+  "87291": {
+    "name": "gProtoTest.Output.Slow.EnergyTotalB",
+    "type": "LREAL"
+  },
+  "87292": {
+    "name": "gProtoTest.Output.Slow.IntegralB",
+    "type": "LREAL"
+  },
+  "87293": {
+    "name": "gProtoTest.Output.Slow.LotDoneB",
+    "type": "UDINT"
+  },
+  "87294": {
+    "name": "gProtoTest.Output.Slow.LotRemainB",
+    "type": "UDINT"
+  },
+  "87295": {
+    "name": "gProtoTest.Output.Slow.LotSizeB",
+    "type": "UDINT"
+  },
+  "87296": {
+    "name": "gProtoTest.Output.Slow.MaxValueB",
+    "type": "REAL"
+  },
+  "87297": {
+    "name": "gProtoTest.Output.Slow.MinValueB",
+    "type": "REAL"
+  },
+  "87298": {
+    "name": "gProtoTest.Output.Slow.OEE_B",
+    "type": "REAL"
+  },
+  "87299": {
+    "name": "gProtoTest.Output.Slow.Param11",
+    "type": "REAL"
+  },
+  "87300": {
+    "name": "gProtoTest.Output.Slow.Param12",
+    "type": "REAL"
+  },
+  "87301": {
+    "name": "gProtoTest.Output.Slow.Param13",
+    "type": "REAL"
+  },
+  "87302": {
+    "name": "gProtoTest.Output.Slow.Param14",
+    "type": "REAL"
+  },
+  "87303": {
+    "name": "gProtoTest.Output.Slow.Param15",
+    "type": "REAL"
+  },
+  "87304": {
+    "name": "gProtoTest.Output.Slow.Param16",
+    "type": "REAL"
+  },
+  "87305": {
+    "name": "gProtoTest.Output.Slow.Param17",
+    "type": "REAL"
+  },
+  "87306": {
+    "name": "gProtoTest.Output.Slow.Param18",
+    "type": "REAL"
+  },
+  "87307": {
+    "name": "gProtoTest.Output.Slow.Param19",
+    "type": "REAL"
+  },
+  "87308": {
+    "name": "gProtoTest.Output.Slow.Param20",
+    "type": "REAL"
+  },
+  "87309": {
+    "name": "gProtoTest.Output.Slow.PerformanceB",
+    "type": "REAL"
+  },
+  "87310": {
+    "name": "gProtoTest.Output.Slow.PhaseIDB",
+    "type": "USINT"
+  },
+  "87311": {
+    "name": "gProtoTest.Output.Slow.PulseCountB",
+    "type": "UDINT"
+  },
+  "87312": {
+    "name": "gProtoTest.Output.Slow.Quality4",
+    "type": "REAL"
+  },
+  "87313": {
+    "name": "gProtoTest.Output.Slow.Quality5",
+    "type": "REAL"
+  },
+  "87314": {
+    "name": "gProtoTest.Output.Slow.Quality6",
+    "type": "REAL"
+  },
+  "87315": {
+    "name": "gProtoTest.Output.Slow.QualityRateB",
+    "type": "REAL"
+  },
+  "87316": {
+    "name": "gProtoTest.Output.Slow.RecipeNumB",
+    "type": "USINT"
+  },
+  "87317": {
+    "name": "gProtoTest.Output.Slow.RuntimeB",
+    "type": "UDINT"
+  },
+  "87318": {
+    "name": "gProtoTest.Output.Slow.Setpoint10",
+    "type": "REAL"
+  },
+  "87319": {
+    "name": "gProtoTest.Output.Slow.Setpoint6",
+    "type": "REAL"
+  },
+  "87320": {
+    "name": "gProtoTest.Output.Slow.Setpoint7",
+    "type": "REAL"
+  },
+  "87321": {
+    "name": "gProtoTest.Output.Slow.Setpoint8",
+    "type": "REAL"
+  },
+  "87322": {
+    "name": "gProtoTest.Output.Slow.Setpoint9",
+    "type": "REAL"
+  },
+  "87323": {
+    "name": "gProtoTest.Output.Slow.SlowCosineB",
+    "type": "REAL"
+  },
+  "87324": {
+    "name": "gProtoTest.Output.Slow.SlowCounter3",
+    "type": "UDINT"
+  },
+  "87325": {
+    "name": "gProtoTest.Output.Slow.SlowCounter4",
+    "type": "DINT"
+  },
+  "87326": {
+    "name": "gProtoTest.Output.Slow.SlowSineB",
+    "type": "REAL"
+  },
+  "87327": {
+    "name": "gProtoTest.Output.Slow.StatBool5",
+    "type": "BOOL"
+  },
+  "87328": {
+    "name": "gProtoTest.Output.Slow.StatBool6",
+    "type": "BOOL"
+  },
+  "87329": {
+    "name": "gProtoTest.Output.Slow.StatBool7",
+    "type": "BOOL"
+  },
+  "87330": {
+    "name": "gProtoTest.Output.Slow.StatBool8",
+    "type": "BOOL"
+  },
+  "87331": {
+    "name": "gProtoTest.Output.Slow.StepNumberB",
+    "type": "UINT"
+  },
+  "87332": {
+    "name": "gProtoTest.Output.Slow.UptimeHours",
+    "type": "REAL"
+  },
+  "87333": {
+    "name": "gProtoTest.Output.Slow.WearFactorB",
+    "type": "REAL"
   }
 }
