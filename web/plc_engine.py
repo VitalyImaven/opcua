@@ -448,7 +448,7 @@ class PlcMonitorEngine:
             return {"ok": False, "error": "No valid variable names", "not_found": not_found}
 
         self.subscribed = set(var_ids)
-        self._send_tcp_command(0x01, var_ids)
+        self._send_subscribe_chunked(var_ids)
 
         return {
             "ok": True,
@@ -460,14 +460,27 @@ class PlcMonitorEngine:
         """Subscribe by numeric var_ids."""
         valid = [vid for vid in var_ids if vid in self.registry]
         self.subscribed = set(valid)
-        self._send_tcp_command(0x01, valid)
+        self._send_subscribe_chunked(valid)
         return {"ok": True, "subscribed": len(valid)}
+
+    def _send_subscribe_chunked(self, var_ids: list[int], chunk_size: int = 5000):
+        """Send subscribe in chunks of chunk_size. First chunk uses SET, rest use ADD."""
+        if len(var_ids) <= chunk_size:
+            self._send_tcp_command(0x01, var_ids)  # SET
+        else:
+            for i in range(0, len(var_ids), chunk_size):
+                chunk = var_ids[i:i + chunk_size]
+                cmd = 0x01 if i == 0 else 0x02  # SET first, ADD rest
+                self._send_tcp_command(cmd, chunk)
+                if i > 0:
+                    import time
+                    time.sleep(0.05)  # Small delay between chunks
 
     def set_interval(self, interval_ms: int) -> dict:
         """Set PLC send interval."""
         interval_ms = max(1, min(10000, interval_ms))
-        # Send current subscription along with interval to avoid clearing it
-        self._send_tcp_command(0x01, list(self.subscribed), count_override=interval_ms)
+        # Send interval-only change (SET with 0 vars preserves existing subscription)
+        self._send_tcp_command(0x01, [], count_override=interval_ms)
         return {"ok": True, "interval_ms": interval_ms}
 
     def get_profiler_data(self) -> dict:
@@ -1399,3 +1412,122 @@ class PlcMonitorEngine:
                 "packets_so_far": self._bench_packets,
             }
         return {"status": "idle"}
+
+    # ── Scaling Stress Test ──────────────────────────────────────
+    def run_stress_test(self, levels: list[int] | None = None,
+                        step_duration_s: float = 5.0,
+                        settle_s: float = 1.0) -> dict:
+        """Run progressive stress test: subscribe increasing var counts,
+        benchmark each level, return table of results.
+        
+        Must be called from a background thread (blocks for the full duration).
+        """
+        if not self.connected:
+            return {"ok": False, "error": "Not connected"}
+
+        all_ids = sorted(self.registry.keys())
+        max_vars = len(all_ids)
+
+        if levels is None:
+            levels = [l for l in [209, 500, 1000, 2000, 5000, 10000, 20000, 50000, max_vars]
+                      if l <= max_vars]
+            if max_vars not in levels:
+                levels.append(max_vars)
+
+        results = []
+        self._stress_running = True
+        self._stress_progress = {"current_level": 0, "total_levels": len(levels), "results": []}
+
+        for i, count in enumerate(levels):
+            if not self._stress_running:
+                break
+
+            self._stress_progress["current_level"] = i + 1
+            self._stress_progress["current_count"] = count
+
+            # Subscribe to first `count` vars
+            ids_subset = all_ids[:count]
+            self.subscribed = set(ids_subset)
+            self._send_tcp_command(0x01, ids_subset)
+
+            # Let PLC settle with new subscription
+            time.sleep(settle_s)
+
+            # Reset stats and run benchmark
+            self._bench_running = True
+            self._bench_done = False
+            self._bench_result = None
+            self._bench_start = time.perf_counter()
+            self._bench_duration = step_duration_s
+            self._bench_packets = 0
+            self._bench_var_updates = 0
+            self._bench_var_changes = 0
+            self._bench_drops = 0
+            self._bench_inter_pkt = []
+            self._bench_plc_ts = []
+            self._bench_per_var_changes = {}
+            self._bench_prev_values = {}
+            self._bench_last_py_time = 0.0
+            self._bench_last_seq = 0
+
+            # Wait for benchmark to complete
+            deadline = time.perf_counter() + step_duration_s + 3.0
+            while not self._bench_done and time.perf_counter() < deadline:
+                time.sleep(0.2)
+
+            if self._bench_result:
+                step_result = {
+                    "var_count": count,
+                    "packet_rate": self._bench_result["packet_rate"],
+                    "var_update_rate": self._bench_result["var_update_rate"],
+                    "dropped": self._bench_result["dropped_packets"],
+                    "drop_pct": self._bench_result["drop_pct"],
+                    "inter_pkt_avg_ms": self._bench_result.get("inter_packet_ms", {}).get("avg", 0),
+                    "inter_pkt_p99_ms": self._bench_result.get("inter_packet_ms", {}).get("p99", 0),
+                    "plc_interval_avg_ms": self._bench_result.get("plc_interval_ms", {}).get("avg", 0),
+                    "integrity": self._bench_result.get("grade", {}).get("integrity", "?"),
+                    "bytes_per_pkt": round(self._bench_result.get("var_updates", 0) * 9 / max(1, self._bench_result["packets"])),
+                }
+            else:
+                step_result = {
+                    "var_count": count,
+                    "packet_rate": 0,
+                    "var_update_rate": 0,
+                    "dropped": -1,
+                    "drop_pct": 100,
+                    "inter_pkt_avg_ms": 0,
+                    "inter_pkt_p99_ms": 0,
+                    "plc_interval_avg_ms": 0,
+                    "integrity": "FAIL",
+                    "bytes_per_pkt": 0,
+                }
+
+            results.append(step_result)
+            self._stress_progress["results"] = results
+            print(f"[STRESS] {count} vars: {step_result['packet_rate']} pkt/s, "
+                  f"drops={step_result['dropped']}, integrity={step_result['integrity']}")
+
+        self._stress_running = False
+
+        # Find breaking point: first level with drops > 0
+        breaking_point = None
+        for r in results:
+            if r["dropped"] > 0:
+                breaking_point = r["var_count"]
+                break
+
+        return {
+            "ok": True,
+            "levels": results,
+            "total_levels": len(results),
+            "breaking_point": breaking_point,
+            "max_perfect": max((r["var_count"] for r in results if r["dropped"] == 0), default=0),
+        }
+
+    def get_stress_progress(self) -> dict:
+        if hasattr(self, '_stress_progress'):
+            return {
+                "running": getattr(self, '_stress_running', False),
+                **self._stress_progress,
+            }
+        return {"running": False}

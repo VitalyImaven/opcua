@@ -230,6 +230,31 @@ async def benchmark2_start(req: Benchmark2Request):
     return bench_result
 
 
+class StressTestRequest(BaseModel):
+    levels: list[int] | None = None
+    step_duration_s: float = 5.0
+    settle_s: float = 1.0
+
+
+@app.post("/api/plc/stress/start")
+async def stress_start(req: StressTestRequest):
+    """Start scaling stress test: progressively subscribe more vars."""
+    if getattr(engine, '_stress_running', False):
+        return {"ok": False, "error": "Stress test already running"}
+    loop = asyncio.get_event_loop()
+
+    def _run():
+        return engine.run_stress_test(req.levels, req.step_duration_s, req.settle_s)
+
+    result = await loop.run_in_executor(None, _run)
+    return result
+
+
+@app.get("/api/plc/stress/progress")
+async def stress_progress():
+    return engine.get_stress_progress()
+
+
 @app.post("/api/plc/trace/start")
 async def trace_start(config: TraceConfig):
     global trace_active, trace_thread

@@ -271,6 +271,7 @@ input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px 
         <span style="font-size:11px;color:var(--muted)">sec</span>
         <button class="primary" onclick="startBenchmark()">Run</button>
         <button class="success" onclick="startBenchmark2()" title="Subscribe ALL gProtoTest vars at 1ms, then benchmark">Run All&nbsp;×200</button>
+        <button style="background:#e879f9;color:#000;font-weight:600" onclick="startStressTest()" title="Progressive scaling test: find the breaking point">Stress Test</button>
         <button onclick="resetLiveStats()">Reset Stats</button>
         <div class="bench-progress" id="bench-progress-wrap" style="display:none">
           <div class="bench-progress-bar" id="bench-bar" style="width:0%"></div>
@@ -359,6 +360,30 @@ input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px 
           <h4 style="font-size:10px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Per-Variable (Benchmark)</h4>
           <table class="timing-table" id="bench-pervar-table"></table>
         </div>
+      </div>
+
+      <!-- Stress Test Result -->
+      <div class="stats-section" id="stress-result-section" style="display:none">
+        <h3>Scaling Stress Test</h3>
+        <div id="stress-summary" style="margin-bottom:14px;font-size:13px;"></div>
+        <div id="stress-progress-text" style="font-size:12px;color:var(--muted);margin-bottom:8px;"></div>
+        <table class="timing-table" id="stress-table">
+          <thead>
+            <tr>
+              <th>Vars</th>
+              <th>Pkt/s</th>
+              <th>Updates/s</th>
+              <th>Dropped</th>
+              <th>Drop %</th>
+              <th>Avg IPT</th>
+              <th>P99 IPT</th>
+              <th>PLC Avg</th>
+              <th>~Bytes/Pkt</th>
+              <th>Integrity</th>
+            </tr>
+          </thead>
+          <tbody id="stress-tbody"></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -861,6 +886,72 @@ async function startBenchmark2() {
   if (!res.ok) { showNotification(res.error || 'Benchmark 2 failed', 'error'); return; }
   showNotification(`Benchmark 2: subscribed ${res.subscribed} vars @ ${res.interval_ms}ms`, 'success');
   _runBenchmarkPoll(dur);
+}
+
+let stressPollTimer = null;
+
+async function startStressTest() {
+  const section = document.getElementById('stress-result-section');
+  section.style.display = '';
+  document.getElementById('stress-tbody').innerHTML = '';
+  document.getElementById('stress-summary').innerHTML = '<span style="color:#e879f9;font-weight:600">Starting stress test...</span>';
+  document.getElementById('stress-progress-text').textContent = '';
+
+  const res = await fetch('/api/plc/stress/start', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({step_duration_s: 5.0, settle_s: 1.0})
+  });
+
+  // Poll for progress while the request is pending
+  if (stressPollTimer) clearInterval(stressPollTimer);
+  stressPollTimer = setInterval(async () => {
+    const p = await apiGet('/api/plc/stress/progress');
+    if (p && p.running) {
+      document.getElementById('stress-progress-text').textContent =
+        `Step ${p.current_level}/${p.total_levels}: ${p.current_count || '?'} vars...`;
+      renderStressRows(p.results || []);
+    }
+  }, 2000);
+
+  const data = await res.json();
+  clearInterval(stressPollTimer);
+  stressPollTimer = null;
+  document.getElementById('stress-progress-text').textContent = '';
+
+  if (!data.ok) {
+    document.getElementById('stress-summary').innerHTML = `<span style="color:#f87171">Error: ${data.error}</span>`;
+    return;
+  }
+
+  renderStressRows(data.levels);
+
+  let summary = '';
+  if (data.breaking_point) {
+    summary = `<span class="grade-badge grade-FAIR">Breaking point: ${data.breaking_point.toLocaleString()} vars</span> `;
+  }
+  summary += `<span class="grade-badge grade-PERFECT">Max perfect: ${data.max_perfect.toLocaleString()} vars</span>`;
+  document.getElementById('stress-summary').innerHTML = summary;
+  showNotification('Stress test complete', 'success');
+}
+
+function renderStressRows(levels) {
+  const tbody = document.getElementById('stress-tbody');
+  tbody.innerHTML = levels.map(r => {
+    const cls = r.dropped > 0 ? 'style="color:#f87171;font-weight:600"' : '';
+    return `<tr ${cls}>
+      <td>${r.var_count.toLocaleString()}</td>
+      <td>${r.packet_rate}</td>
+      <td>${r.var_update_rate.toLocaleString()}</td>
+      <td>${r.dropped}</td>
+      <td>${r.drop_pct}%</td>
+      <td>${r.inter_pkt_avg_ms} ms</td>
+      <td>${r.inter_pkt_p99_ms || '-'} ms</td>
+      <td>${r.plc_interval_avg_ms} ms</td>
+      <td>${r.bytes_per_pkt}</td>
+      <td><span class="grade-badge grade-${r.integrity}">${r.integrity}</span></td>
+    </tr>`;
+  }).join('');
 }
 
 function _runBenchmarkPoll(dur) {
