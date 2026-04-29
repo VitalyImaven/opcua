@@ -98,6 +98,13 @@ class PlcMonitorEngine:
         self._per_var_changes: dict[int, int] = {}  # var_id → change count
         self._per_var_prev: dict[int, any] = {}      # var_id → previous value
         self._total_var_updates: int = 0
+        # Registry sync: PLC-reported count from heartbeat
+        self.plc_registry_count: int = 0
+        # Connection health tracking
+        self._last_heartbeat_time: float = 0.0
+        self._last_data_time: float = 0.0
+        self._heartbeat_count: int = 0
+        self._disconnect_reason: str = ""
         self._seq_gaps: list[tuple] = []   # (prev_seq, cur_seq, ts_gap, missed)
         self._seq_step_counts: dict[int, int] = {}  # seq_step → count
         # Benchmark state
@@ -501,6 +508,37 @@ class PlcMonitorEngine:
         self._send_tcp_command(0x01, [], count_override=interval_ms)
         return {"ok": True, "interval_ms": interval_ms}
 
+    def get_health(self) -> dict:
+        """Return connection health status for the frontend."""
+        now = time.time()
+        HEARTBEAT_TIMEOUT_S = 10.0
+        DATA_STALE_S = 5.0
+
+        hb_age = now - self._last_heartbeat_time if self._last_heartbeat_time > 0 else None
+        data_age = now - self._last_data_time if self._last_data_time > 0 else None
+
+        if not self.connected:
+            state = "disconnected"
+        elif hb_age is None:
+            state = "waiting"  # connected but no heartbeat received yet
+        elif hb_age > HEARTBEAT_TIMEOUT_S:
+            state = "heartbeat_lost"
+        elif data_age is not None and data_age > DATA_STALE_S and len(self.subscribed) > 0:
+            state = "data_stale"
+        else:
+            state = "healthy"
+
+        py_count = len(self.registry)
+        plc_count = self.plc_registry_count
+        return {
+            "state": state,
+            "heartbeat_age_s": round(hb_age, 1) if hb_age is not None else None,
+            "data_age_s": round(data_age, 1) if data_age is not None else None,
+            "heartbeat_count": self._heartbeat_count,
+            "registry_in_sync": plc_count == py_count if plc_count > 0 else None,
+            "disconnect_reason": self._disconnect_reason or None,
+        }
+
     def get_profiler_data(self) -> dict:
         """Read PLC CPU profiler variables from the values cache."""
         cpu = {}
@@ -670,6 +708,7 @@ class PlcMonitorEngine:
                 chunk = self._tcp_sock.recv(4096)
                 if not chunk:
                     print("[TCP RX] Connection closed by PLC")
+                    self._disconnect_reason = "PLC closed connection"
                     self.connected = False
                     break
                 buf += chunk
@@ -682,6 +721,8 @@ class PlcMonitorEngine:
                 continue
             except OSError as e:
                 print(f"[TCP RX] OSError: {e}")
+                self._disconnect_reason = f"TCP error: {e}"
+                self.connected = False
                 break
         print("[TCP RX] Thread stopped")
 
@@ -742,8 +783,15 @@ class PlcMonitorEngine:
                               f"count={msg.subscribe.interval_ms}")
                 elif msg.type == MSGTYPE_HEARTBEAT:
                     if msg.HasField('update'):
+                        plc_count = msg.update.timestamp
+                        self.plc_registry_count = plc_count
+                        self._last_heartbeat_time = time.time()
+                        self._heartbeat_count += 1
+                        py_count = len(self.registry)
+                        sync_ok = plc_count == py_count
                         print(f"[TCP RX] Heartbeat: subs={msg.update.sequence} "
-                              f"registry={msg.update.timestamp}")
+                              f"registry={plc_count} "
+                              f"{'SYNC OK' if sync_ok else f'MISMATCH (Python={py_count})'}")
                 elif msg.type == MSGTYPE_CONFIG_RESPONSE:
                     if msg.HasField('config_resp'):
                         self.transport_mode = msg.config_resp.transport
@@ -902,6 +950,7 @@ class PlcMonitorEngine:
             self.stats["last_timestamp"] = timestamp
             self.stats["packets_received"] += 1
             self.stats["bytes_received"] += pkt_bytes
+            self._last_data_time = py_now
             if self._last_packet_py_time > 0:
                 dt_ms = (py_now - self._last_packet_py_time) * 1000
                 self._inter_packet_times.append(dt_ms)
@@ -1036,6 +1085,8 @@ class PlcMonitorEngine:
             self.stats["last_timestamp"] = timestamp
             self.stats["packets_received"] += 1
             self.stats["bytes_received"] += pkt_bytes
+
+            self._last_data_time = py_now
 
             # Inter-packet timing
             if self._last_packet_py_time > 0:

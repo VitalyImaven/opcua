@@ -102,16 +102,27 @@ async def disconnect():
 
 @app.get("/api/plc/status")
 async def status():
+    py_count = len(engine.registry)
+    plc_count = engine.plc_registry_count
+    health = engine.get_health()
     return {
         "connected": engine.connected,
         "ip": engine.plc_ip,
         "transport": "TCP" if engine.transport_mode == 0 else "UDP",
-        "registry_size": len(engine.registry),
+        "registry_size": py_count,
+        "plc_registry_size": plc_count,
+        "registry_in_sync": health["registry_in_sync"],
         "available_count": len(engine.available_vars),
         "discovery_done": engine._discovery_done,
         "subscribed": len(engine.subscribed),
+        "health": health,
         "stats": engine.stats,
     }
+
+
+@app.get("/api/plc/health")
+async def health():
+    return engine.get_health()
 
 
 @app.get("/api/plc/browse")
