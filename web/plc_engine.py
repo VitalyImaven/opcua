@@ -1509,6 +1509,9 @@ class PlcMonitorEngine:
         self._stress_running = True
         self._stress_progress = {"current_level": 0, "total_levels": len(levels), "results": []}
 
+        # Reset global stats so level transitions don't cause false drop counts
+        self.reset_stats()
+
         for i, count in enumerate(levels):
             if not self._stress_running:
                 break
@@ -1579,6 +1582,14 @@ class PlcMonitorEngine:
                   f"drops={step_result['dropped']}, integrity={step_result['integrity']}")
 
         self._stress_running = False
+
+        # Restore subscription to a small safe set (first 209 vars)
+        safe_ids = all_ids[:min(209, len(all_ids))]
+        self.subscribed = set(safe_ids)
+        self._send_tcp_command(0x01, safe_ids)
+
+        # Reset global stats so post-test live view starts clean
+        self.reset_stats()
 
         # Find breaking point: first level with drops > 0
         breaking_point = None
