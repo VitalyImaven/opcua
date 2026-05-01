@@ -56,6 +56,7 @@ class ConnectRequest(BaseModel):
 class SubscribeRequest(BaseModel):
     var_names: list[str] = []
     var_ids: list[int] = []
+    force: bool = False  # bypass the cycle-time-derived safety cap (testing only)
 
 class IntervalRequest(BaseModel):
     interval_ms: int = 10
@@ -147,10 +148,16 @@ async def get_defaults(prefix: str = "gProtoTest"):
 @app.post("/api/plc/subscribe")
 async def subscribe(req: SubscribeRequest):
     if req.var_names:
-        return engine.subscribe(req.var_names)
+        return engine.subscribe(req.var_names, force=req.force)
     elif req.var_ids:
-        return engine.subscribe_by_ids(req.var_ids)
+        return engine.subscribe_by_ids(req.var_ids, force=req.force)
     return {"ok": False, "error": "Provide var_names or var_ids"}
+
+
+@app.get("/api/plc/limits")
+async def plc_limits():
+    """Return the current safe-subscription limit derived from the PLC cycle time."""
+    return engine.get_subscription_limits()
 
 
 class WriteVarRequest(BaseModel):
@@ -244,6 +251,7 @@ async def benchmark2_start(req: Benchmark2Request):
 class FullSubscribeTestRequest(BaseModel):
     duration_s: float = 10.0
     max_vars: int = 4500
+    force: bool = False  # bypass the cycle-time-derived safety cap (testing only)
 
 
 @app.post("/api/plc/fulltest/start")
@@ -271,6 +279,11 @@ async def fulltest_start(req: FullSubscribeTestRequest):
     cpu_ids = engine._get_cpu_var_ids()
     # CPU vars go first to ensure they're always included
     merged = sorted(set(cpu_ids) | set(candidate_ids))[:req.max_vars]
+
+    # Cycle-time safety cap — refuse before we crash the PLC
+    cap_err = engine._check_sub_size(len(merged), req.force)
+    if cap_err is not None:
+        return cap_err
 
     # Run everything in executor to avoid blocking the event loop
     loop = asyncio.get_event_loop()
@@ -354,6 +367,65 @@ async def stress_start(req: StressTestRequest):
 @app.get("/api/plc/stress/progress")
 async def stress_progress():
     return engine.get_stress_progress()
+
+
+# ── Churn ("Real Sim") test ─────────────────────────────────────
+class ChurnTestRequest(BaseModel):
+    duration_s: float = 300.0          # 5 minutes
+    churn_size: int = 1000             # vars to swap each round
+    churn_interval_s: float = 2.0      # how often to swap
+    churn_pool_start: int = 10000      # start index in available_vars (skip the first N)
+    baseline_prefix: str = "gProtoTest"  # always-on prefix
+    force: bool = False                # bypass cycle-time safety cap
+
+
+@app.post("/api/plc/churntest/start")
+async def churntest_start(req: ChurnTestRequest):
+    """Start a long-running real-world simulation test in a background thread.
+
+    Returns immediately (test runs for duration_s). Poll /api/plc/churntest/status
+    for live progress and the final result.
+    """
+    if not engine.connected:
+        return {"ok": False, "error": "Not connected"}
+    if getattr(engine, "_churn_running", False):
+        return {"ok": False, "error": "Churn test already running"}
+
+    def _run():
+        try:
+            engine.run_churn_test(
+                duration_s=req.duration_s,
+                churn_size=req.churn_size,
+                churn_interval_s=req.churn_interval_s,
+                churn_pool_start=req.churn_pool_start,
+                baseline_prefix=req.baseline_prefix,
+                force=req.force,
+            )
+        except Exception as e:
+            engine._churn_running = False
+            engine._churn_done = True
+            engine._churn_result = {"ok": False, "error": f"Churn test crashed: {e}"}
+
+    threading.Thread(target=_run, daemon=True).start()
+
+    return {
+        "ok": True,
+        "started": True,
+        "duration_s": req.duration_s,
+        "churn_size": req.churn_size,
+        "churn_interval_s": req.churn_interval_s,
+        "churn_pool_start": req.churn_pool_start,
+    }
+
+
+@app.get("/api/plc/churntest/status")
+async def churntest_status():
+    return engine.get_churn_status()
+
+
+@app.post("/api/plc/churntest/stop")
+async def churntest_stop():
+    return engine.stop_churn_test()
 
 
 @app.post("/api/plc/trace/start")
