@@ -378,9 +378,11 @@ input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px 
               <th>Dropped</th>
               <th>Drop %</th>
               <th>Avg IPT</th>
-              <th>P99 IPT</th>
               <th>PLC Avg</th>
-              <th>~Bytes/Pkt</th>
+              <th>Vars/Pkt</th>
+              <th>Min V/P</th>
+              <th>Max V/P</th>
+              <th>Bytes/Pkt</th>
               <th>Integrity</th>
             </tr>
           </thead>
@@ -983,8 +985,10 @@ function renderStressRows(levels) {
       <td>${r.dropped}</td>
       <td>${r.drop_pct}%</td>
       <td>${r.inter_pkt_avg_ms} ms</td>
-      <td>${r.inter_pkt_p99_ms || '-'} ms</td>
       <td>${r.plc_interval_avg_ms} ms</td>
+      <td>${r.avg_vars_per_pkt || 0}</td>
+      <td>${r.min_vars_per_pkt || 0}</td>
+      <td>${r.max_vars_per_pkt || 0}</td>
       <td>${r.bytes_per_pkt}</td>
       <td><span class="grade-badge grade-${r.integrity}">${r.integrity}</span></td>
     </tr>`;

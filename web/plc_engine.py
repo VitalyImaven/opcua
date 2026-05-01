@@ -501,6 +501,17 @@ class PlcMonitorEngine:
                     import time
                     time.sleep(0.05)  # Small delay between chunks
 
+    def _send_subscribe_chunked_add(self, var_ids: list[int], chunk_size: int = 5000):
+        """Send ADD subscribe in chunks. All chunks use ADD action."""
+        if len(var_ids) <= chunk_size:
+            self._send_tcp_command(0x02, var_ids)  # ADD
+        else:
+            for i in range(0, len(var_ids), chunk_size):
+                chunk = var_ids[i:i + chunk_size]
+                self._send_tcp_command(0x02, chunk)
+                if i > 0:
+                    time.sleep(0.05)
+
     def set_interval(self, interval_ms: int) -> dict:
         """Set PLC send interval."""
         interval_ms = max(1, min(10000, interval_ms))
@@ -705,7 +716,7 @@ class PlcMonitorEngine:
         _rx_count = 0
         while self._running:
             try:
-                chunk = self._tcp_sock.recv(4096)
+                chunk = self._tcp_sock.recv(65536)
                 if not chunk:
                     print("[TCP RX] Connection closed by PLC")
                     self._disconnect_reason = "PLC closed connection"
@@ -749,8 +760,8 @@ class PlcMonitorEngine:
             # Read 4-byte LE length prefix
             msg_len = struct.unpack_from("<I", buf, 0)[0]
             
-            # Sanity check
-            if msg_len > 65535:
+            # Sanity check — PLC iTcpDataBuf is 524288 bytes, allow up to 512KB
+            if msg_len > 524288:
                 # Invalid — skip 1 byte and rescan
                 buf = buf[1:]
                 continue
@@ -1375,6 +1386,8 @@ class PlcMonitorEngine:
         self._bench_prev_values = {}
         self._bench_last_py_time = 0.0
         self._bench_last_seq = 0
+        self._bench_vars_per_pkt = []  # vars received in each packet
+        self._bench_bytes_per_pkt = []  # bytes of each packet
         return {"ok": True, "duration_s": duration_s}
 
     def _record_benchmark(self, seq: int, timestamp: int, var_updates: dict[int, any],
@@ -1390,6 +1403,8 @@ class PlcMonitorEngine:
 
         self._bench_packets += 1
         self._bench_var_updates += len(var_updates)
+        self._bench_vars_per_pkt.append(len(var_updates))
+        self._bench_bytes_per_pkt.append(pkt_bytes)
 
         if self._bench_last_py_time > 0:
             dt = (py_time - self._bench_last_py_time) * 1000  # ms
@@ -1467,6 +1482,10 @@ class PlcMonitorEngine:
             "per_variable": per_var,
             "max_vars_estimate": safe_vars_at_rate,
             "grade": self._compute_grade(pkt_rate, self._bench_drops, ipt_stats),
+            "avg_vars_per_pkt": round(sum(self._bench_vars_per_pkt) / max(1, len(self._bench_vars_per_pkt)), 1),
+            "min_vars_per_pkt": min(self._bench_vars_per_pkt) if self._bench_vars_per_pkt else 0,
+            "max_vars_per_pkt": max(self._bench_vars_per_pkt) if self._bench_vars_per_pkt else 0,
+            "avg_bytes_per_pkt": round(sum(self._bench_bytes_per_pkt) / max(1, len(self._bench_bytes_per_pkt))),
         }
         self._bench_done = True
 
@@ -1486,10 +1505,12 @@ class PlcMonitorEngine:
 
     # ── Scaling Stress Test ──────────────────────────────────────
     def run_stress_test(self, levels: list[int] | None = None,
-                        step_duration_s: float = 5.0,
-                        settle_s: float = 1.0) -> dict:
+                        step_duration_s: float = 1.5,
+                        settle_s: float = 0.5) -> dict:
         """Run progressive stress test: subscribe increasing var counts,
         benchmark each level, return table of results.
+        
+        Default: 1k → 10k in 1k steps, each step takes ~2s (0.5s settle + 1.5s bench).
         
         Must be called from a background thread (blocks for the full duration).
         """
@@ -1500,10 +1521,7 @@ class PlcMonitorEngine:
         max_vars = len(all_ids)
 
         if levels is None:
-            levels = [l for l in [209, 500, 1000, 2000, 5000, 10000, 20000, 50000, max_vars]
-                      if l <= max_vars]
-            if max_vars not in levels:
-                levels.append(max_vars)
+            levels = list(range(1000, min(10001, max_vars + 1), 1000))
 
         results = []
         self._stress_running = True
@@ -1519,13 +1537,16 @@ class PlcMonitorEngine:
             self._stress_progress["current_level"] = i + 1
             self._stress_progress["current_count"] = count
 
-            # Subscribe to first `count` vars
+            # Subscribe to first `count` vars (SET with chunking for >5000)
             ids_subset = all_ids[:count]
             self.subscribed = set(ids_subset)
-            self._send_tcp_command(0x01, ids_subset)
+            self._send_subscribe_chunked(ids_subset)
 
             # Let PLC settle with new subscription
             time.sleep(settle_s)
+
+            # Reset global stats after settle so level transitions don't cause false drops
+            self.reset_stats()
 
             # Reset stats and run benchmark
             self._bench_running = True
@@ -1543,6 +1564,8 @@ class PlcMonitorEngine:
             self._bench_prev_values = {}
             self._bench_last_py_time = 0.0
             self._bench_last_seq = 0
+            self._bench_vars_per_pkt = []
+            self._bench_bytes_per_pkt = []
 
             # Wait for benchmark to complete
             deadline = time.perf_counter() + step_duration_s + 3.0
@@ -1560,7 +1583,10 @@ class PlcMonitorEngine:
                     "inter_pkt_p99_ms": self._bench_result.get("inter_packet_ms", {}).get("p99", 0),
                     "plc_interval_avg_ms": self._bench_result.get("plc_interval_ms", {}).get("avg", 0),
                     "integrity": self._bench_result.get("grade", {}).get("integrity", "?"),
-                    "bytes_per_pkt": round(self._bench_result.get("var_updates", 0) * 9 / max(1, self._bench_result["packets"])),
+                    "bytes_per_pkt": self._bench_result.get("avg_bytes_per_pkt", 0),
+                    "avg_vars_per_pkt": self._bench_result.get("avg_vars_per_pkt", 0),
+                    "min_vars_per_pkt": self._bench_result.get("min_vars_per_pkt", 0),
+                    "max_vars_per_pkt": self._bench_result.get("max_vars_per_pkt", 0),
                 }
             else:
                 step_result = {
@@ -1574,19 +1600,30 @@ class PlcMonitorEngine:
                     "plc_interval_avg_ms": 0,
                     "integrity": "FAIL",
                     "bytes_per_pkt": 0,
+                    "avg_vars_per_pkt": 0,
+                    "min_vars_per_pkt": 0,
+                    "max_vars_per_pkt": 0,
                 }
 
             results.append(step_result)
             self._stress_progress["results"] = results
             print(f"[STRESS] {count} vars: {step_result['packet_rate']} pkt/s, "
-                  f"drops={step_result['dropped']}, integrity={step_result['integrity']}")
+                  f"drops={step_result['dropped']}, "
+                  f"vars/pkt={step_result['avg_vars_per_pkt']} (min={step_result['min_vars_per_pkt']}, max={step_result['max_vars_per_pkt']}), "
+                  f"bytes/pkt={step_result['bytes_per_pkt']}, "
+                  f"integrity={step_result['integrity']}")
 
         self._stress_running = False
 
-        # Restore subscription to a small safe set (first 209 vars)
-        safe_ids = all_ids[:min(209, len(all_ids))]
-        self.subscribed = set(safe_ids)
-        self._send_tcp_command(0x01, safe_ids)
+        # Stop the data flood: unsubscribe first, wait, then restore a small set
+        self._send_tcp_command(0x01, [])  # SET with 0 vars = clear subscriptions
+        time.sleep(1.0)  # Let PLC stop sending and TCP drain
+
+        if self.connected:
+            safe_ids = all_ids[:min(209, len(all_ids))]
+            self.subscribed = set(safe_ids)
+            self._send_tcp_command(0x01, safe_ids)
+            time.sleep(0.5)
 
         # Reset global stats so post-test live view starts clean
         self.reset_stats()
