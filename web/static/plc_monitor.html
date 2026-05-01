@@ -196,7 +196,7 @@ input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px 
   </div>
   <div class="conn-group">
     <div class="status-dot" id="status-led"></div>
-    <input id="plc-ip" type="text" value="127.0.0.1" placeholder="PLC IP">
+    <input id="plc-ip" type="text" value="192.168.101.10" placeholder="PLC IP">
     <select id="transport-mode" title="Transport for variable updates">
       <option value="tcp" selected>TCP</option>
       <option value="udp">UDP</option>
@@ -274,7 +274,8 @@ input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px 
         <button class="primary" onclick="startBenchmark()">Run</button>
         <button class="success" onclick="startBenchmark2()" title="Subscribe ALL gProtoTest vars at 1ms, then benchmark">Run All&nbsp;×200</button>
         <button style="background:#e879f9;color:#000;font-weight:600" onclick="startStressTest()" title="Progressive scaling test: find the breaking point">Stress Test</button>
-        <button style="background:#38bdf8;color:#000;font-weight:600" onclick="startFullTest()" title="Subscribe ALL discovered vars, benchmark 10s">Full Test</button>
+        <input id="fulltest-maxvars" type="number" value="4500" min="100" max="50000" step="500" style="width:80px" title="How many vars to subscribe for Full Test (max 50000)">
+        <button style="background:#38bdf8;color:#000;font-weight:600" onclick="startFullTest()" title="Subscribe to N discovered vars, benchmark for N seconds">Full Test</button>
         <button onclick="resetLiveStats()">Reset Stats</button>
         <div class="bench-progress" id="bench-progress-wrap" style="display:none">
           <div class="bench-progress-bar" id="bench-bar" style="width:0%"></div>
@@ -940,13 +941,14 @@ async function startFullTest() {
   const section = document.getElementById('fulltest-result-section');
   section.style.display = '';
   const dur = parseFloat(document.getElementById('bench-dur').value) || 10;
-  document.getElementById('fulltest-summary').innerHTML = '<span style="color:#38bdf8;font-weight:600">Subscribing to ALL variables and running ' + dur + 's benchmark...</span>';
+  const maxVars = parseInt(document.getElementById('fulltest-maxvars').value) || 4500;
+  document.getElementById('fulltest-summary').innerHTML = '<span style="color:#38bdf8;font-weight:600">Subscribing to ' + maxVars.toLocaleString() + ' variables and running ' + dur + 's benchmark...</span>';
 
   try {
     const res = await fetch('/api/plc/fulltest/start', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({duration_s: dur})
+      body: JSON.stringify({duration_s: dur, max_vars: maxVars})
     });
     const data = await res.json();
     if (!data.ok) {

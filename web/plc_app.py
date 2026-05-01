@@ -248,18 +248,29 @@ class FullSubscribeTestRequest(BaseModel):
 
 @app.post("/api/plc/fulltest/start")
 async def fulltest_start(req: FullSubscribeTestRequest):
-    """Subscribe to first N discovered variables, run benchmark for duration_s."""
+    """Subscribe to first N discovered variables, run benchmark for duration_s.
+
+    Prefers vars from `engine.available_vars` (the set discovered to actually
+    have a real PLC address) so that asking for, e.g., 50,000 subscriptions
+    yields 50,000 *real* monitored vars rather than mostly phantom IDs whose
+    pAddress is 0 and which the PLC silently skips during encoding.
+    Falls back to the full registry only if discovery hasn't been run yet.
+    """
     if not engine.connected:
         return {"ok": False, "error": "Not connected"}
 
     # Save current subscription
     pre_subs = set(engine.subscribed)
 
-    # Take first max_vars registry IDs (including CPU profiler vars)
-    all_ids = sorted(engine.registry.keys())
+    # Pick candidates: prefer discovered/available vars (they have real
+    # PLC addresses); otherwise fall back to the full registry.
+    if engine._discovery_done and engine.available_vars:
+        candidate_ids = sorted(engine.available_vars)
+    else:
+        candidate_ids = sorted(engine.registry.keys())
     cpu_ids = engine._get_cpu_var_ids()
     # CPU vars go first to ensure they're always included
-    merged = sorted(set(cpu_ids) | set(all_ids))[:req.max_vars]
+    merged = sorted(set(cpu_ids) | set(candidate_ids))[:req.max_vars]
 
     # Run everything in executor to avoid blocking the event loop
     loop = asyncio.get_event_loop()
