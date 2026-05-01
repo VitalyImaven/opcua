@@ -241,6 +241,85 @@ async def benchmark2_start(req: Benchmark2Request):
     return bench_result
 
 
+class FullSubscribeTestRequest(BaseModel):
+    duration_s: float = 10.0
+    max_vars: int = 4500
+
+
+@app.post("/api/plc/fulltest/start")
+async def fulltest_start(req: FullSubscribeTestRequest):
+    """Subscribe to first N discovered variables, run benchmark for duration_s."""
+    if not engine.connected:
+        return {"ok": False, "error": "Not connected"}
+
+    # Save current subscription
+    pre_subs = set(engine.subscribed)
+
+    # Take first max_vars registry IDs (including CPU profiler vars)
+    all_ids = sorted(engine.registry.keys())
+    cpu_ids = engine._get_cpu_var_ids()
+    # CPU vars go first to ensure they're always included
+    merged = sorted(set(cpu_ids) | set(all_ids))[:req.max_vars]
+
+    # Run everything in executor to avoid blocking the event loop
+    loop = asyncio.get_event_loop()
+
+    def _run():
+        import time as _time
+
+        # Subscribe to the test set.
+        # Use the default chunk_size (5000) so 4500 fits in a single SET — that
+        # way the PLC processes one command in one cycle and we avoid the
+        # SET-then-ADD ACK race that triggers the cold-start instability.
+        engine.subscribed = set(merged)
+        engine._send_subscribe_chunked(merged)
+        print(f"[FULLTEST] Subscribed to {len(merged)} vars, settling...")
+
+        # Let PLC settle
+        _time.sleep(2.0)
+
+        # Reset stats before benchmark
+        engine.reset_stats()
+
+        # Start benchmark
+        engine.start_benchmark(req.duration_s)
+        print(f"[FULLTEST] Benchmark started for {req.duration_s}s")
+
+        # Wait for benchmark to complete
+        deadline = _time.perf_counter() + req.duration_s + 5.0
+        while not engine._bench_done and _time.perf_counter() < deadline:
+            _time.sleep(0.2)
+
+        # Force finalize if timed out
+        if not engine._bench_done and engine._bench_running:
+            print("[FULLTEST] Benchmark timed out, force finalizing")
+            engine._finalize_benchmark()
+
+        result = engine._bench_result or {"error": "No packets received during test"}
+        result["ok"] = True
+        result["total_subscribed"] = len(merged)
+        print(f"[FULLTEST] Benchmark done: {result.get('packet_rate', 0)} pkt/s")
+
+        # Restore previous subscription
+        if pre_subs:
+            restore = sorted(pre_subs)
+            engine.subscribed = set(restore)
+            engine._send_subscribe_chunked(restore)
+            print(f"[FULLTEST] Restored {len(restore)} previous subscriptions")
+        else:
+            engine._send_tcp_command(0x01, [])
+            engine.subscribed = set()
+            print("[FULLTEST] No previous subs to restore, cleared")
+
+        _time.sleep(0.5)
+        engine.reset_stats()
+
+        return result
+
+    result = await loop.run_in_executor(None, _run)
+    return result
+
+
 class StressTestRequest(BaseModel):
     levels: list[int] | None = None
     step_duration_s: float = 5.0

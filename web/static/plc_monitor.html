@@ -274,6 +274,7 @@ input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px 
         <button class="primary" onclick="startBenchmark()">Run</button>
         <button class="success" onclick="startBenchmark2()" title="Subscribe ALL gProtoTest vars at 1ms, then benchmark">Run All&nbsp;×200</button>
         <button style="background:#e879f9;color:#000;font-weight:600" onclick="startStressTest()" title="Progressive scaling test: find the breaking point">Stress Test</button>
+        <button style="background:#38bdf8;color:#000;font-weight:600" onclick="startFullTest()" title="Subscribe ALL discovered vars, benchmark 10s">Full Test</button>
         <button onclick="resetLiveStats()">Reset Stats</button>
         <div class="bench-progress" id="bench-progress-wrap" style="display:none">
           <div class="bench-progress-bar" id="bench-bar" style="width:0%"></div>
@@ -388,6 +389,12 @@ input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px 
           </thead>
           <tbody id="stress-tbody"></tbody>
         </table>
+      </div>
+
+      <!-- Full Test Result -->
+      <div class="stats-section" id="fulltest-result-section" style="display:none">
+        <h3>Full Subscribe Test</h3>
+        <div id="fulltest-summary" style="margin-bottom:14px;font-size:13px;"></div>
       </div>
     </div>
   </div>
@@ -928,6 +935,57 @@ async function startBenchmark2() {
 }
 
 let stressPollTimer = null;
+
+async function startFullTest() {
+  const section = document.getElementById('fulltest-result-section');
+  section.style.display = '';
+  const dur = parseFloat(document.getElementById('bench-dur').value) || 10;
+  document.getElementById('fulltest-summary').innerHTML = '<span style="color:#38bdf8;font-weight:600">Subscribing to ALL variables and running ' + dur + 's benchmark...</span>';
+
+  try {
+    const res = await fetch('/api/plc/fulltest/start', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({duration_s: dur})
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      document.getElementById('fulltest-summary').innerHTML = `<span style="color:#f87171">Error: ${data.error || 'Unknown'}</span>`;
+      return;
+    }
+
+    const r = data;
+    const rate = r.packet_rate || 0;
+    const integrity = r.grade?.integrity || '?';
+    const jitter = r.grade?.jitter || '?';
+    const overall = r.grade?.overall || '?';
+    const html = `
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px">
+        <span class="grade-badge grade-${integrity}">INTEGRITY: ${integrity}</span>
+        <span class="grade-badge grade-${jitter}">JITTER: ${jitter}</span>
+        <span class="grade-badge grade-${overall}">OVERALL: ${overall}</span>
+      </div>
+      <table class="timing-table">
+        <tr><td>Total Subscribed</td><td><b>${(r.total_subscribed||0).toLocaleString()}</b></td></tr>
+        <tr><td>Duration</td><td>${(r.elapsed_s||0).toFixed(1)}s</td></tr>
+        <tr><td>Packets</td><td>${(r.packets||0).toLocaleString()}</td></tr>
+        <tr><td>Packet Rate</td><td><b>${rate}/s</b></td></tr>
+        <tr><td>Var Updates</td><td>${(r.var_updates||0).toLocaleString()}</td></tr>
+        <tr><td>Update Rate</td><td>${(r.var_update_rate||0).toLocaleString()}/s</td></tr>
+        <tr><td>Var Changes</td><td>${(r.var_changes||0).toLocaleString()}</td></tr>
+        <tr><td>Change Rate</td><td>${(r.var_change_rate||0).toLocaleString()}/s</td></tr>
+        <tr><td>Dropped</td><td>${r.dropped_packets||0}</td></tr>
+        <tr><td>Drop %</td><td>${r.drop_pct||0}%</td></tr>
+        <tr><td>Avg Vars/Pkt</td><td>${r.avg_vars_per_pkt||0}</td></tr>
+        <tr><td>Avg Bytes/Pkt</td><td>${r.avg_bytes_per_pkt||0}</td></tr>
+        <tr><td>PLC Avg Interval</td><td>${r.plc_interval_ms?.avg || '?'} ms</td></tr>
+      </table>`;
+    document.getElementById('fulltest-summary').innerHTML = html;
+    showNotification('Full test complete', 'success');
+  } catch(e) {
+    document.getElementById('fulltest-summary').innerHTML = `<span style="color:#f87171">Error: ${e.message}</span>`;
+  }
+}
 
 async function startStressTest() {
   const section = document.getElementById('stress-result-section');

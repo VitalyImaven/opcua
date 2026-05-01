@@ -489,28 +489,35 @@ class PlcMonitorEngine:
         return {"ok": True, "subscribed": len(merged)}
 
     def _send_subscribe_chunked(self, var_ids: list[int], chunk_size: int = 5000):
-        """Send subscribe in chunks of chunk_size. First chunk uses SET, rest use ADD."""
+        """Send subscribe in chunks of chunk_size. First chunk uses SET, rest use ADD.
+
+        A delay is inserted BEFORE each non-first chunk so the PLC has time to
+        consume the previous TCP message and complete its ACK send before the
+        next inbound command arrives. The PLC processes one length-delimited
+        message per cycle (~6.4 ms) and uses a single TcpSend FB for ACKs;
+        without this gap, the second ACK can be fired while the first is still
+        in flight, corrupting the ACK stream.
+        """
         if len(var_ids) <= chunk_size:
             self._send_tcp_command(0x01, var_ids)  # SET
-        else:
-            for i in range(0, len(var_ids), chunk_size):
-                chunk = var_ids[i:i + chunk_size]
-                cmd = 0x01 if i == 0 else 0x02  # SET first, ADD rest
-                self._send_tcp_command(cmd, chunk)
-                if i > 0:
-                    import time
-                    time.sleep(0.05)  # Small delay between chunks
+            return
+        for i in range(0, len(var_ids), chunk_size):
+            chunk = var_ids[i:i + chunk_size]
+            cmd = 0x01 if i == 0 else 0x02  # SET first, ADD rest
+            if i > 0:
+                time.sleep(0.05)  # Let PLC drain previous SET/ADD + ACK first
+            self._send_tcp_command(cmd, chunk)
 
     def _send_subscribe_chunked_add(self, var_ids: list[int], chunk_size: int = 5000):
         """Send ADD subscribe in chunks. All chunks use ADD action."""
         if len(var_ids) <= chunk_size:
             self._send_tcp_command(0x02, var_ids)  # ADD
-        else:
-            for i in range(0, len(var_ids), chunk_size):
-                chunk = var_ids[i:i + chunk_size]
-                self._send_tcp_command(0x02, chunk)
-                if i > 0:
-                    time.sleep(0.05)
+            return
+        for i in range(0, len(var_ids), chunk_size):
+            chunk = var_ids[i:i + chunk_size]
+            if i > 0:
+                time.sleep(0.05)
+            self._send_tcp_command(0x02, chunk)
 
     def set_interval(self, interval_ms: int) -> dict:
         """Set PLC send interval."""
@@ -780,14 +787,13 @@ class PlcMonitorEngine:
                 msg.ParseFromString(pb_bytes)
                 
                 if msg.type == MSGTYPE_VAR_UPDATE and msg.HasField('update'):
-                    if len(msg.update.values) > 0:
-                        self._decode_protobuf_update(msg.update, len(pb_bytes))
-                    else:
-                        # PLC sends flat VarValues (no submessage wrappers)
-                        n = self._decode_flat_update(pb_bytes, len(pb_bytes))
-                        if n and not getattr(self, '_flat_logged', False):
-                            print(f"[TCP RX] Flat decoder: {n} vars from {len(pb_bytes)}B")
-                            self._flat_logged = True
+                    # Always route through the standard path. The PLC's
+                    # encode_var_inline emits proper field-3 submessages, so
+                    # populated packets parse normally; empty packets are
+                    # delta-mode keepalives (sequence + timestamp, 0 values)
+                    # that we still want to count for packet-rate / inter-
+                    # packet timing stats.
+                    self._decode_protobuf_update(msg.update, len(pb_bytes))
                 elif msg.type == MSGTYPE_SUBSCRIBE_CMD:
                     if msg.HasField('subscribe'):
                         print(f"[TCP RX] Subscribe ACK: action={msg.subscribe.action} "
@@ -1520,6 +1526,9 @@ class PlcMonitorEngine:
         all_ids = sorted(self.registry.keys())
         max_vars = len(all_ids)
 
+        # Save current subscription so we can restore it after the test
+        pre_stress_subs = set(self.subscribed)
+
         if levels is None:
             levels = list(range(1000, min(10001, max_vars + 1), 1000))
 
@@ -1615,14 +1624,16 @@ class PlcMonitorEngine:
 
         self._stress_running = False
 
-        # Stop the data flood: unsubscribe first, wait, then restore a small set
+        # Restore pre-test subscription: save it before the loop starts
+        # (captured below at start). Clear the stress flood, then re-subscribe
+        # to whatever the user had selected before the test.
         self._send_tcp_command(0x01, [])  # SET with 0 vars = clear subscriptions
-        time.sleep(1.0)  # Let PLC stop sending and TCP drain
+        time.sleep(0.5)
 
-        if self.connected:
-            safe_ids = all_ids[:min(209, len(all_ids))]
-            self.subscribed = set(safe_ids)
-            self._send_tcp_command(0x01, safe_ids)
+        if self.connected and pre_stress_subs:
+            restore_ids = sorted(pre_stress_subs)
+            self.subscribed = set(restore_ids)
+            self._send_subscribe_chunked(restore_ids)
             time.sleep(0.5)
 
         # Reset global stats so post-test live view starts clean
