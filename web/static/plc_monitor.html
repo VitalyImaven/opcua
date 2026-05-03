@@ -274,7 +274,7 @@ input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px 
         <button class="primary" onclick="startBenchmark()">Run</button>
         <button class="success" onclick="startBenchmark2()" title="Subscribe ALL gProtoTest vars at 1ms, then benchmark">Run All&nbsp;×200</button>
         <button style="background:#e879f9;color:#000;font-weight:600" onclick="startStressTest()" title="Progressive scaling test: find the breaking point">Stress Test</button>
-        <input id="fulltest-maxvars" type="number" value="4500" min="100" max="10000" step="500" style="width:80px" title="How many vars to subscribe for Full Test (auto-bounded by current PLC cycle)">
+        <input id="fulltest-maxvars" type="number" value="4500" min="100" max="100000" step="500" style="width:90px" title="How many vars to subscribe for Full Test. With chunked snapshot you can safely go up to 100,000.">
         <label style="font-size:10px;color:var(--muted);display:flex;align-items:center;gap:3px;cursor:pointer" title="Bypass the cycle-time safety cap (TESTING ONLY — may crash the PLC)">
           <input id="fulltest-force" type="checkbox" style="margin:0">Force
         </label>

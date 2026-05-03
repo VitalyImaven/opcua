@@ -513,17 +513,15 @@ class PlcMonitorEngine:
             "limits": self.get_subscription_limits(),
         }
 
-    # ── Subscription cap (PLC cycle-time protection) ────────────
-    # Empirical baseline: at a 6.4 ms PLC task cycle, ~10,000 subscriptions
-    # is the proven safe ceiling before the synchronous initial-snapshot
-    # encode in npb_encode_var_update can exceed the task class budget and
-    # trigger a "TCx maximum cycle time violation" watchdog. The bottleneck
-    # scales linearly with cycle time, so the cap is derived as
-    # (cycle_ms / 6.4) * 10,000, bounded to the architectural cap of
-    # iSubscription[0..49999] = 50,000.
-    _SAFE_CAP_BASE = 10000
-    _SAFE_CAP_BASE_CYCLE_MS = 6.4
-    _ARCHITECTURAL_MAX_SUBS = 50000
+    # ── Subscription cap (architectural ceiling) ───────────────
+    # Since the PLC was upgraded with the chunked-snapshot + spread-delta-compare
+    # architecture (May 2026), the per-cycle work is bounded by iSnapBatchSize
+    # (during initial snapshot) and iScanBatchSize (during steady-state delta scan)
+    # regardless of how large the subscription is. The "cycle-time derived" cap
+    # we used before is no longer the limiting factor — only the static array
+    # size in VarMonLib.fun (iSubscription[0..99999]) remains. The cap now
+    # collapses to a single constant equal to the architectural ceiling.
+    _ARCHITECTURAL_MAX_SUBS = 100000
 
     def _get_plc_cycle_time_ms(self) -> float | None:
         """Return the current PLC task cycle time in ms, or None if not yet known.
@@ -531,6 +529,7 @@ class PlcMonitorEngine:
         Sourced from the gMachine.Out.Monitors.Cpu.CycleTimeUs profiler var,
         which the engine auto-subscribes to after discovery. Returns None
         before the first profiler packet has been received.
+        Kept for diagnostics / display — no longer feeds into the safe cap.
         """
         var_id = self.name_to_id.get("gMachine.Out.Monitors.Cpu.CycleTimeUs")
         if var_id is None:
@@ -540,33 +539,31 @@ class PlcMonitorEngine:
             return None
         return float(val) / 1000.0
 
-    def _safe_subs_for_cycle(self, cycle_ms: float) -> int:
-        cap = int(self._SAFE_CAP_BASE * cycle_ms / self._SAFE_CAP_BASE_CYCLE_MS)
-        return max(500, min(self._ARCHITECTURAL_MAX_SUBS, cap))
-
     def get_subscription_limits(self) -> dict:
-        """Return the current safe-subscription limit and the inputs that derived it.
+        """Return the safe-subscription limit and the inputs that derived it.
 
         Used by the API + UI to (a) display the current cap, (b) auto-bound
         the Max Vars input on the Full Test, and (c) refuse oversize
         subscriptions before they reach the PLC.
+
+        With chunked snapshot + spread delta_compare on the PLC, the cap is
+        the static array size in VarMonLib.fun — the per-cycle PLC work is
+        bounded regardless of subscription size, so any cycle time is safe.
         """
         cycle_ms = self._get_plc_cycle_time_ms()
-        # Conservative default if we haven't observed the PLC cycle yet.
-        effective_cycle = cycle_ms if cycle_ms is not None else self._SAFE_CAP_BASE_CYCLE_MS
-        safe_limit = self._safe_subs_for_cycle(effective_cycle)
         return {
             "cycle_time_ms": round(cycle_ms, 2) if cycle_ms is not None else None,
             "cycle_time_known": cycle_ms is not None,
-            "assumed_cycle_ms": effective_cycle,
-            "safe_subscription_limit": safe_limit,
+            "assumed_cycle_ms": cycle_ms,  # informational only
+            "safe_subscription_limit": self._ARCHITECTURAL_MAX_SUBS,
             "architectural_max": self._ARCHITECTURAL_MAX_SUBS,
             "rationale": (
-                "Above this limit the synchronous initial-snapshot encode in "
-                "npb_encode_var_update can exceed the PLC task class budget "
-                "and trigger a 'TCx maximum cycle time violation' watchdog. "
-                "Cap scales linearly with the PLC cycle time. Pass "
-                "force=true to override (testing only — may crash the PLC)."
+                "Subscription cap is now bounded by the static iSubscription "
+                "array size in VarMonLib.fun (100,000). Per-cycle PLC work is "
+                "bounded by iSnapBatchSize (chunked initial snapshot) and "
+                "iScanBatchSize (spread delta_compare), so cycle-time no "
+                "longer constrains the subscription size. Pass force=true "
+                "to bypass any future tightening."
             ),
         }
 
