@@ -1,6 +1,6 @@
 {
   "total_struct_variables": 512,
-  "total_leaf_fields": 93878,
+  "total_leaf_fields": 98878,
   "variables": [
     {
       "variable": "Hardware",
@@ -15,6 +15,13 @@
       "source": "TPL\\TplGlobal.var",
       "leaf_count": 5813,
       "unresolved_count": 6
+    },
+    {
+      "variable": "gProtoTest",
+      "type": "gProtoTest_typ",
+      "source": "gProtoTest.var",
+      "leaf_count": 5209,
+      "unresolved_count": 0
     },
     {
       "variable": "gWHS_Ctrl",
@@ -792,13 +799,6 @@
       "source": "WHS\\WHS_Ctrl_Global.var",
       "leaf_count": 210,
       "unresolved_count": 3
-    },
-    {
-      "variable": "gProtoTest",
-      "type": "gProtoTest_typ",
-      "source": "gProtoTest.var",
-      "leaf_count": 209,
-      "unresolved_count": 0
     },
     {
       "variable": "gFR_Axis",

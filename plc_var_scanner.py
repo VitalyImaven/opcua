@@ -170,7 +170,9 @@ def parse_typ_files(logical_dir: Path) -> tuple[dict, set]:
     Parse all .typ files under Logical/ to build a type registry.
     Returns: (struct_registry, enum_set)
     
-    struct_registry: { "TypeName": [ (field_name, field_type, is_array), ... ] }
+    struct_registry: { "TypeName": [ (field_name, field_type, array_bounds), ... ] }
+        array_bounds is the raw bracket content (e.g. "0..999") for an
+        ARRAY[..] OF X field, or None if the field is not an array.
     enum_set: set of enum type names
 
     When the same type is defined in multiple .typ files, the definition from the
@@ -221,10 +223,11 @@ def parse_typ_files(logical_dir: Path) -> tuple[dict, set]:
                     if re.match(r'^END_STRUCT\s*;?', fline_clean, re.IGNORECASE):
                         break
                     
-                    # Parse field: name : [ARRAY[...] OF] type [:= init];
+                    # Parse field: name : [ARRAY[lo..hi] OF] type [:= init];
+                    # Capture group 2 = array bounds string (e.g. "0..999"), or None.
                     fm = re.match(
                         r'^(\w+)\s*:\s*'
-                        r'(ARRAY\s*\[.*?\]\s*OF\s+)?'
+                        r'(?:ARRAY\s*\[(.*?)\]\s*OF\s+)?'
                         r'(\w+)'
                         r'(?:\s*\[.*?\])?'   # string length
                         r'\s*(?::=\s*[^;]*)?\s*;',
@@ -232,9 +235,9 @@ def parse_typ_files(logical_dir: Path) -> tuple[dict, set]:
                     )
                     if fm:
                         fname = fm.group(1)
-                        is_array = fm.group(2) is not None
+                        array_bounds = fm.group(2)  # None if not an array
                         ftype = fm.group(3)
-                        fields.append((fname, ftype, is_array))
+                        fields.append((fname, ftype, array_bounds))
                     
                     i += 1
                 
@@ -363,50 +366,102 @@ def parse_var_files(logical_dir: Path, included_paths: set[Path] = None) -> list
     return results
 
 
+RE_ARRAY_BOUNDS_1D = re.compile(r'^\s*(-?\d+)\s*\.\.\s*(-?\d+)\s*$')
+
+
+def _parse_simple_1d_bounds(bounds: str) -> tuple[int, int] | None:
+    """Return (lo, hi) for a 1-D constant bound like '0..999', else None.
+    Multi-dim or symbolic bounds (e.g. 'lo..hi', 'A..B') return None so the
+    caller can fall back to the legacy ARRAY-OF behaviour."""
+    if bounds is None:
+        return None
+    m = RE_ARRAY_BOUNDS_1D.match(bounds)
+    if not m:
+        return None
+    lo, hi = int(m.group(1)), int(m.group(2))
+    if hi < lo:
+        return None
+    return lo, hi
+
+
+def _path_should_expand_arrays(var_path: str, expand_prefixes: tuple[str, ...]) -> bool:
+    """Return True iff var_path starts with one of the opt-in prefixes.
+    The first segment of the path (top-level variable name) is what's matched."""
+    if not expand_prefixes:
+        return False
+    top = var_path.split(".", 1)[0]
+    return top in expand_prefixes
+
+
 def flatten_struct(var_path: str, type_name: str, structs: dict, enums: set,
-                   depth: int = 0, visited: set = None) -> list[tuple[str, str]]:
+                   depth: int = 0, visited: set = None,
+                   expand_array_prefixes: tuple[str, ...] = ()) -> list[tuple[str, str]]:
     """
     Recursively flatten a struct variable into leaf paths.
     Returns: [ ("gExit.In.Cmd.Stop", "BOOL"), ... ]
+
+    1-D primitive arrays are expanded into per-index leaves (e.g.
+    ``gProtoTest.Output.Arrays.Arr_DINT[0]`` ... ``[999]``) only when the
+    top-level variable name appears in ``expand_array_prefixes``. Otherwise
+    arrays remain a single non-wire-compatible leaf marker, preserving the
+    historical registry shape for systems we don't want exploded.
     """
     if visited is None:
         visited = set()
-    
+
     if depth > 15 or type_name in visited:
         return [(var_path, f"<recursive:{type_name}>")]
-    
+
     visited = visited | {type_name}
-    
+
     if is_primitive(type_name):
         return [(var_path, type_name)]
-    
+
     if type_name in enums:
         return [(var_path, f"ENUM({type_name})")]
-    
+
     if type_name not in structs:
         # Unknown type — treat as opaque
         return [(var_path, f"<unknown:{type_name}>")]
-    
+
+    expand_here = _path_should_expand_arrays(var_path, expand_array_prefixes)
+
     result = []
-    for field_name, field_type, is_array in structs[type_name]:
+    for field_name, field_type, array_bounds in structs[type_name]:
         child_path = f"{var_path}.{field_name}"
-        
-        if is_array:
-            # For arrays, just note it as array — don't enumerate indices
-            if is_primitive(field_type):
+
+        if array_bounds is not None:
+            simple_bounds = _parse_simple_1d_bounds(array_bounds) if expand_here else None
+            if simple_bounds is not None and is_primitive(field_type):
+                # Expand 1-D array of primitive into per-index leaves.
+                # Naming uses B&R bracket notation, which PV_xgetadr accepts.
+                lo, hi = simple_bounds
+                for idx in range(lo, hi + 1):
+                    result.append((f"{child_path}[{idx}]", field_type))
+            elif simple_bounds is not None and field_type in structs:
+                lo, hi = simple_bounds
+                for idx in range(lo, hi + 1):
+                    sub = flatten_struct(f"{child_path}[{idx}]", field_type,
+                                         structs, enums, depth + 1, visited,
+                                         expand_array_prefixes)
+                    result.extend(sub)
+            elif is_primitive(field_type):
+                # Not opted-in, multi-dim, or symbolic bounds — legacy single leaf
                 result.append((child_path, f"ARRAY OF {field_type}"))
             elif field_type in structs:
-                # Array of structs — show [i] pattern
+                # Array of structs without expansion — legacy [i] marker
                 result.append((child_path + "[i]", f"ARRAY OF {field_type}"))
-                # Also expand one element's fields for reference
-                sub = flatten_struct(child_path + "[0]", field_type, structs, enums, depth + 1, visited)
+                sub = flatten_struct(child_path + "[0]", field_type,
+                                     structs, enums, depth + 1, visited,
+                                     expand_array_prefixes)
                 result.extend(sub)
             else:
                 result.append((child_path, f"ARRAY OF {field_type}"))
         else:
-            sub = flatten_struct(child_path, field_type, structs, enums, depth + 1, visited)
+            sub = flatten_struct(child_path, field_type, structs, enums, depth + 1,
+                                 visited, expand_array_prefixes)
             result.extend(sub)
-    
+
     return result
 
 
@@ -418,7 +473,16 @@ def main():
     parser.add_argument("--config", default="HILA_MR",
                         help="B&R configuration name (e.g. HILA_MR, Barak_MR). "
                              "Only vars from packages in this config will be included.")
+    parser.add_argument("--expand-arrays-for", default="gProtoTest",
+                        help="Comma-separated list of top-level variable names whose "
+                             "1-D primitive arrays should be expanded into per-index "
+                             "registry entries (e.g. 'gProtoTest'). Empty disables "
+                             "expansion globally (legacy behaviour).")
     args = parser.parse_args()
+
+    expand_array_prefixes = tuple(
+        p.strip() for p in args.expand_arrays_for.split(",") if p.strip()
+    )
 
     PLC_ROOT = args.plc_root.resolve()
     LOGICAL_DIR = PLC_ROOT / "Logical"
@@ -432,7 +496,10 @@ def main():
     print("=" * 70)
     print(f"\nPLC root: {PLC_ROOT}")
     print(f"Scanning: {LOGICAL_DIR}")
-    print(f"Configuration: {args.config}\n")
+    print(f"Configuration: {args.config}")
+    if expand_array_prefixes:
+        print(f"Expand arrays for: {', '.join(expand_array_prefixes)}")
+    print()
     
     # Parse config to know which packages are included
     included_paths = parse_config_packages(PLC_ROOT, args.config)
@@ -456,7 +523,8 @@ def main():
     unresolved_types = set()
     
     for var_name, type_name, source_file in global_vars:
-        leaves = flatten_struct(var_name, type_name, structs, enums)
+        leaves = flatten_struct(var_name, type_name, structs, enums,
+                                expand_array_prefixes=expand_array_prefixes)
         
         # Count only resolved leaves (not unknown/recursive)
         resolved = [(p, t) for p, t in leaves if not t.startswith("<")]
