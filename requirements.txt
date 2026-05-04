@@ -1,4 +1,16 @@
-opcua>=0.98.13
-PyQt5>=5.15.0
-pyinstaller>=5.7.0
+# Core (required for plc_proto package)
 protobuf>=5.29.0
+
+# Web UI
+fastapi>=0.100.0
+uvicorn>=0.20.0
+websockets>=11.0
+
+# OPC UA engines
+opcua>=0.98.13
+
+# Desktop GUI (optional)
+PyQt5>=5.15.0
+
+# Packaging (optional)
+pyinstaller>=5.7.0

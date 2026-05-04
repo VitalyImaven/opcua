@@ -4,7 +4,7 @@ Handles TCP connection to PLC for subscription commands and
 UDP reception for variable value updates.
 
 Wire protocol: Standard Protocol Buffers (protobuf) binary format.
-Schema: proto/plcmonitor.proto
+Schema: plc_proto/plcmonitor.proto
 
 TCP framing: [LENGTH:4B LE][PROTOBUF_BYTES:LENGTH]
 UDP: Raw protobuf VarUpdatePacket (no framing needed)
@@ -20,33 +20,27 @@ from collections import deque
 from pathlib import Path
 from typing import Callable
 
-# Import generated protobuf classes
+# Import from the reusable plc_proto package
 import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from proto import plcmonitor_pb2 as pb
-
-# MsgType enum values (from PlcMessage.MsgType)
-MSGTYPE_VAR_UPDATE       = 0
-MSGTYPE_SUBSCRIBE_CMD    = 1
-MSGTYPE_REGISTRY_REQUEST = 2
-MSGTYPE_REGISTRY_RESP    = 3
-MSGTYPE_HEARTBEAT        = 4
-MSGTYPE_CONFIG_CMD       = 5
-MSGTYPE_CONFIG_RESPONSE  = 6
-MSGTYPE_WRITE_VAR        = 7
-MSGTYPE_WRITE_VAR_RESP   = 8
-
-# SubscribeCommand.Action enum values
-ACTION_SET    = 0
-ACTION_ADD    = 1
-ACTION_REMOVE = 2
-
-# TransportMode enum values
-TRANSPORT_TCP = 0
-TRANSPORT_UDP = 1
-
-TCP_PORT = 55000
-UDP_PORT = 55001
+from plc_proto import _pb2 as pb
+from plc_proto.constants import (
+    MSG_VAR_UPDATE as MSGTYPE_VAR_UPDATE,
+    MSG_SUBSCRIBE_CMD as MSGTYPE_SUBSCRIBE_CMD,
+    MSG_REGISTRY_REQUEST as MSGTYPE_REGISTRY_REQUEST,
+    MSG_REGISTRY_RESP as MSGTYPE_REGISTRY_RESP,
+    MSG_HEARTBEAT as MSGTYPE_HEARTBEAT,
+    MSG_CONFIG_CMD as MSGTYPE_CONFIG_CMD,
+    MSG_CONFIG_RESPONSE as MSGTYPE_CONFIG_RESPONSE,
+    MSG_WRITE_VAR as MSGTYPE_WRITE_VAR,
+    MSG_WRITE_VAR_RESP as MSGTYPE_WRITE_VAR_RESP,
+    ACTION_SET, ACTION_ADD, ACTION_REMOVE,
+    TRANSPORT_TCP, TRANSPORT_UDP,
+    DEFAULT_TCP_PORT as TCP_PORT,
+    DEFAULT_UDP_PORT as UDP_PORT,
+)
+from plc_proto.framing import frame_message, read_framed_messages
+from plc_proto.types import encode_value, decode_var_value
 
 
 class PlcMonitorEngine:
@@ -727,11 +721,8 @@ class PlcMonitorEngine:
             if count_override is not None:
                 msg.subscribe.interval_ms = count_override
 
-        # Serialize to protobuf bytes
-        pb_bytes = msg.SerializeToString()
-        
-        # Length-delimited TCP framing: [4B LE length][protobuf bytes]
-        frame = struct.pack("<I", len(pb_bytes)) + pb_bytes
+        # Serialize and frame
+        frame = frame_message(msg.SerializeToString())
 
         try:
             self._tcp_sock.sendall(frame)
@@ -755,8 +746,7 @@ class PlcMonitorEngine:
         msg.type = MSGTYPE_CONFIG_CMD
         msg.config_cmd.transport = transport_mode
 
-        pb_bytes = msg.SerializeToString()
-        frame = struct.pack("<I", len(pb_bytes)) + pb_bytes
+        frame = frame_message(msg.SerializeToString())
 
         mode_name = "TCP" if transport_mode == TRANSPORT_TCP else "UDP"
         try:
@@ -781,35 +771,18 @@ class PlcMonitorEngine:
         info = self.registry.get(var_id, {})
         plc_type = info.get("plc_type", "").upper()
         
-        # Encode value to little-endian bytes based on PLC type
-        if plc_type == "BOOL":
-            val_bytes = struct.pack("<B", 1 if value else 0)
-        elif plc_type in ("USINT",):
-            val_bytes = struct.pack("<B", int(value) & 0xFF)
-        elif plc_type in ("SINT",):
-            val_bytes = struct.pack("<b", int(value))
-        elif plc_type in ("INT",):
-            val_bytes = struct.pack("<h", int(value))
-        elif plc_type in ("UINT",):
-            val_bytes = struct.pack("<H", int(value) & 0xFFFF)
-        elif plc_type in ("DINT",):
-            val_bytes = struct.pack("<i", int(value))
-        elif plc_type in ("UDINT",):
-            val_bytes = struct.pack("<I", int(value) & 0xFFFFFFFF)
-        elif plc_type in ("REAL",):
-            val_bytes = struct.pack("<f", float(value))
-        elif plc_type in ("LREAL",):
-            val_bytes = struct.pack("<d", float(value))
-        else:
-            return {"ok": False, "error": f"Unsupported type for write: {plc_type}"}
+        # Encode value using plc_proto type system
+        try:
+            val_bytes = encode_value(plc_type, value)
+        except ValueError as e:
+            return {"ok": False, "error": str(e)}
         
         msg = pb.PlcMessage()
         msg.type = MSGTYPE_WRITE_VAR
         msg.write_var.var_id = var_id
         msg.write_var.value = val_bytes
         
-        pb_bytes = msg.SerializeToString()
-        frame = struct.pack("<I", len(pb_bytes)) + pb_bytes
+        frame = frame_message(msg.SerializeToString())
         
         try:
             self._tcp_sock.sendall(frame)
@@ -867,36 +840,15 @@ class PlcMonitorEngine:
         """Extract and decode complete length-delimited protobuf messages.
         TCP framing: [LENGTH:4B LE][PROTOBUF_BYTES:LENGTH]
         Returns the remaining unprocessed bytes."""
-        while len(buf) >= 4:
-            # Read 4-byte LE length prefix
-            msg_len = struct.unpack_from("<I", buf, 0)[0]
-            
-            # Sanity check — PLC iTcpDataBuf is 524288 bytes, allow up to 512KB
-            if msg_len > 524288:
-                # Invalid — skip 1 byte and rescan
-                buf = buf[1:]
-                continue
-            
-            # Check if full message is available
-            if len(buf) < 4 + msg_len:
-                break  # Wait for more data
-            
-            # Extract protobuf bytes
-            pb_bytes = buf[4:4 + msg_len]
-            buf = buf[4 + msg_len:]
-            
+        messages, remaining = read_framed_messages(buf)
+        
+        for pb_bytes in messages:
             # Decode the PlcMessage
             try:
                 msg = pb.PlcMessage()
                 msg.ParseFromString(pb_bytes)
                 
                 if msg.type == MSGTYPE_VAR_UPDATE and msg.HasField('update'):
-                    # Always route through the standard path. The PLC's
-                    # encode_var_inline emits proper field-3 submessages, so
-                    # populated packets parse normally; empty packets are
-                    # delta-mode keepalives (sequence + timestamp, 0 values)
-                    # that we still want to count for packet-rate / inter-
-                    # packet timing stats.
                     self._decode_protobuf_update(msg.update, len(pb_bytes))
                 elif msg.type == MSGTYPE_SUBSCRIBE_CMD:
                     if msg.HasField('subscribe'):
@@ -929,9 +881,9 @@ class PlcMonitorEngine:
                         self._flat_logged = True
                 except Exception as e2:
                     hex_preview = pb_bytes[:32].hex(' ')
-                    print(f"[TCP RX] Decode error: {e} | len={msg_len} first32={hex_preview}")
+                    print(f"[TCP RX] Decode error: {e} | len={len(pb_bytes)} first32={hex_preview}")
 
-        return buf
+        return remaining
 
     @staticmethod
     def _read_varint(data: bytes, pos: int) -> tuple:
@@ -1218,30 +1170,12 @@ class PlcMonitorEngine:
             # PLC timestamps
             self._plc_timestamps.append(timestamp)
 
-        # Decode variable values from protobuf oneof
+        # Decode variable values using plc_proto type system
         updates = {}
         raw_updates = {}
 
         for var_val in update.values:
-            var_id = var_val.var_id
-            value = None
-            
-            # Extract value from protobuf oneof field
-            which = var_val.WhichOneof('value')
-            if which == 'bool_val':
-                value = var_val.bool_val
-            elif which == 'int_val':
-                value = var_val.int_val
-            elif which == 'uint_val':
-                value = var_val.uint_val
-            elif which == 'dint_val':
-                value = var_val.dint_val
-            elif which == 'real_val':
-                value = round(var_val.real_val, 6)
-            elif which == 'lreal_val':
-                value = round(var_val.lreal_val, 9)
-            elif which == 'string_val':
-                value = var_val.string_val
+            var_id, value = decode_var_value(var_val)
             
             if value is not None:
                 self.values[var_id] = value
