@@ -1,4 +1,9 @@
-"""FastAPI backend — PLC Variable Monitor (binary protocol over TCP/UDP)."""
+"""FastAPI backend — PLC Variable Monitor (binary protocol over TCP/UDP).
+
+Supports multiple devices simultaneously via /api/devices/ endpoints.
+The original /api/plc/ endpoints remain for backward compatibility
+(they operate on the default "plc" device).
+"""
 import asyncio
 import json
 import os
@@ -10,14 +15,15 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from web.plc_engine import PlcMonitorEngine
+from web.device_manager import devices
 
 app = FastAPI(title="PLC Variable Monitor")
-engine = PlcMonitorEngine()
 
-# Load variable registry at startup
+# Register default device (backward compat: "plc")
 registry_file = Path(__file__).parent.parent / "plc_var_registry.json"
-if registry_file.exists():
-    engine.load_registry(registry_file)
+devices.add("plc", registry_path=registry_file, label="Main PLC",
+            description="Primary B&R PLC")
+engine = devices.get("plc")  # shortcut for legacy /api/plc/ endpoints
 
 # ── state ────────────────────────────────────────────────────────
 ws_clients: list[WebSocket] = []
@@ -483,3 +489,171 @@ async def ws_endpoint(ws: WebSocket):
     finally:
         if ws in ws_clients:
             ws_clients.remove(ws)
+
+
+@app.websocket("/ws/device/{device_id}")
+async def ws_device_endpoint(ws: WebSocket, device_id: str):
+    """Per-device WebSocket for live variable updates."""
+    eng = devices.get(device_id)
+    if not eng:
+        await ws.close(code=4004, reason=f"Device '{device_id}' not found")
+        return
+    await ws.accept()
+    ws_clients.append(ws)
+    try:
+        while True:
+            data = await ws.receive_text()
+            msg = json.loads(data)
+            if msg.get("type") == "ping":
+                await ws.send_text(json.dumps({"type": "pong"}))
+    except WebSocketDisconnect:
+        pass
+    finally:
+        if ws in ws_clients:
+            ws_clients.remove(ws)
+
+
+# ══════════════════════════════════════════════════════════════════
+# MULTI-DEVICE API — /api/devices/
+#
+# Allows connecting to multiple PLCs / embedded carts / other devices
+# simultaneously. Each device has its own engine, registry, and state.
+# ══════════════════════════════════════════════════════════════════
+
+class AddDeviceRequest(BaseModel):
+    device_id: str                  # Unique slug (e.g. "cart_1", "press_plc")
+    label: str = ""                 # Human name (e.g. "Embedded Cart #1")
+    description: str = ""
+    registry_path: str = ""         # Path to registry JSON (optional)
+
+
+class DeviceConnectRequest(BaseModel):
+    ip: str
+    transport: str = "tcp"
+
+
+class DeviceSubscribeRequest(BaseModel):
+    var_names: list[str] = []
+    var_ids: list[int] = []
+    force: bool = False
+
+
+class DeviceWriteRequest(BaseModel):
+    var_name: str
+    value: float | int | bool | str
+
+
+@app.get("/api/devices")
+async def list_devices():
+    """List all registered devices and their connection status."""
+    return {"devices": devices.list_all()}
+
+
+@app.post("/api/devices/add")
+async def add_device(req: AddDeviceRequest):
+    """Register a new device."""
+    reg_path = Path(req.registry_path) if req.registry_path else None
+    return devices.add(req.device_id, registry_path=reg_path,
+                       label=req.label, description=req.description)
+
+
+@app.post("/api/devices/{device_id}/remove")
+async def remove_device(device_id: str):
+    """Remove a device (disconnects first)."""
+    return devices.remove(device_id)
+
+
+@app.post("/api/devices/{device_id}/connect")
+async def device_connect(device_id: str, req: DeviceConnectRequest):
+    """Connect a specific device to its PLC/target."""
+    eng, err = devices.get_or_error(device_id)
+    if err:
+        return err
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, eng.connect, req.ip, req.transport)
+
+
+@app.post("/api/devices/{device_id}/disconnect")
+async def device_disconnect(device_id: str):
+    """Disconnect a specific device."""
+    eng, err = devices.get_or_error(device_id)
+    if err:
+        return err
+    return eng.disconnect()
+
+
+@app.get("/api/devices/{device_id}/status")
+async def device_status(device_id: str):
+    """Get status of a specific device."""
+    eng, err = devices.get_or_error(device_id)
+    if err:
+        return err
+    health = eng.get_health()
+    return {
+        "device_id": device_id,
+        "connected": eng.connected,
+        "ip": eng.plc_ip,
+        "transport": "TCP" if eng.transport_mode == 0 else "UDP",
+        "registry_size": len(eng.registry),
+        "subscribed": len(eng.subscribed),
+        "health": health,
+        "stats": eng.stats,
+    }
+
+
+@app.post("/api/devices/{device_id}/subscribe")
+async def device_subscribe(device_id: str, req: DeviceSubscribeRequest):
+    """Subscribe to variables on a specific device."""
+    eng, err = devices.get_or_error(device_id)
+    if err:
+        return err
+    if req.var_names:
+        return eng.subscribe(req.var_names, force=req.force)
+    elif req.var_ids:
+        return eng.subscribe_by_ids(req.var_ids, force=req.force)
+    return {"ok": False, "error": "Provide var_names or var_ids"}
+
+
+@app.get("/api/devices/{device_id}/values")
+async def device_values(device_id: str):
+    """Get all current values from a specific device."""
+    eng, err = devices.get_or_error(device_id)
+    if err:
+        return err
+    return eng.get_all_values()
+
+
+@app.get("/api/devices/{device_id}/browse")
+async def device_browse(device_id: str, node_id: str = None):
+    """Browse variable tree on a specific device."""
+    eng, err = devices.get_or_error(device_id)
+    if err:
+        return err
+    return eng.browse(node_id)
+
+
+@app.get("/api/devices/{device_id}/search")
+async def device_search(device_id: str, q: str = "", limit: int = 100):
+    """Search variables on a specific device."""
+    eng, err = devices.get_or_error(device_id)
+    if err:
+        return err
+    return eng.search(q, limit)
+
+
+@app.post("/api/devices/{device_id}/write")
+async def device_write(device_id: str, req: DeviceWriteRequest):
+    """Write a variable on a specific device."""
+    eng, err = devices.get_or_error(device_id)
+    if err:
+        return err
+    return eng.write_var(req.var_name, req.value)
+
+
+@app.get("/api/devices/{device_id}/stats")
+async def device_stats(device_id: str):
+    """Get detailed stats for a specific device."""
+    eng, err = devices.get_or_error(device_id)
+    if err:
+        return err
+    return eng.get_detailed_stats()

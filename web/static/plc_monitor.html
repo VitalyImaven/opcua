@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PLC Variable Monitor</title>
+<title>PLC Variable Monitor — Multi-Device</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
 :root {
@@ -182,6 +182,39 @@ input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px 
 .discovery-overlay .progress-text { font-size:11px; color:var(--accent); margin-top:12px; font-family:'JetBrains Mono',monospace; }
 
 @keyframes slideIn { from{transform:translateX(20px);opacity:0} to{transform:translateX(0);opacity:1} }
+
+/* --- DEVICE PANEL --- */
+#device-bar { display:flex; align-items:center; gap:8px; padding:6px 20px;
+  background:var(--bg3); border-bottom:1px solid var(--border); font-size:12px; flex-shrink:0; }
+#device-bar .label { color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.5px; font-size:10px; }
+#device-list { display:flex; gap:6px; flex:1; overflow-x:auto; padding:2px 0; }
+.device-chip { display:flex; align-items:center; gap:6px; padding:5px 12px; border-radius:16px;
+  background:var(--bg); border:1px solid var(--border); cursor:pointer; transition:all .2s;
+  white-space:nowrap; font-size:11px; font-weight:500; }
+.device-chip:hover { border-color:var(--border-light); background:var(--bg2); }
+.device-chip.active { border-color:var(--accent); background:var(--accent-glow); color:var(--accent); }
+.device-chip .chip-dot { width:6px; height:6px; border-radius:50%; background:var(--muted); flex-shrink:0; }
+.device-chip .chip-dot.on { background:var(--green); box-shadow:0 0 4px var(--green); }
+.device-chip .chip-label { max-width:120px; overflow:hidden; text-overflow:ellipsis; }
+.device-chip .chip-remove { color:var(--muted); font-size:14px; line-height:1; margin-left:4px;
+  opacity:.6; transition:opacity .2s; }
+.device-chip .chip-remove:hover { opacity:1; color:var(--red); }
+#add-device-btn { padding:4px 10px; border-radius:14px; font-size:11px; font-weight:600;
+  background:var(--bg); border:1px dashed var(--border); color:var(--dim); cursor:pointer; transition:all .2s; }
+#add-device-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-glow); }
+
+/* Device modal */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:1000;
+  align-items:center; justify-content:center; }
+.modal-overlay.show { display:flex; }
+.modal { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
+  padding:24px; min-width:380px; box-shadow:0 20px 60px rgba(0,0,0,.5); }
+.modal h3 { font-size:14px; margin-bottom:16px; font-weight:600; }
+.modal .field { margin-bottom:12px; }
+.modal .field label { display:block; font-size:10px; color:var(--muted); text-transform:uppercase;
+  letter-spacing:.5px; margin-bottom:4px; font-weight:600; }
+.modal .field input { width:100%; }
+.modal .actions { display:flex; gap:8px; justify-content:flex-end; margin-top:18px; }
 </style>
 </head>
 <body>
@@ -210,6 +243,40 @@ input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px 
   <span class="badge badge-info" id="sub-count">SUBSCRIBED: 0</span>
   <span class="badge badge-live" id="pkt-rate">0 UPD/S</span>
   <span class="badge" id="health-badge" style="display:none"></span>
+</div>
+
+<!-- DEVICE BAR -->
+<div id="device-bar">
+  <span class="label">Devices</span>
+  <div id="device-list"></div>
+  <button id="add-device-btn" onclick="showAddDeviceModal()">+ Add Device</button>
+</div>
+
+<!-- ADD DEVICE MODAL -->
+<div class="modal-overlay" id="add-device-modal">
+  <div class="modal">
+    <h3>Add New Device</h3>
+    <div class="field">
+      <label>Device ID (slug)</label>
+      <input id="new-dev-id" type="text" placeholder="e.g. cart_1, press_plc">
+    </div>
+    <div class="field">
+      <label>Label</label>
+      <input id="new-dev-label" type="text" placeholder="e.g. Embedded Cart #1">
+    </div>
+    <div class="field">
+      <label>IP Address</label>
+      <input id="new-dev-ip" type="text" placeholder="192.168.101.20">
+    </div>
+    <div class="field">
+      <label>Registry JSON (optional, leave empty to use default)</label>
+      <input id="new-dev-registry" type="text" placeholder="path/to/registry.json">
+    </div>
+    <div class="actions">
+      <button onclick="hideAddDeviceModal()">Cancel</button>
+      <button class="primary" onclick="addDevice()">Add &amp; Connect</button>
+    </div>
+  </div>
 </div>
 
 <div id="main">
@@ -425,13 +492,16 @@ const MAX_TRACE_PTS = 500;
 const COLORS = ['#6c9fff','#4ade80','#f87171','#fbbf24','#c084fc','#fb923c','#67e8f9','#a78bfa'];
 let lastPktCount = 0;
 let updateCount = 0;
+let devices = [];
+let activeDeviceId = 'plc'; // currently selected device
 
 // === INIT ===
 document.addEventListener('DOMContentLoaded', () => { connectWS(); startStatsRefresh(); });
 
 function connectWS() {
   const loc = window.location;
-  ws = new WebSocket(`${loc.protocol==='https:'?'wss:':'ws:'}//${loc.host}/ws/plc`);
+  const wsPath = activeDeviceId === 'plc' ? '/ws/plc' : `/ws/device/${activeDeviceId}`;
+  ws = new WebSocket(`${loc.protocol==='https:'?'wss:':'ws:'}//${loc.host}${wsPath}`);
   ws.onmessage = e => handleWS(JSON.parse(e.data));
   ws.onclose = () => setTimeout(connectWS, 2000);
 }
@@ -480,7 +550,7 @@ async function discoverVariables() {
   document.getElementById('avail-count').style.display = '';
   document.getElementById('avail-count').textContent = 'SCANNING...';
 
-  const res = await api('/api/plc/discover', {batch_size: 500, batch_wait_s: 0.15});
+  const res = await api(`${getDeviceApiBase()}/discover`, {batch_size: 500, batch_wait_s: 0.15});
   if (res.ok) {
     document.getElementById('avail-count').textContent = `AVAILABLE: ${res.available_count}`;
     loadTree();
@@ -504,7 +574,8 @@ async function doDisconnect() {
 
 // === TREE BROWSING ===
 async function loadTree(nodeId=null, container=null) {
-  const url = nodeId ? `/api/plc/browse?node_id=${encodeURIComponent(nodeId)}` : '/api/plc/browse';
+  const base = getDeviceApiBase();
+  const url = nodeId ? `${base}/browse?node_id=${encodeURIComponent(nodeId)}` : `${base}/browse`;
   const items = await apiGet(url);
   if (!container) { container = document.getElementById('tree-wrap'); container.innerHTML = ''; }
 
@@ -570,7 +641,7 @@ async function loadTree(nodeId=null, container=null) {
 async function doSearch() {
   const q = document.getElementById('search-input').value;
   if (q.length < 2) { loadTree(); return; }
-  const items = await apiGet(`/api/plc/search?q=${encodeURIComponent(q)}&limit=200`);
+  const items = await apiGet(`${getDeviceApiBase()}/search?q=${encodeURIComponent(q)}&limit=200`);
   const container = document.getElementById('tree-wrap');
   container.innerHTML = '';
   items.forEach(item => {
@@ -615,7 +686,7 @@ function clearSelection() {
 async function subscribeSelected() {
   if (selectedVars.size === 0) { showNotification('No variables selected', 'warn'); return; }
   const names = [...selectedVars.keys()];
-  const res = await api('/api/plc/subscribe', {var_names: names});
+  const res = await api(`${getDeviceApiBase()}/subscribe`, {var_names: names});
   if (res.ok) {
     monitorVars.clear();
     names.forEach(name => {
@@ -624,8 +695,8 @@ async function subscribeSelected() {
     });
     renderMonitorTable();
     const ms = parseInt(document.getElementById('interval-ms').value) || 10;
-    await api('/api/plc/interval', {interval_ms: ms});
-    await api('/api/plc/trace/start', {var_names: names, interval_ms: ms});
+    await api(`${getDeviceApiBase()}/interval`, {interval_ms: ms});
+    await api(`${getDeviceApiBase()}/trace/start`, {var_names: names, interval_ms: ms});
     document.getElementById('sub-count').textContent = `SUBSCRIBED: ${res.subscribed}`;
     showNotification(`Subscribed to ${res.subscribed} variables`, 'success');
     if (res.not_found?.length) {
@@ -636,7 +707,7 @@ async function subscribeSelected() {
 
 async function setInterval_() {
   const ms = parseInt(document.getElementById('interval-ms').value) || 10;
-  await api('/api/plc/interval', {interval_ms: ms});
+  await api(`${getDeviceApiBase()}/interval`, {interval_ms: ms});
 }
 
 // === MONITOR TABLE ===
@@ -691,7 +762,7 @@ async function startTrace() {
 
 async function stopTrace() {
   traceRunning = false;
-  await api('/api/plc/trace/stop');
+  await api(`${getDeviceApiBase()}/trace/stop`);
   const ts = document.getElementById('trace-status');
   ts.textContent = 'STOPPED';
   ts.style.animation = 'none';
@@ -769,7 +840,7 @@ let benchPollTimer = null;
 
 async function refreshStatus() {
   if (!connected) return;
-  const s = await apiGet('/api/plc/status');
+  const s = await apiGet(`${getDeviceApiBase()}/status`);
   document.getElementById('reg-count').textContent = `REGISTRY: ${s.registry_size||0}`;
   document.getElementById('sub-count').textContent = `SUBSCRIBED: ${s.subscribed||0} [${s.transport||'?'}]`;
   if (s.discovery_done) {
@@ -812,12 +883,12 @@ async function refreshStatus() {
     document.getElementById('reg-count').textContent = `REGISTRY: ${s.registry_size||0} ⚠ PLC:${s.plc_registry_size||'?'}`;
   }
 
-  const ds = await apiGet('/api/plc/detailed_stats');
+  const ds = await apiGet(`${getDeviceApiBase()}/detailed_stats`);
   renderDetailedStats(ds);
 
   // Fetch profiler data
   try {
-    const prof = await apiGet('/api/plc/profiler');
+    const prof = await apiGet(`${getDeviceApiBase()}/profiler`);
     renderProfiler(prof);
   } catch(e) {}
 }
@@ -934,14 +1005,14 @@ function renderProfiler(p) {
 // -- Benchmark --
 async function startBenchmark() {
   const dur = parseFloat(document.getElementById('bench-dur').value) || 10;
-  const res = await api('/api/plc/benchmark/start', {duration_s: dur});
+  const res = await api(`${getDeviceApiBase()}/benchmark/start`, {duration_s: dur});
   if (!res.ok) { showNotification(res.error || 'Benchmark failed', 'error'); return; }
   _runBenchmarkPoll(dur);
 }
 
 async function startBenchmark2() {
   const dur = parseFloat(document.getElementById('bench-dur').value) || 10;
-  const res = await api('/api/plc/benchmark2/start', {duration_s: dur, interval_ms: 1});
+  const res = await api(`${getDeviceApiBase()}/benchmark2/start`, {duration_s: dur, interval_ms: 1});
   if (!res.ok) { showNotification(res.error || 'Benchmark 2 failed', 'error'); return; }
   showNotification(`Benchmark 2: subscribed ${res.subscribed} vars @ ${res.interval_ms}ms`, 'success');
   _runBenchmarkPoll(dur);
@@ -951,7 +1022,7 @@ let stressPollTimer = null;
 
 async function refreshLimits() {
   try {
-    const r = await fetch('/api/plc/limits');
+    const r = await fetch(`${getDeviceApiBase()}/limits`);
     if (!r.ok) return;
     const d = await r.json();
     const input = document.getElementById('fulltest-maxvars');
@@ -991,7 +1062,7 @@ async function startFullTest() {
   document.getElementById('fulltest-summary').innerHTML = '<span style="color:#38bdf8;font-weight:600">Subscribing to ' + maxVars.toLocaleString() + ' variables and running ' + dur + 's benchmark...</span>';
 
   try {
-    const res = await fetch('/api/plc/fulltest/start', {
+    const res = await fetch(`${getDeviceApiBase()}/fulltest/start`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({duration_s: dur, max_vars: maxVars, force: force})
@@ -1042,7 +1113,7 @@ async function startStressTest() {
   document.getElementById('stress-summary').innerHTML = '<span style="color:#e879f9;font-weight:600">Starting stress test...</span>';
   document.getElementById('stress-progress-text').textContent = '';
 
-  const res = await fetch('/api/plc/stress/start', {
+  const res = await fetch(`${getDeviceApiBase()}/stress/start`, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({step_duration_s: 5.0, settle_s: 1.0})
@@ -1051,7 +1122,7 @@ async function startStressTest() {
   // Poll for progress while the request is pending
   if (stressPollTimer) clearInterval(stressPollTimer);
   stressPollTimer = setInterval(async () => {
-    const p = await apiGet('/api/plc/stress/progress');
+    const p = await apiGet(`${getDeviceApiBase()}/stress/progress`);
     if (p && p.running) {
       document.getElementById('stress-progress-text').textContent =
         `Step ${p.current_level}/${p.total_levels}: ${p.current_count || '?'} vars...`;
@@ -1109,7 +1180,7 @@ function _runBenchmarkPoll(dur) {
 
   if (benchPollTimer) clearInterval(benchPollTimer);
   benchPollTimer = setInterval(async () => {
-    const st = await apiGet('/api/plc/benchmark/status');
+    const st = await apiGet(`${getDeviceApiBase()}/benchmark/status`);
     if (st.status === 'running') {
       const pct = Math.min(100, (st.elapsed_s / dur) * 100);
       document.getElementById('bench-bar').style.width = pct.toFixed(0) + '%';
@@ -1162,7 +1233,7 @@ function renderBenchmarkResult(r) {
 }
 
 async function resetLiveStats() {
-  await api('/api/plc/stats/reset', {});
+  await api(`${getDeviceApiBase()}/stats/reset`, {});
   refreshStatus();
 }
 
@@ -1178,7 +1249,7 @@ async function startChurnTest() {
     '<span style="color:#a78bfa;font-weight:600">Starting 5-min real-world simulation (235 baseline + 1000 churn @ 2s)...</span>';
   document.getElementById('churn-stop-btn').style.display = '';
   try {
-    const r = await fetch('/api/plc/churntest/start', {
+    const r = await fetch(`${getDeviceApiBase()}/churntest/start`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({
@@ -1202,14 +1273,14 @@ async function startChurnTest() {
 }
 
 async function stopChurnTest() {
-  try { await fetch('/api/plc/churntest/stop', {method: 'POST'}); }
+  try { await fetch(`${getDeviceApiBase()}/churntest/stop`, {method: 'POST'}); }
   catch (e) { /* ignore */ }
   showNotification('Stopping Real Sim...', 'warn');
 }
 
 async function pollChurnStatus() {
   try {
-    const r = await fetch('/api/plc/churntest/status');
+    const r = await fetch(`${getDeviceApiBase()}/churntest/status`);
     const d = await r.json();
     if (d.status === 'running' && d.progress) {
       renderChurnProgress(d.progress);
@@ -1335,7 +1406,7 @@ function showNotification(msg, type='info') {
 
 // === AUTO-SELECT DEFAULT VARS ===
 async function autoSelectDefaults() {
-  const vars = await apiGet('/api/plc/defaults?prefix=gProtoTest,gMachine');
+  const vars = await apiGet(`${getDeviceApiBase()}/defaults?prefix=gProtoTest,gMachine`);
   selectedVars.clear();
   vars.forEach(v => selectedVars.set(v.name, {id: v.id, plc_type: v.plc_type}));
   document.getElementById('sub-count').textContent = `SELECTED: ${selectedVars.size}`;
@@ -1345,6 +1416,153 @@ async function autoSelectDefaults() {
     if (name && [...selectedVars.keys()].some(k => k.endsWith('.' + name))) cb.checked = true;
   });
 }
+
+// ============================
+// === MULTI-DEVICE MANAGER ===
+// ============================
+
+async function loadDevices() {
+  try {
+    const res = await apiGet('/api/devices');
+    devices = res.devices || [];
+    renderDeviceBar();
+  } catch (e) { /* first load may fail if no devices yet */ }
+}
+
+function renderDeviceBar() {
+  const container = document.getElementById('device-list');
+  container.innerHTML = '';
+  devices.forEach(dev => {
+    const chip = document.createElement('div');
+    chip.className = 'device-chip' + (dev.id === activeDeviceId ? ' active' : '');
+    chip.onclick = () => switchDevice(dev.id);
+    chip.innerHTML = `
+      <span class="chip-dot ${dev.connected ? 'on' : ''}"></span>
+      <span class="chip-label">${dev.label || dev.id}</span>
+      ${dev.id !== 'plc' ? '<span class="chip-remove" onclick="event.stopPropagation();removeDevice(\'' + dev.id + '\')">&times;</span>' : ''}
+    `;
+    container.appendChild(chip);
+  });
+}
+
+function switchDevice(deviceId) {
+  activeDeviceId = deviceId;
+  const dev = devices.find(d => d.id === deviceId);
+  if (dev) {
+    // Update header connection controls to reflect this device
+    document.getElementById('plc-ip').value = dev.ip || '';
+    const led = document.getElementById('status-led');
+    if (dev.connected) {
+      led.classList.add('on');
+      connected = true;
+    } else {
+      led.classList.remove('on');
+      connected = false;
+    }
+  }
+  renderDeviceBar();
+  // Reset monitor state for new device
+  monitorVars.clear();
+  document.getElementById('monitor-body').innerHTML = '';
+  clearTraces();
+  // Reconnect WebSocket for new device
+  if (ws) { ws.onclose = null; ws.close(); }
+  connectWS();
+  refreshStatus();
+  if (connected) loadTree();
+}
+
+function showAddDeviceModal() {
+  document.getElementById('add-device-modal').classList.add('show');
+  document.getElementById('new-dev-id').focus();
+}
+
+function hideAddDeviceModal() {
+  document.getElementById('add-device-modal').classList.remove('show');
+}
+
+async function addDevice() {
+  const id = document.getElementById('new-dev-id').value.trim();
+  const label = document.getElementById('new-dev-label').value.trim();
+  const ip = document.getElementById('new-dev-ip').value.trim();
+  const registry = document.getElementById('new-dev-registry').value.trim();
+
+  if (!id || !ip) {
+    showNotification('Device ID and IP are required', 'error');
+    return;
+  }
+
+  const body = { device_id: id, ip, label: label || id };
+  if (registry) body.registry_path = registry;
+
+  const res = await api('/api/devices/add', body);
+  if (res.ok) {
+    hideAddDeviceModal();
+    showNotification(`Device "${label || id}" added`, 'success');
+    // Auto-connect
+    const connRes = await api(`/api/devices/${id}/connect`, { ip, transport: 'tcp' });
+    if (connRes.ok) {
+      showNotification(`Connected to ${label || id}`, 'success');
+    }
+    await loadDevices();
+    switchDevice(id);
+  } else {
+    showNotification('Failed: ' + (res.error || 'unknown'), 'error');
+  }
+}
+
+async function removeDevice(deviceId) {
+  if (!confirm(`Remove device "${deviceId}"?`)) return;
+  const res = await api(`/api/devices/${deviceId}/remove`, {});
+  if (res.ok) {
+    showNotification(`Device "${deviceId}" removed`, 'success');
+    if (activeDeviceId === deviceId) switchDevice('plc');
+    await loadDevices();
+  } else {
+    showNotification('Remove failed: ' + (res.error || 'unknown'), 'error');
+  }
+}
+
+// Override API calls to route through active device
+const _originalApi = api;
+const _originalApiGet = apiGet;
+
+function getDeviceApiBase() {
+  if (activeDeviceId === 'plc') return '/api/plc';
+  return `/api/devices/${activeDeviceId}`;
+}
+
+// Patch connect/disconnect to use device-specific endpoints
+const _origDoConnect = doConnect;
+doConnect = async function() {
+  const ip = document.getElementById('plc-ip').value;
+  const transport = document.getElementById('transport-mode').value;
+  const base = getDeviceApiBase();
+  const res = await api(`${base}/connect`, {ip, transport});
+  if (res.ok) {
+    connected = true;
+    document.getElementById('status-led').classList.add('on');
+    document.getElementById('profiler-section').style.display = '';
+    showNotification(`Connected ${activeDeviceId} via ${res.transport || transport.toUpperCase()}`, 'success');
+    await loadDevices();
+    refreshStatus();
+    await discoverVariables();
+  } else {
+    showNotification('Connect failed: ' + (res.error||'unknown'), 'error');
+  }
+};
+
+const _origDoDisconnect = doDisconnect;
+doDisconnect = async function() {
+  const base = getDeviceApiBase();
+  await api(`${base}/disconnect`);
+  connected = false;
+  document.getElementById('status-led').classList.remove('on');
+  await loadDevices();
+};
+
+// Initialize device bar on load
+document.addEventListener('DOMContentLoaded', () => { loadDevices(); });
 </script>
 </body>
 </html>

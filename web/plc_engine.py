@@ -144,8 +144,8 @@ class PlcMonitorEngine:
                 self.name_to_id[idx_str] = idx
 
     def _get_cpu_var_ids(self) -> list[int]:
-        """Return var_ids for gMachine.Out.Monitors.Cpu.* variables (always-on profiler)."""
-        PREFIX = "gMachine.Out.Monitors.Cpu."
+        """Return var_ids for gMachine.Diagnostics.Cpu.* variables (always-on profiler)."""
+        PREFIX = "gMachine.Diagnostics.Cpu."
         return [vid for vid, info in self.registry.items()
                 if info["name"].startswith(PREFIX)]
 
@@ -520,12 +520,12 @@ class PlcMonitorEngine:
     def _get_plc_cycle_time_ms(self) -> float | None:
         """Return the current PLC task cycle time in ms, or None if not yet known.
 
-        Sourced from the gMachine.Out.Monitors.Cpu.CycleTimeUs profiler var,
+        Sourced from the gMachine.Diagnostics.Cpu.CycleTimeUs profiler var,
         which the engine auto-subscribes to after discovery. Returns None
         before the first profiler packet has been received.
         Kept for diagnostics / display — no longer feeds into the safe cap.
         """
-        var_id = self.name_to_id.get("gMachine.Out.Monitors.Cpu.CycleTimeUs")
+        var_id = self.name_to_id.get("gMachine.Diagnostics.Cpu.CycleTimeUs")
         if var_id is None:
             return None
         val = self.values.get(var_id)
@@ -658,7 +658,7 @@ class PlcMonitorEngine:
     def get_profiler_data(self) -> dict:
         """Read PLC CPU profiler variables from the values cache."""
         cpu = {}
-        PREFIX = "gMachine.Out.Monitors.Cpu."
+        PREFIX = "gMachine.Diagnostics.Cpu."
         for vid, info in self.registry.items():
             name = info.get("name", "")
             if name.startswith(PREFIX):

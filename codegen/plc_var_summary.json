@@ -1,27 +1,20 @@
 {
-  "total_struct_variables": 512,
-  "total_leaf_fields": 98878,
+  "total_struct_variables": 494,
+  "total_leaf_fields": 101953,
   "variables": [
     {
       "variable": "Hardware",
       "type": "Hardware_typ",
       "source": "Global.var",
-      "leaf_count": 14460,
+      "leaf_count": 14454,
       "unresolved_count": 0
     },
     {
       "variable": "gTPL",
       "type": "TPL_typ",
       "source": "TPL\\TplGlobal.var",
-      "leaf_count": 5813,
+      "leaf_count": 5802,
       "unresolved_count": 6
-    },
-    {
-      "variable": "gProtoTest",
-      "type": "gProtoTest_typ",
-      "source": "gProtoTest.var",
-      "leaf_count": 5209,
-      "unresolved_count": 0
     },
     {
       "variable": "gWHS_Ctrl",
@@ -41,7 +34,7 @@
       "variable": "gExitCtrl",
       "type": "ExitCtrl_typ",
       "source": "Exit\\ExitCtrl\\ExitCtrl_Globals.var",
-      "leaf_count": 2074,
+      "leaf_count": 2072,
       "unresolved_count": 0
     },
     {
@@ -55,7 +48,7 @@
       "variable": "gInputCtrl",
       "type": "InputCtrl_typ",
       "source": "Input\\InputCtrlGlobal.var",
-      "leaf_count": 1567,
+      "leaf_count": 1610,
       "unresolved_count": 0
     },
     {
@@ -75,8 +68,15 @@
     {
       "variable": "gPRM_Ctrl",
       "type": "PRM_Ctrl_type",
+      "source": "PUW_RW\\PRM\\PRM_Ctrl_Globals.var",
+      "leaf_count": 1174,
+      "unresolved_count": 1
+    },
+    {
+      "variable": "gPRM_Ctrl",
+      "type": "PRM_Ctrl_type",
       "source": "PUW_RW\\PRM_Ctrl\\PRM_Ctrl_Globals.var",
-      "leaf_count": 1171,
+      "leaf_count": 1174,
       "unresolved_count": 1
     },
     {
@@ -90,14 +90,7 @@
       "variable": "gIlpPhCtrl",
       "type": "ILPPHCtrl_typ",
       "source": "ARAVA_ILP\\ilpPH\\ILPPHCtrl_Globals.var",
-      "leaf_count": 1069,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gEvrCtrl",
-      "type": "EVR_Ctrl_typ",
-      "source": "Exit\\Evr\\EVR_Ctrl\\EvrCtrlGlobal.var",
-      "leaf_count": 1014,
+      "leaf_count": 1071,
       "unresolved_count": 0
     },
     {
@@ -111,7 +104,7 @@
       "variable": "gScndTransCtrl",
       "type": "ScndTransCtrl_typ",
       "source": "ScndTrans\\ScndTransCtrl\\ScndTransCtrl_Globals.var",
-      "leaf_count": 749,
+      "leaf_count": 759,
       "unresolved_count": 0
     },
     {
@@ -129,10 +122,17 @@
       "unresolved_count": 0
     },
     {
+      "variable": "gIOHandle_PRM",
+      "type": "IOHandle_PRM_typ",
+      "source": "PUW_RW\\PRM\\PRM_IO_Handler\\PRM_IOHandler_Globals.var",
+      "leaf_count": 628,
+      "unresolved_count": 0
+    },
+    {
       "variable": "gDlcCtrl",
       "type": "DlcCtrl_typ",
       "source": "Duplex\\DuplexCtrl\\DuplexLinearConv\\DLC_Ctrl\\DLC_Ctrl_Globals.var",
-      "leaf_count": 625,
+      "leaf_count": 627,
       "unresolved_count": 0
     },
     {
@@ -143,10 +143,38 @@
       "unresolved_count": 0
     },
     {
+      "variable": "gEvrCtrl",
+      "type": "EVR_Ctrl_typ",
+      "source": "Exit\\Evr\\EVR_Ctrl\\EvrCtrlGlobal.var",
+      "leaf_count": 589,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gBrgFib_Axis_Ctrl",
+      "type": "Extended_BrgFibMotorAxis_typ",
+      "source": "Input\\BRG_FIB\\BRG_FIB_Drive\\FIB_M_Global.var",
+      "leaf_count": 534,
+      "unresolved_count": 0
+    },
+    {
       "variable": "gB1_Ctrl",
       "type": "B1_Ctrl_typ",
       "source": "WHS\\WHS_Ctrl_Global.var",
       "leaf_count": 500,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gEsc_Axis_Ctrl",
+      "type": "Extended_EscAxis_typ",
+      "source": "Exit\\ESC\\EscDrive\\EscDriveGlobal.var",
+      "leaf_count": 499,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gEpc_Axis_Ctrl",
+      "type": "Extended_EpcAxis_typ",
+      "source": "Exit\\EPC\\EpcDrive\\EpcDriveGlobal.var",
+      "leaf_count": 499,
       "unresolved_count": 0
     },
     {
@@ -174,84 +202,105 @@
       "variable": "gBrgNip_Axis_Ctrl",
       "type": "Extended_BrgNip_Axis_typ",
       "source": "BInput\\BarakInput\\Input_Ctrl_Global.var",
-      "leaf_count": 487,
+      "leaf_count": 488,
       "unresolved_count": 0
     },
     {
       "variable": "gRtrGripCam_Axis_Ctrl",
       "type": "Extended_RtrGripCam_typ",
       "source": "BInput\\BarakInput\\Input_Ctrl_Global.var",
-      "leaf_count": 487,
+      "leaf_count": 488,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gIOHandle_UW",
+      "type": "IOHandle_UW_typ",
+      "source": "PUW_RW\\UW\\UW_IO_Handler\\UW_IOHandler_Globals.var",
+      "leaf_count": 482,
       "unresolved_count": 0
     },
     {
       "variable": "gNGV_F_RW_Axis_Ctrl",
       "type": "Extended_NGV_RW_Axis_typ",
       "source": "NegevUW_ILP_RW\\NGV_RW\\NGV_RW_Global.var",
-      "leaf_count": 481,
+      "leaf_count": 482,
       "unresolved_count": 0
     },
     {
       "variable": "gNGV_F_UW_Axis_Ctrl",
       "type": "Extended_NGV_UW_Axis_typ",
       "source": "NegevUW_ILP_RW\\NGV_UW\\NGV_UW_Ctrl_Global.var",
-      "leaf_count": 481,
+      "leaf_count": 482,
       "unresolved_count": 0
     },
     {
       "variable": "gNGV_FEUW_Axis_Ctrl",
       "type": "Extended_NGV_UW_Axis_typ",
       "source": "NegevUW_ILP_RW\\NGV_UW\\NGV_UW_Ctrl_Global.var",
-      "leaf_count": 481,
+      "leaf_count": 482,
       "unresolved_count": 0
     },
     {
       "variable": "gGripperCtrl",
       "type": "GripperCtrl_typ",
       "source": "Drums\\Drums_Ctrl\\GripperCtrl\\GripperCtrlGlobal.var",
-      "leaf_count": 479,
+      "leaf_count": 482,
       "unresolved_count": 0
     },
     {
       "variable": "gLph_Eng_Ctrl",
       "type": "Lph_Eng_Ctrl_typ",
       "source": "LPH\\Lph_Eng_Ctrl_Global.var",
-      "leaf_count": 478,
+      "leaf_count": 479,
       "unresolved_count": 3
     },
     {
       "variable": "gIFR_2Ctrl",
       "type": "IFR_2Ctrl_typ",
       "source": "Input\\InputCtrlGlobal.var",
-      "leaf_count": 466,
+      "leaf_count": 468,
       "unresolved_count": 0
     },
     {
-      "variable": "gRW_Ctrl",
-      "type": "RW_Ctrl_typ",
-      "source": "PUW_RW\\RW_Ctrl\\RW_Ctrl_Global_Motion.var",
-      "leaf_count": 466,
+      "variable": "gRW_Axis_NipCtrl",
+      "type": "Extended_RW_NipAxis_typ",
+      "source": "PUW_RW\\RW\\RW_Ctrl_Global_Motion.var",
+      "leaf_count": 460,
       "unresolved_count": 0
     },
     {
       "variable": "gRW_Axis_NipCtrl",
       "type": "Extended_RW_NipAxis_typ",
       "source": "PUW_RW\\RW_Ctrl\\RW_Ctrl_Global_Motion.var",
-      "leaf_count": 459,
+      "leaf_count": 460,
       "unresolved_count": 0
     },
     {
       "variable": "gEngageRearCtrl",
       "type": "EngageCtrl_typ",
       "source": "ScndTrans\\EngageRear\\EngageRear_Ctrl\\EngageRear_Ctrl.var",
-      "leaf_count": 453,
+      "leaf_count": 458,
       "unresolved_count": 0
     },
     {
       "variable": "gEngageFrontCtrl",
       "type": "EngageCtrl_typ",
       "source": "ScndTrans\\EngageFront\\EngageFront_Ctrl\\EngageFront_Ctrl.var",
-      "leaf_count": 453,
+      "leaf_count": 458,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gRW_Ctrl",
+      "type": "RW_Ctrl_typ",
+      "source": "PUW_RW\\RW\\RW_Ctrl_Global_Motion.var",
+      "leaf_count": 456,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gRW_Ctrl",
+      "type": "RW_Ctrl_typ",
+      "source": "PUW_RW\\RW_Ctrl\\RW_Ctrl_Global_Motion.var",
+      "leaf_count": 456,
       "unresolved_count": 0
     },
     {
@@ -259,6 +308,20 @@
       "type": "SpmCtrl_typ",
       "source": "SpmCtrl\\SpmCtrl.var",
       "leaf_count": 451,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gEvr_Axis_Ctrl",
+      "type": "Extended_EvrMotorAxis_typ",
+      "source": "Exit\\Evr\\EVR_Ctrl\\EvrCtrlGlobal.var",
+      "leaf_count": 448,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gDvcCtrl",
+      "type": "DvcCtrl_typ",
+      "source": "Duplex\\DuplexCtrl\\DuplexVacuumConv\\DVC_Ctrl\\DVC_Ctrl_Globals.var",
+      "leaf_count": 443,
       "unresolved_count": 0
     },
     {
@@ -283,86 +346,114 @@
       "unresolved_count": 0
     },
     {
-      "variable": "gDvcCtrl",
-      "type": "DvcCtrl_typ",
-      "source": "Duplex\\DuplexCtrl\\DuplexVacuumConv\\DVC_Ctrl\\DVC_Ctrl_Globals.var",
-      "leaf_count": 441,
+      "variable": "gEngageRear_Axis_Ctrl",
+      "type": "Extended_EngageRearAxis_typ",
+      "source": "ScndTrans\\EngageRear\\EngageRear_Drive\\EngageRear_Drive_Global.var",
+      "leaf_count": 437,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gEngageFront_Axis_Ctrl",
+      "type": "Extended_EngageFrontAxis_typ",
+      "source": "ScndTrans\\EngageFront\\EngageFront_Drive\\EngageFront_Drive_Global.var",
+      "leaf_count": 437,
       "unresolved_count": 0
     },
     {
       "variable": "gIPEF_Axis_Ctrl",
       "type": "Extended_IPE_Axis_typ",
       "source": "WHS\\WHS_Ctrl_Global_Motion.var",
-      "leaf_count": 435,
+      "leaf_count": 436,
       "unresolved_count": 0
     },
     {
       "variable": "gIPER_Axis_Ctrl",
       "type": "Extended_IPE_Axis_typ",
       "source": "WHS\\WHS_Ctrl_Global_Motion.var",
-      "leaf_count": 435,
+      "leaf_count": 436,
       "unresolved_count": 0
     },
     {
       "variable": "gReInsertion_VAxis_Ctrl",
       "type": "Extended_IPE_Axis_typ",
       "source": "WHS\\WHS_Ctrl_Global_Motion.var",
-      "leaf_count": 435,
+      "leaf_count": 436,
       "unresolved_count": 0
     },
     {
       "variable": "gGRV_Axis_Ctrl",
       "type": "Extended_GRV_Axis_typ",
       "source": "PUW_RW\\PRM_Ctrl\\Gravure_Drive\\Gravure_Axis_Globals.var",
-      "leaf_count": 435,
+      "leaf_count": 436,
       "unresolved_count": 0
     },
     {
       "variable": "gGRV_Axis_Ctrl",
       "type": "Extended_GRV_Axis_typ",
       "source": "PUW_RW\\PRM_Ctrl\\Gravure\\Gravure_Drive\\Gravure_Axis_Globals.var",
-      "leaf_count": 435,
+      "leaf_count": 436,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gGRV_Axis_Ctrl",
+      "type": "Extended_GRV_Axis_typ",
+      "source": "PUW_RW\\PRM\\Gravure_Drive\\Gravure_Axis_Globals.var",
+      "leaf_count": 436,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gGRV_Axis_Ctrl",
+      "type": "Extended_GRV_Axis_typ",
+      "source": "PUW_RW\\PRM\\Gravure\\Gravure_Drive\\Gravure_Axis_Globals.var",
+      "leaf_count": 436,
       "unresolved_count": 0
     },
     {
       "variable": "gBCU_Axis_Ctrl",
       "type": "Extended_BCU_Axis_typ",
       "source": "NegevUW_ILP_RW\\BCU\\BCU_Ctrl_Global.var",
-      "leaf_count": 435,
+      "leaf_count": 436,
       "unresolved_count": 0
     },
     {
       "variable": "gEBU_Axis_Ctrl",
       "type": "Extended_ILFBuf_Axis_typ",
       "source": "NegevUW_ILP_RW\\NGV_EBU\\EBU_Ctrl_Global.var",
-      "leaf_count": 435,
+      "leaf_count": 436,
       "unresolved_count": 0
     },
     {
       "variable": "gEBU_FE_Axis_Ctrl",
       "type": "Extended_ILFBuf_Axis_typ",
       "source": "NegevUW_ILP_RW\\NGV_EBU\\EBU_Ctrl_Global.var",
-      "leaf_count": 435,
+      "leaf_count": 436,
       "unresolved_count": 0
     },
     {
       "variable": "gSpeedRef_VAixs_Ctrl",
       "type": "Extended_ILFBuf_Axis_typ",
       "source": "NegevUW_ILP_RW\\NGV_EBU\\EBU_Ctrl_Global.var",
-      "leaf_count": 435,
+      "leaf_count": 436,
       "unresolved_count": 0
     },
     {
       "variable": "gNegBuffer_Axis_Ctrl",
       "type": "Extended_NegBuffer_Axis_typ",
       "source": "NegevUW_ILP_RW\\NGV_ILP\\NGV_ILP_Ctrl_Global.var",
-      "leaf_count": 435,
+      "leaf_count": 436,
       "unresolved_count": 0
     },
     {
       "variable": "gDryer_Ctrl",
       "type": "Dryer_Ctrl_type",
       "source": "PUW_RW\\PRM_Ctrl\\Dryer_Ctrl\\Dryer_Ctrl_Globals.var",
+      "leaf_count": 432,
+      "unresolved_count": 1
+    },
+    {
+      "variable": "gDryer_Ctrl",
+      "type": "Dryer_Ctrl_type",
+      "source": "PUW_RW\\PRM\\Dryer_Ctrl\\Dryer_Ctrl_Globals.var",
       "leaf_count": 432,
       "unresolved_count": 1
     },
@@ -377,7 +468,28 @@
       "variable": "gNegILPMaster_VAxis_Ctrl",
       "type": "Extended_NegILPMaster_VAxis_typ",
       "source": "NegevUW_ILP_RW\\NGV_ILP\\NGV_ILP_Ctrl_Global.var",
-      "leaf_count": 429,
+      "leaf_count": 430,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gMainMotor_Axis_Ctrl",
+      "type": "Extended_MainMotorAxis_typ",
+      "source": "Drums\\Main\\MainCtrl\\MainCtrlGlobal.var",
+      "leaf_count": 426,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gCam_Axis_Ctrl",
+      "type": "Extended_MainMotorAxis_typ",
+      "source": "Drums\\GDU\\CamCtrl\\CamCtrlGlobal.var",
+      "leaf_count": 426,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gCam_VAxis_Ctrl",
+      "type": "Extended_MainMotorAxis_typ",
+      "source": "Drums\\GDU\\CamCtrl\\CamCtrlGlobal.var",
+      "leaf_count": 426,
       "unresolved_count": 0
     },
     {
@@ -402,13 +514,6 @@
       "unresolved_count": 0
     },
     {
-      "variable": "gNGV_UW_Ctrl",
-      "type": "NGV_UW_Ctrl_typ",
-      "source": "NegevUW_ILP_RW\\NGV_UW\\NGV_UW_Ctrl_Global.var",
-      "leaf_count": 411,
-      "unresolved_count": 1
-    },
-    {
       "variable": "gIPEF_Ctrl",
       "type": "IPEF_Ctrl_typ",
       "source": "WHS\\WHS_Ctrl_Global.var",
@@ -416,178 +521,171 @@
       "unresolved_count": 0
     },
     {
+      "variable": "gNGV_UW_Ctrl",
+      "type": "NGV_UW_Ctrl_typ",
+      "source": "NegevUW_ILP_RW\\NGV_UW\\NGV_UW_Ctrl_Global.var",
+      "leaf_count": 409,
+      "unresolved_count": 1
+    },
+    {
+      "variable": "gIfrXalign_Axis_Ctrl",
+      "type": "Extended_IfrXalignMotorAxis_typ",
+      "source": "Input\\IFR_X_Align\\IFR_X_Align_Drive\\IFR_XAlignM_Global.var",
+      "leaf_count": 404,
+      "unresolved_count": 0
+    },
+    {
       "variable": "gB1_Axis_Ctrl",
       "type": "Extended_B1_Axis_typ",
       "source": "WHS\\WHS_Ctrl_Global_Motion.var",
-      "leaf_count": 401,
+      "leaf_count": 402,
       "unresolved_count": 0
     },
     {
       "variable": "gFI_Axis_Ctrl",
       "type": "Extended_FI_Axis_typ",
       "source": "WHS\\WHS_Ctrl_Global_Motion.var",
-      "leaf_count": 401,
+      "leaf_count": 402,
       "unresolved_count": 0
     },
     {
       "variable": "gB2_Axis_Ctrl",
       "type": "Extended_B2_Axis_typ",
       "source": "WHS\\WHS_Ctrl_Global_Motion.var",
-      "leaf_count": 401,
+      "leaf_count": 402,
       "unresolved_count": 0
     },
     {
       "variable": "gFE_Axis_Ctrl",
       "type": "Extended_FE_Axis_typ",
       "source": "WHS\\WHS_Ctrl_Global_Motion.var",
-      "leaf_count": 401,
+      "leaf_count": 402,
       "unresolved_count": 0
     },
     {
       "variable": "gFP_Axis_Ctrl",
       "type": "Extended_FP_Axis_typ",
       "source": "WHS\\WHS_Ctrl_Global_Motion.var",
-      "leaf_count": 401,
+      "leaf_count": 402,
       "unresolved_count": 0
     },
     {
       "variable": "gIPD_Axis_Ctrl",
       "type": "Extended_IPD_Axis_typ",
       "source": "WHS\\WHS_Ctrl_Global_Motion.var",
-      "leaf_count": 401,
+      "leaf_count": 402,
       "unresolved_count": 0
     },
     {
       "variable": "gFR_Axis_Ctrl",
       "type": "Extended_FR_Axis_typ",
       "source": "WHS\\WHS_Ctrl_Global_Motion.var",
-      "leaf_count": 401,
+      "leaf_count": 402,
       "unresolved_count": 0
     },
     {
       "variable": "gPSM_VAxis_Ctrl",
       "type": "Extended_PSM_VAxis_typ",
       "source": "WHS\\WHS_Ctrl_Global_Motion.var",
-      "leaf_count": 401,
+      "leaf_count": 402,
       "unresolved_count": 0
     },
     {
       "variable": "gNegPUInput_Axis_Ctrl",
       "type": "Extended_NegILP_Axis_typ",
       "source": "NegevUW_ILP_RW\\NGV_ILP\\NGV_ILP_Ctrl_Global.var",
-      "leaf_count": 401,
+      "leaf_count": 402,
       "unresolved_count": 0
     },
     {
       "variable": "gNegPUExit_Axis_Ctrl",
       "type": "Extended_NegILP_Axis_typ",
       "source": "NegevUW_ILP_RW\\NGV_ILP\\NGV_ILP_Ctrl_Global.var",
-      "leaf_count": 401,
+      "leaf_count": 402,
       "unresolved_count": 0
     },
     {
       "variable": "gNegFIBuffer_Axis_Ctrl",
       "type": "Extended_NegInputBuffer_Axis_typ",
       "source": "NegevUW_ILP_RW\\NGV_ILP\\NGV_ILP_Ctrl_Global.var",
-      "leaf_count": 401,
+      "leaf_count": 402,
       "unresolved_count": 0
     },
     {
       "variable": "gPipBrake_Axis_Ctrl",
       "type": "Extended_PipBrakeAxis_typ",
       "source": "Drums\\PipBrakeDrive\\PipBrakeCtrl\\PipBrakeCtrlGlobal.var",
-      "leaf_count": 401,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gMainMotor_Axis_Ctrl",
-      "type": "Extended_MainMotorAxis_typ",
-      "source": "Drums\\Main\\MainCtrl\\MainCtrlGlobal.var",
-      "leaf_count": 401,
+      "leaf_count": 402,
       "unresolved_count": 0
     },
     {
       "variable": "gImpBrake_Axis_Ctrl",
       "type": "Extended_ImpBrakeAxis_typ",
       "source": "Drums\\ImpBrakeDrive\\ImpBrakeCtrl\\ImpBrakeCtrlGlobal.var",
-      "leaf_count": 401,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gCam_Axis_Ctrl",
-      "type": "Extended_MainMotorAxis_typ",
-      "source": "Drums\\GDU\\CamCtrl\\CamCtrlGlobal.var",
-      "leaf_count": 401,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gCam_VAxis_Ctrl",
-      "type": "Extended_MainMotorAxis_typ",
-      "source": "Drums\\GDU\\CamCtrl\\CamCtrlGlobal.var",
-      "leaf_count": 401,
+      "leaf_count": 402,
       "unresolved_count": 0
     },
     {
       "variable": "gRtrXAlgn_Axis_Ctrl",
       "type": "Extended_RtrXAlgn_Axis_typ",
       "source": "BInput\\BarakInput\\Input_Ctrl_Global.var",
-      "leaf_count": 401,
+      "leaf_count": 402,
       "unresolved_count": 0
     },
     {
       "variable": "gRtrPGrip_Axis_Ctrl",
       "type": "Extended_RtrPGrip_typ",
       "source": "BInput\\BarakInput\\Input_Ctrl_Global.var",
-      "leaf_count": 401,
+      "leaf_count": 402,
       "unresolved_count": 0
     },
     {
       "variable": "gIFR_1Ctrl",
       "type": "IFR_1Ctrl_typ",
       "source": "Input\\InputCtrlGlobal.var",
-      "leaf_count": 386,
+      "leaf_count": 388,
       "unresolved_count": 0
     },
     {
       "variable": "gIPD_VAxis_Ctrl",
       "type": "Extended_IPD_VAxis_typ",
       "source": "WHS\\WHS_Ctrl_Global_Motion.var",
-      "leaf_count": 379,
+      "leaf_count": 380,
       "unresolved_count": 0
     },
     {
       "variable": "gPE1_Nip_Axis_Ctrl",
       "type": "Extended_PENip_Axis_typ",
       "source": "NegevUW_ILP_RW\\NegevLineHeandler\\NegevLineHeandler_Global.var",
-      "leaf_count": 379,
+      "leaf_count": 380,
       "unresolved_count": 0
     },
     {
       "variable": "gPE2_Nip_Axis_Ctrl",
       "type": "Extended_PENip_Axis_typ",
       "source": "NegevUW_ILP_RW\\NegevLineHeandler\\NegevLineHeandler_Global.var",
-      "leaf_count": 379,
+      "leaf_count": 380,
       "unresolved_count": 0
     },
     {
       "variable": "gNGV_RW_Ctrl",
       "type": "NGV_RW_Ctrl_typ",
       "source": "NegevUW_ILP_RW\\NGV_RW\\NGV_RW_Global.var",
-      "leaf_count": 372,
+      "leaf_count": 370,
       "unresolved_count": 1
     },
     {
-      "variable": "gIFR_X_AlignCtrl",
-      "type": "IFR_X_AlignCtrl_typ",
-      "source": "Input\\IFR_X_Align\\IFR_X_AlignCtrl\\IFR_XAlignCtrl_Global.var",
-      "leaf_count": 357,
+      "variable": "gUW_Ctrl",
+      "type": "UW_Ctrl_typ",
+      "source": "PUW_RW\\UW\\UW_Ctrl_Global.var",
+      "leaf_count": 332,
       "unresolved_count": 0
     },
     {
       "variable": "gUW_Ctrl",
       "type": "UW_Ctrl_typ",
       "source": "PUW_RW\\UW_Ctrl\\UW_Ctrl_Global_Motion.var",
-      "leaf_count": 334,
+      "leaf_count": 332,
       "unresolved_count": 0
     },
     {
@@ -601,21 +699,21 @@
       "variable": "gFI_VAxis_Ctrl",
       "type": "Extended_FI_VAxis_typ",
       "source": "WHS\\WHS_Ctrl_Global_Motion.var",
-      "leaf_count": 313,
+      "leaf_count": 314,
       "unresolved_count": 0
     },
     {
       "variable": "gB2_VAxis_Ctrl",
       "type": "Extended_B2_VAxis_typ",
       "source": "WHS\\WHS_Ctrl_Global_Motion.var",
-      "leaf_count": 313,
+      "leaf_count": 314,
       "unresolved_count": 0
     },
     {
       "variable": "gFP_VAxis_Ctrl",
       "type": "Extended_FP_VAxis_typ",
       "source": "WHS\\WHS_Ctrl_Global_Motion.var",
-      "leaf_count": 313,
+      "leaf_count": 314,
       "unresolved_count": 0
     },
     {
@@ -626,10 +724,24 @@
       "unresolved_count": 0
     },
     {
+      "variable": "gIFR_X_AlignCtrl",
+      "type": "IFR_X_AlignCtrl_typ",
+      "source": "Input\\IFR_X_Align\\IFR_X_AlignCtrl\\IFR_XAlignCtrl_Global.var",
+      "leaf_count": 307,
+      "unresolved_count": 0
+    },
+    {
       "variable": "gDlcDrive",
       "type": "DlcDrive_typ",
       "source": "Duplex\\DuplexCtrl\\DuplexLinearConv\\DLC_Drive\\DLC_Drive_Globals.var",
-      "leaf_count": 292,
+      "leaf_count": 294,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gIOHandle_PUWRW",
+      "type": "IOHandle_PUWRW_typ",
+      "source": "PUW_RW\\General\\PUWRW_IO_Handler\\PUWRW_IOHandler_Globals.var",
+      "leaf_count": 288,
       "unresolved_count": 0
     },
     {
@@ -664,28 +776,42 @@
       "variable": "gWHN_Axis_Ctrl",
       "type": "Extended_WHN_Axis_typ",
       "source": "PUW_RW\\PRM_Ctrl\\WHN_Drive\\WHN_Axis_Globals.var",
-      "leaf_count": 263,
+      "leaf_count": 264,
       "unresolved_count": 0
     },
     {
       "variable": "gWHN_Axis_Ctrl",
       "type": "Extended_WHN_Axis_typ",
       "source": "PUW_RW\\PRM_Ctrl\\Gravure\\WHN_Drive\\WHN_Axis_Globals.var",
-      "leaf_count": 263,
+      "leaf_count": 264,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gWHN_Axis_Ctrl",
+      "type": "Extended_WHN_Axis_typ",
+      "source": "PUW_RW\\PRM\\WHN_Drive\\WHN_Axis_Globals.var",
+      "leaf_count": 264,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gWHN_Axis_Ctrl",
+      "type": "Extended_WHN_Axis_typ",
+      "source": "PUW_RW\\PRM\\Gravure\\WHN_Drive\\WHN_Axis_Globals.var",
+      "leaf_count": 264,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gRW_Axis_Ctrl",
+      "type": "Extended_RW_Axis_typ",
+      "source": "PUW_RW\\RW\\RW_Ctrl_Global_Motion.var",
+      "leaf_count": 260,
       "unresolved_count": 0
     },
     {
       "variable": "gRW_Axis_Ctrl",
       "type": "Extended_RW_Axis_typ",
       "source": "PUW_RW\\RW_Ctrl\\RW_Ctrl_Global_Motion.var",
-      "leaf_count": 259,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gEscCtrl",
-      "type": "ESC_CTRL_typ",
-      "source": "Exit\\ESC\\EscCtrl\\EscCtrlGlobal.var",
-      "leaf_count": 252,
+      "leaf_count": 260,
       "unresolved_count": 0
     },
     {
@@ -719,15 +845,15 @@
     {
       "variable": "gUW_Axis_Ctrl",
       "type": "Extended_UW_Axis_typ",
-      "source": "PUW_RW\\UW_Ctrl\\UW_Ctrl_Global_Motion.var",
-      "leaf_count": 231,
+      "source": "PUW_RW\\UW\\UW_Ctrl_Global.var",
+      "leaf_count": 232,
       "unresolved_count": 0
     },
     {
-      "variable": "gEpcCtrl",
-      "type": "EPC_CTRL_typ",
-      "source": "Exit\\EPC\\EpcCtrl\\EpcCtrlGlobal.var",
-      "leaf_count": 229,
+      "variable": "gUW_Axis_Ctrl",
+      "type": "Extended_UW_Axis_typ",
+      "source": "PUW_RW\\UW_Ctrl\\UW_Ctrl_Global_Motion.var",
+      "leaf_count": 232,
       "unresolved_count": 0
     },
     {
@@ -754,6 +880,13 @@
     {
       "variable": "CoronaCtrl",
       "type": "Corona_Ctrl_type",
+      "source": "PUW_RW\\Corona\\Corona_Ctrl_Globals.var",
+      "leaf_count": 219,
+      "unresolved_count": 1
+    },
+    {
+      "variable": "CoronaCtrl",
+      "type": "Corona_Ctrl_type",
       "source": "PUW_RW\\Corona_Ctrl\\Corona_Ctrl_Globals.var",
       "leaf_count": 219,
       "unresolved_count": 1
@@ -769,28 +902,28 @@
       "variable": "gDvcDrive",
       "type": "DvcDrive_typ",
       "source": "Duplex\\DuplexCtrl\\DuplexVacuumConv\\DVC_Drive\\DVC_Drive_Globals.var",
-      "leaf_count": 215,
+      "leaf_count": 217,
       "unresolved_count": 0
     },
     {
       "variable": "gFBI_Z_Axis_Ctrl",
       "type": "Extended_FBI_Axis_typ",
       "source": "WHS\\FBI\\FBI_Ctrl_Global.var",
-      "leaf_count": 213,
+      "leaf_count": 214,
       "unresolved_count": 0
     },
     {
       "variable": "gFBI_Xout_Axis_Ctrl",
       "type": "Extended_FBI_Axis_typ",
       "source": "WHS\\FBI\\FBI_Ctrl_Global.var",
-      "leaf_count": 213,
+      "leaf_count": 214,
       "unresolved_count": 0
     },
     {
       "variable": "gFBI_Xin_Axis_Ctrl",
       "type": "Extended_FBI_Axis_typ",
       "source": "WHS\\FBI\\FBI_Ctrl_Global.var",
-      "leaf_count": 213,
+      "leaf_count": 214,
       "unresolved_count": 0
     },
     {
@@ -811,14 +944,14 @@
       "variable": "gLph_Eng_Fr_Axis_Ctrl",
       "type": "LPH_axis_typ",
       "source": "LPH\\Lph_Eng_Ctrl_Global.var",
-      "leaf_count": 207,
+      "leaf_count": 208,
       "unresolved_count": 0
     },
     {
       "variable": "gLph_Eng_Re_Axis_Ctrl",
       "type": "LPH_axis_typ",
       "source": "LPH\\Lph_Eng_Ctrl_Global.var",
-      "leaf_count": 207,
+      "leaf_count": 208,
       "unresolved_count": 0
     },
     {
@@ -832,14 +965,7 @@
       "variable": "gAccNipCtrl",
       "type": "AccUnitCtrl_typ",
       "source": "ARAVA_ILP\\ilpPH\\AccUnit\\AccUnitCtrl\\AccUnitCtrlGlobal.var",
-      "leaf_count": 203,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gFIB_Ctrl",
-      "type": "FIB_Ctrl_typ",
-      "source": "Input\\BRG_FIB\\BRG_FIB_Ctrl\\FIB_Ctrl_Global.var",
-      "leaf_count": 200,
+      "leaf_count": 205,
       "unresolved_count": 0
     },
     {
@@ -847,6 +973,13 @@
       "type": "EBM_OM_Ctrl_typ",
       "source": "EBM_OM\\EBM_OM_Ctrl\\EBM_OM_Ctrl_Global.var",
       "leaf_count": 197,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gEscCtrl",
+      "type": "ESC_CTRL_typ",
+      "source": "Exit\\ESC\\EscCtrl\\EscCtrlGlobal.var",
+      "leaf_count": 191,
       "unresolved_count": 0
     },
     {
@@ -871,23 +1004,23 @@
       "unresolved_count": 0
     },
     {
-      "variable": "gILP_IO",
-      "type": "ILP_IO_type",
-      "source": "ARAVA_ILP\\ILP_Global.var",
-      "leaf_count": 179,
-      "unresolved_count": 0
-    },
-    {
       "variable": "gBrakeResistor_Axis_Ctrl",
       "type": "Extended_BrakeResistorAxis_typ",
       "source": "BrakeResistorCtrl\\BrakeResistor_Global.var",
-      "leaf_count": 179,
+      "leaf_count": 180,
       "unresolved_count": 0
     },
     {
       "variable": "gCS_Axis_Ctrl",
       "type": "Extended_CSAxis_typ",
       "source": "Cleaning_station\\CS_Global.var",
+      "leaf_count": 180,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gILP_IO",
+      "type": "ILP_IO_type",
+      "source": "ARAVA_ILP\\ILP_Global.var",
       "leaf_count": 179,
       "unresolved_count": 0
     },
@@ -916,7 +1049,7 @@
       "variable": "gIFR_M2",
       "type": "IFR_M2_typ",
       "source": "Input\\InputCtrlGlobal.var",
-      "leaf_count": 169,
+      "leaf_count": 171,
       "unresolved_count": 0
     },
     {
@@ -924,6 +1057,20 @@
       "type": "SLCSensorStatusReq_type",
       "source": "Safety\\SafetyGlobal.var",
       "leaf_count": 162,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gEngageRear",
+      "type": "Engage_typ",
+      "source": "ScndTrans\\EngageRear\\EngageRear_Drive\\EngageRear_Drive_Global.var",
+      "leaf_count": 157,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gEngageFront",
+      "type": "Engage_typ",
+      "source": "ScndTrans\\EngageFront\\EngageFront_Drive\\EngageFront_Drive_Global.var",
+      "leaf_count": 157,
       "unresolved_count": 0
     },
     {
@@ -941,17 +1088,10 @@
       "unresolved_count": 0
     },
     {
-      "variable": "gEngageRear",
-      "type": "Engage_typ",
-      "source": "ScndTrans\\EngageRear\\EngageRear_Drive\\EngageRear_Drive_Global.var",
-      "leaf_count": 155,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gEngageFront",
-      "type": "Engage_typ",
-      "source": "ScndTrans\\EngageFront\\EngageFront_Drive\\EngageFront_Drive_Global.var",
-      "leaf_count": 155,
+      "variable": "gGravure_Ctrl",
+      "type": "Gravure_Ctrl_type",
+      "source": "PUW_RW\\PRM\\Gravure\\Gravure_Ctrl\\Gravure_Ctrl_Globals.var",
+      "leaf_count": 156,
       "unresolved_count": 0
     },
     {
@@ -976,17 +1116,17 @@
       "unresolved_count": 0
     },
     {
+      "variable": "gIOHandle_Corona",
+      "type": "IOHandle_Corona_typ",
+      "source": "PUW_RW\\Corona\\Corona_IO_Handler\\Corona_IOHandler_Globals.var",
+      "leaf_count": 148,
+      "unresolved_count": 0
+    },
+    {
       "variable": "SD",
       "type": "DepoCtrl_typ",
       "source": "Stacker\\SD_SheetDepositing\\SD_Ctrl\\SD_Ctrl_Global.var",
       "leaf_count": 147,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gIFR_XLS_Ctrl",
-      "type": "IFR_XLS_Ctrl_typ",
-      "source": "Input\\IFR_XLS\\IFR_XLS_Ctrl\\IFR_XLS_Ctrl_Global.var",
-      "leaf_count": 144,
       "unresolved_count": 0
     },
     {
@@ -1032,6 +1172,13 @@
       "unresolved_count": 0
     },
     {
+      "variable": "gCamCtrl",
+      "type": "CamCtrl_typ",
+      "source": "Drums\\GDU\\CamCtrl\\CamCtrlGlobal.var",
+      "leaf_count": 139,
+      "unresolved_count": 0
+    },
+    {
       "variable": "gGhostCtrl",
       "type": "GhostCtrl_typ",
       "source": "ARAVA_ILP\\ilpPrimer\\GhostRolCtrl\\GhostCtrl\\GhostCtrlGlobal.var",
@@ -1046,94 +1193,73 @@
       "unresolved_count": 0
     },
     {
-      "variable": "gCamCtrl",
-      "type": "CamCtrl_typ",
-      "source": "Drums\\GDU\\CamCtrl\\CamCtrlGlobal.var",
-      "leaf_count": 137,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gEsc",
-      "type": "ESC_typ",
-      "source": "Exit\\ESC\\EscDrive\\EscDriveGlobal.var",
-      "leaf_count": 127,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gEpc",
-      "type": "EPC_typ",
-      "source": "Exit\\EPC\\EpcDrive\\EpcDriveGlobal.var",
-      "leaf_count": 124,
+      "variable": "gEpcCtrl",
+      "type": "EPC_CTRL_typ",
+      "source": "Exit\\EPC\\EpcCtrl\\EpcCtrlGlobal.var",
+      "leaf_count": 121,
       "unresolved_count": 0
     },
     {
       "variable": "gMainTest_Ctrl",
       "type": "Basic_axis_typ",
       "source": "BidEngCtrl\\BidEngCtrlGlobal.var",
-      "leaf_count": 113,
+      "leaf_count": 114,
       "unresolved_count": 0
     },
     {
       "variable": "ITM_BasicCtrl",
       "type": "Basic_axis_typ",
       "source": "BidEng_TB\\BidEng_TBGlobal.var",
-      "leaf_count": 113,
+      "leaf_count": 114,
       "unresolved_count": 0
     },
     {
       "variable": "BidDrive_BasicCtrl",
       "type": "Basic_axis_typ",
       "source": "BidEng_TB\\BidEng_TBGlobal.var",
-      "leaf_count": 113,
+      "leaf_count": 114,
       "unresolved_count": 0
     },
     {
       "variable": "CS_BasicCtrl",
       "type": "Basic_axis_typ",
       "source": "BidEng_TB\\BidEng_TBGlobal.var",
-      "leaf_count": 113,
+      "leaf_count": 114,
       "unresolved_count": 0
     },
     {
       "variable": "gFR_VAxis_Ctrl",
       "type": "Extended_FR_VAxis_typ",
       "source": "WHS\\WHS_Ctrl_Global_Motion.var",
-      "leaf_count": 113,
+      "leaf_count": 114,
       "unresolved_count": 0
     },
     {
-      "variable": "gFIB_M",
-      "type": "FIB_M_typ",
-      "source": "Input\\BRG_FIB\\BRG_FIB_Drive\\FIB_M_Global.var",
-      "leaf_count": 113,
+      "variable": "gIfrXLS_Axis_Ctrl",
+      "type": "Extended_IfrXLSMotorAxis_typ",
+      "source": "Input\\IFR_XLS\\IFR_XLS_Drive\\IFR_XLS_M_Global.var",
+      "leaf_count": 114,
       "unresolved_count": 0
     },
     {
       "variable": "gSTCKR_ESC_VAxis_Ctrl",
       "type": "Basic_axis_typ",
       "source": "HPStacker\\Transport_UnitCtrl\\TransUC_Globals.var",
-      "leaf_count": 113,
+      "leaf_count": 114,
       "unresolved_count": 0
     },
     {
       "variable": "gVaxNip_Axis_Ctrl",
       "type": "Extended_VaxNip_Axis_typ",
       "source": "BInput\\BarakInput\\Input_Ctrl_Global.var",
-      "leaf_count": 113,
+      "leaf_count": 114,
       "unresolved_count": 0
     },
     {
       "variable": "gBrgEngNip_Axis_Ctrl",
       "type": "Extended_BrgEngNip_Axis_typ",
       "source": "BInput\\BarakInput\\Input_Ctrl_Global.var",
-      "leaf_count": 113,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gIFR_X_Align_M",
-      "type": "IFR_X_AlignM_typ",
-      "source": "Input\\IFR_X_Align\\IFR_X_Align_Drive\\IFR_XAlignM_Global.var",
-      "leaf_count": 111,
+      "leaf_count": 114,
       "unresolved_count": 0
     },
     {
@@ -1147,6 +1273,13 @@
       "variable": "gFBI_Ctrl",
       "type": "FBI_Ctrl_typ",
       "source": "WHS\\FBI\\FBI_Ctrl_Global.var",
+      "leaf_count": 109,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gFIB_Ctrl",
+      "type": "FIB_Ctrl_typ",
+      "source": "Input\\BRG_FIB\\BRG_FIB_Ctrl\\FIB_Ctrl_Global.var",
       "leaf_count": 109,
       "unresolved_count": 0
     },
@@ -1272,8 +1405,29 @@
     {
       "variable": "gVetaphone",
       "type": "gVetaphone_type",
+      "source": "PUW_RW\\Corona\\Corona_Ctrl_Globals.var",
+      "leaf_count": 85,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gVetaphone",
+      "type": "gVetaphone_type",
       "source": "PUW_RW\\Corona_Ctrl\\Corona_Ctrl_Globals.var",
       "leaf_count": 85,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gPRM_VisuCtrl",
+      "type": "PRM_VisuCtrl_type",
+      "source": "PUW_RW\\PRM\\PRM_Ctrl_Globals.var",
+      "leaf_count": 83,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gPRM_VisuCtrl",
+      "type": "PRM_VisuCtrl_type",
+      "source": "PUW_RW\\PRM_Ctrl\\PRM_Ctrl_Globals.var",
+      "leaf_count": 83,
       "unresolved_count": 0
     },
     {
@@ -1361,13 +1515,6 @@
       "unresolved_count": 0
     },
     {
-      "variable": "gPRM_VisuCtrl",
-      "type": "PRM_VisuCtrl_type",
-      "source": "PUW_RW\\PRM_Ctrl\\PRM_Ctrl_Globals.var",
-      "leaf_count": 81,
-      "unresolved_count": 0
-    },
-    {
       "variable": "gIlpCleanerCtrl",
       "type": "DustRemovalCtrl_typ",
       "source": "ARAVA_ILP\\ilpDustRemoval\\lipCleanerCtrl\\ilpDustRemoveCtrlGlobalVar.var",
@@ -1382,10 +1529,10 @@
       "unresolved_count": 0
     },
     {
-      "variable": "gIFR_XLS_M",
-      "type": "IFR_XLS_M_typ",
-      "source": "Input\\IFR_XLS\\IFR_XLS_Drive\\IFR_XLS_M_Global.var",
-      "leaf_count": 75,
+      "variable": "gIFR_XLS_Ctrl",
+      "type": "IFR_XLS_Ctrl_typ",
+      "source": "Input\\IFR_XLS\\IFR_XLS_Ctrl\\IFR_XLS_Ctrl_Global.var",
+      "leaf_count": 77,
       "unresolved_count": 0
     },
     {
@@ -1406,6 +1553,20 @@
       "variable": "gPusher_Axis",
       "type": "Pusher_Axis_Interface_typ",
       "source": "PUW_RW\\PRM_Ctrl\\Dryer_Ctrl\\Dryer_Ctrl_Globals.var",
+      "leaf_count": 72,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gExtFan_Axis",
+      "type": "ExtFan_Axis_Interface_typ",
+      "source": "PUW_RW\\PRM\\Dryer_Ctrl\\Dryer_Ctrl_Globals.var",
+      "leaf_count": 72,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gPusher_Axis",
+      "type": "Pusher_Axis_Interface_typ",
+      "source": "PUW_RW\\PRM\\Dryer_Ctrl\\Dryer_Ctrl_Globals.var",
       "leaf_count": 72,
       "unresolved_count": 0
     },
@@ -1445,6 +1606,13 @@
       "unresolved_count": 0
     },
     {
+      "variable": "gEsc",
+      "type": "ESC_typ",
+      "source": "Exit\\ESC\\EscDrive\\EscDriveGlobal.var",
+      "leaf_count": 61,
+      "unresolved_count": 0
+    },
+    {
       "variable": "gILP_HMI",
       "type": "HMI_Typ",
       "source": "ARAVA_ILP\\ILP_Global.var",
@@ -1466,6 +1634,20 @@
       "unresolved_count": 0
     },
     {
+      "variable": "gCAN_OPEN_SYSTEM_UNIT",
+      "type": "CanOpen_type",
+      "source": "CanOpenSystem\\VariablesGlobal.var",
+      "leaf_count": 49,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gCAN_OPEN_SYSTEM_UNIT_SIM",
+      "type": "CanOpen_type",
+      "source": "CanOpenSystem\\VariablesGlobal.var",
+      "leaf_count": 49,
+      "unresolved_count": 0
+    },
+    {
       "variable": "gDuplexAntiScratch",
       "type": "DuplexAntiScratchs_typ",
       "source": "Exit\\ExitCtrl\\ExitCtrl_Globals.var",
@@ -1477,6 +1659,20 @@
       "type": "ImpBrakeCtrl_typ",
       "source": "Drums\\ImpBrakeDrive\\ImpBrakeCtrl\\ImpBrakeCtrlGlobal.var",
       "leaf_count": 47,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gIFR_X_Align_M",
+      "type": "IFR_X_AlignM_typ",
+      "source": "Input\\IFR_X_Align\\IFR_X_Align_Drive\\IFR_XAlignM_Global.var",
+      "leaf_count": 46,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gCor_Ctrl",
+      "type": "Cor_Ctrl_type",
+      "source": "PUW_RW\\Corona\\Corona_Ctrl_Globals.var",
+      "leaf_count": 45,
       "unresolved_count": 0
     },
     {
@@ -1573,6 +1769,13 @@
     {
       "variable": "gAhlbrandt",
       "type": "gAhlbrandt_type",
+      "source": "PUW_RW\\Corona\\Corona_Ctrl_Globals.var",
+      "leaf_count": 27,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gAhlbrandt",
+      "type": "gAhlbrandt_type",
       "source": "PUW_RW\\Corona_Ctrl\\Corona_Ctrl_Globals.var",
       "leaf_count": 27,
       "unresolved_count": 0
@@ -1589,6 +1792,13 @@
       "type": "GduCal_Mgr_typ",
       "source": "TPL\\GduCal_MgrGlobal.var",
       "leaf_count": 26,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gIOHandle_RW",
+      "type": "IOHandle_RW_typ",
+      "source": "PUW_RW\\RW\\RW_IO_Handler\\RW_IOHandler_Globals.var",
+      "leaf_count": 22,
       "unresolved_count": 0
     },
     {
@@ -1622,449 +1832,15 @@
     {
       "variable": "gErrorLogged",
       "type": "PRM_ErrorLogged_type",
-      "source": "PUW_RW\\PRM_Ctrl\\PRM_Ctrl_Globals.var",
+      "source": "PUW_RW\\PRM\\PRM_Ctrl_Globals.var",
       "leaf_count": 20,
       "unresolved_count": 0
     },
     {
-      "variable": "PUWDoor3Open",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "PUWDoor4Open",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "PUWDoor5Open",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "PUWDoor12Open",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "PUWDoor13Open",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "MainBlower_CB_Feedback",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "Blower_Req_From_Generator",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "Corona_3kW_Detected",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "ArmsMotorProtection",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "Blower_Kontactor_Feedback",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gDiPUWFeedbackK16RelayEn",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "DryerChamberCloseInd",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "ChuckAtOpenLimit",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "ChuckAtCloseLimit",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "ArmAtUnwindPosition",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "ArmAtLowerPosition",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "ChuckOnCore",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "HydraulicGearboxProtection",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gPUW_RW_IO_EmergencyON",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "RubberNipOpen",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "RubberNipClose",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "GravureNipOpen",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "GravureNipClose",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gUW_diFuse6",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gUW_diFuse7",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gUW_diFuse8",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gUW_diFuse9",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "PhaseOrderOK",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gCor_Ctrl_CB_Feedback",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gDiPUWNipEnRelayFeedback",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "PUWHeaterEnContactorFeedback",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "RubberSleeveAirPB",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "GravureSleeveAirPB",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "PUWHeaterEnRelayFeedback",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "HeaterContactorFeedback",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "PUWPrimerPumpOnRelayFeedback",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "PUWDoor1Open",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "PUWDoor2Open",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gCor_Ctrl_Blower_Fault",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "CoronaFanFault",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "gCor_Ctrl_Relay_Feedback",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "PUWCoronaEnRelayFeedback",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "InflateDeflateCorePB",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "SplicingTableOutClampOpened",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "SplicingTableInClampOpened",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "SplicingTableClampInPB",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "SplicingTableClampOutPB",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "TankRepActivationPB",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "SliceTableFolded",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "DripTrayLL",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "ChamberClosedFB",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "ChamberOpenFB",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "DripTrayHL",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "PRM_DancerLock",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "PRM_DancerUnlock",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "PRM_RubberSleeveReplacePos",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "PRM_RubberSleeveWorkingPos",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "PRM_WebGuide",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "UW_WebGuide",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "UW_ClampUnlockLeft",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "UW_ClampUnlockRight",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "PUWEmsPressedMotorSide",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "PUWEmsPressedOperatorSide",
-      "type": "DI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 19,
+      "variable": "gErrorLogged",
+      "type": "PRM_ErrorLogged_type",
+      "source": "PUW_RW\\PRM_Ctrl\\PRM_Ctrl_Globals.var",
+      "leaf_count": 20,
       "unresolved_count": 0
     },
     {
@@ -2099,41 +1875,6 @@
       "variable": "BidEng_SeqReportMsg",
       "type": "SeqReportQ_typ",
       "source": "BidEngCtrl\\BidEngCtrlGlobal.var",
-      "leaf_count": 18,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "TunnelTemp",
-      "type": "AI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 18,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "DryerHeaterTemp",
-      "type": "AI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 18,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "ChamberInletPressure",
-      "type": "AI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 18,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "UWDancerPos",
-      "type": "AI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
-      "leaf_count": 18,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "PRMDancerPosition",
-      "type": "AI_RuntimeCtrl_typ",
-      "source": "PUW_RW\\PUW_RW_Ctrl_Globals.var",
       "leaf_count": 18,
       "unresolved_count": 0
     },
@@ -2581,6 +2322,20 @@
     {
       "variable": "gRW_Axis",
       "type": "RW_Axis_Interface_typ",
+      "source": "PUW_RW\\RW\\RW_Ctrl_Global_Motion.var",
+      "leaf_count": 5,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gRW_Axis_Nip",
+      "type": "RW_Axis_Interface_typ",
+      "source": "PUW_RW\\RW\\RW_Ctrl_Global_Motion.var",
+      "leaf_count": 5,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gRW_Axis",
+      "type": "RW_Axis_Interface_typ",
       "source": "PUW_RW\\RW_Ctrl\\RW_Ctrl_Global_Motion.var",
       "leaf_count": 5,
       "unresolved_count": 0
@@ -2742,6 +2497,20 @@
     {
       "variable": "PRM_StatusReport_BufferRead",
       "type": "StatusReport_typ",
+      "source": "PUW_RW\\PRM\\PRM_Ctrl_Globals.var",
+      "leaf_count": 4,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "Dryer_StatusReport_BufferRead",
+      "type": "StatusReport_typ",
+      "source": "PUW_RW\\PRM\\PRM_Ctrl_Globals.var",
+      "leaf_count": 4,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "PRM_StatusReport_BufferRead",
+      "type": "StatusReport_typ",
       "source": "PUW_RW\\PRM_Ctrl\\PRM_Ctrl_Globals.var",
       "leaf_count": 4,
       "unresolved_count": 0
@@ -2756,6 +2525,20 @@
     {
       "variable": "RWSensorReportMsg",
       "type": "SensorStatusReport_typ",
+      "source": "PUW_RW\\RW\\RW_Ctrl_Global_Motion.var",
+      "leaf_count": 4,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "RW_StatusReport_BufferRead",
+      "type": "StatusReport_typ",
+      "source": "PUW_RW\\RW\\RW_Ctrl_Global_Motion.var",
+      "leaf_count": 4,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "RWSensorReportMsg",
+      "type": "SensorStatusReport_typ",
       "source": "PUW_RW\\RW_Ctrl\\RW_Ctrl_Global_Motion.var",
       "leaf_count": 4,
       "unresolved_count": 0
@@ -2764,6 +2547,20 @@
       "variable": "RW_StatusReport_BufferRead",
       "type": "StatusReport_typ",
       "source": "PUW_RW\\RW_Ctrl\\RW_Ctrl_Global_Motion.var",
+      "leaf_count": 4,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "UWStatusReportMsg",
+      "type": "StatusReport_typ",
+      "source": "PUW_RW\\UW\\UW_Ctrl_Global.var",
+      "leaf_count": 4,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "UWSensorReportMsg",
+      "type": "SensorStatusReport_typ",
+      "source": "PUW_RW\\UW\\UW_Ctrl_Global.var",
       "leaf_count": 4,
       "unresolved_count": 0
     },
@@ -2827,6 +2624,13 @@
       "variable": "gRW_Inv_Ctrl",
       "type": "Inverter_Ctrl_typ",
       "source": "NegevUW_ILP_RW\\NGV_RW\\NGV_RW_Global.var",
+      "leaf_count": 4,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gFIB_M",
+      "type": "FIB_M_typ",
+      "source": "Input\\BRG_FIB\\BRG_FIB_Drive\\FIB_M_Global.var",
       "leaf_count": 4,
       "unresolved_count": 0
     },
@@ -2966,6 +2770,13 @@
     {
       "variable": "CoronaSensorStatusReq",
       "type": "MsgSensorStateRequest_typ",
+      "source": "PUW_RW\\Corona\\Corona_Ctrl_Globals.var",
+      "leaf_count": 3,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "CoronaSensorStatusReq",
+      "type": "MsgSensorStateRequest_typ",
       "source": "PUW_RW\\Corona_Ctrl\\Corona_Ctrl_Globals.var",
       "leaf_count": 3,
       "unresolved_count": 0
@@ -2973,7 +2784,21 @@
     {
       "variable": "RWSensorReportReq",
       "type": "MsgSensorStateRequest_typ",
+      "source": "PUW_RW\\RW\\RW_Ctrl_Global_Motion.var",
+      "leaf_count": 3,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "RWSensorReportReq",
+      "type": "MsgSensorStateRequest_typ",
       "source": "PUW_RW\\RW_Ctrl\\RW_Ctrl_Global_Motion.var",
+      "leaf_count": 3,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "UWSensorReportReq",
+      "type": "MsgSensorStateRequest_typ",
+      "source": "PUW_RW\\UW\\UW_Ctrl_Global.var",
       "leaf_count": 3,
       "unresolved_count": 0
     },
@@ -2988,6 +2813,13 @@
       "variable": "gDryerFailureReportReport",
       "type": "Dryer_FailureReport_typ",
       "source": "PUW_RW\\PRM_Ctrl\\Dryer_Ctrl\\Dryer_Ctrl_Globals.var",
+      "leaf_count": 3,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "gDryerFailureReportReport",
+      "type": "Dryer_FailureReport_typ",
+      "source": "PUW_RW\\PRM\\Dryer_Ctrl\\Dryer_Ctrl_Globals.var",
       "leaf_count": 3,
       "unresolved_count": 0
     },
@@ -3104,20 +2936,6 @@
       "unresolved_count": 0
     },
     {
-      "variable": "CsJigQueueCmdRead",
-      "type": "TplToSubsystemCmd_type",
-      "source": "CSJig\\CsJigGlobal.var",
-      "leaf_count": 2,
-      "unresolved_count": 0
-    },
-    {
-      "variable": "CSJigCmd",
-      "type": "TplToSubsystemCmd_type",
-      "source": "CSJig\\CsJigGlobal.var",
-      "leaf_count": 2,
-      "unresolved_count": 0
-    },
-    {
       "variable": "HPStackerQBufferRead",
       "type": "MsgQ_typ",
       "source": "HPStacker\\HPStacker_Globals.var",
@@ -3218,6 +3036,27 @@
     {
       "variable": "CoronaQueueCmdRead",
       "type": "TplToSubsystemCmd_type",
+      "source": "PUW_RW\\Corona\\Corona_Ctrl_Globals.var",
+      "leaf_count": 2,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "CoronaBufferRead",
+      "type": "MsgQ_typ",
+      "source": "PUW_RW\\Corona\\Corona_Ctrl_Globals.var",
+      "leaf_count": 2,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "CoronaQBufferRead",
+      "type": "MsgQ_typ",
+      "source": "PUW_RW\\Corona\\Corona_Ctrl_Globals.var",
+      "leaf_count": 2,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "CoronaQueueCmdRead",
+      "type": "TplToSubsystemCmd_type",
       "source": "PUW_RW\\Corona_Ctrl\\Corona_Ctrl_Globals.var",
       "leaf_count": 2,
       "unresolved_count": 0
@@ -3239,6 +3078,20 @@
     {
       "variable": "PRMQBufferRead",
       "type": "MsgQ_typ",
+      "source": "PUW_RW\\PRM\\PRM_Ctrl_Globals.var",
+      "leaf_count": 2,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "DryerQBufferRead",
+      "type": "MsgQ_typ",
+      "source": "PUW_RW\\PRM\\PRM_Ctrl_Globals.var",
+      "leaf_count": 2,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "PRMQBufferRead",
+      "type": "MsgQ_typ",
       "source": "PUW_RW\\PRM_Ctrl\\PRM_Ctrl_Globals.var",
       "leaf_count": 2,
       "unresolved_count": 0
@@ -3253,7 +3106,21 @@
     {
       "variable": "RWQBufferRead",
       "type": "MsgQ_typ",
+      "source": "PUW_RW\\RW\\RW_Ctrl_Global_Motion.var",
+      "leaf_count": 2,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "RWQBufferRead",
+      "type": "MsgQ_typ",
       "source": "PUW_RW\\RW_Ctrl\\RW_Ctrl_Global_Motion.var",
+      "leaf_count": 2,
+      "unresolved_count": 0
+    },
+    {
+      "variable": "UWQBufferRead",
+      "type": "MsgQ_typ",
+      "source": "PUW_RW\\UW\\UW_Ctrl_Global.var",
       "leaf_count": 2,
       "unresolved_count": 0
     },
@@ -3477,6 +3344,13 @@
     {
       "variable": "gHPStackerIO",
       "type": "HPStackerIOs_typ",
+      "source": "HPStacker\\HPStacker_Globals.var",
+      "leaf_count": 0,
+      "unresolved_count": 1
+    },
+    {
+      "variable": "HPStacker_LocalSlcInputs",
+      "type": "HPStacker_LocalSlcInputs_typ",
       "source": "HPStacker\\HPStacker_Globals.var",
       "leaf_count": 0,
       "unresolved_count": 1
