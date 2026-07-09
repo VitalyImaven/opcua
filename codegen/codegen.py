@@ -50,7 +50,13 @@ DEFAULT_SKIP = {"MAIN"}
 # <CHUNK_SIZE-var sub-actions (VarMon_RegInit_<Sub>_p1, _p2, ...) so the
 # stepped dispatcher can register one bounded chunk per PLC cycle without
 # overrunning the task-class cycle time. See ProtoBufCom.st _CYCLIC driver.
-CHUNK_SIZE = 1000
+#
+# Sizing: each entry does VM_RegVarByName -> PV_xgetadr, a *name search through
+# the PLC's PV catalog* costing ~10-50 us/entry (worse under high CPU load,
+# e.g. firmware update at boot). At 1000/cycle this overran TC#7 (1.6 ms +
+# 9.6 ms tolerance = 11.2 ms budget). 50/cycle keeps a build cycle under ~5 ms
+# even at 100 us/entry; total build ~= 92k/50 * 1.6 ms ~= 3 s at startup.
+CHUNK_SIZE = 50
 
 # Per-subsystem file header (comment only; one or more ACTIONs follow).
 FILE_HEADER = """\
